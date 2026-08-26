@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>ORONTES | Hatay Tarım & Ticaret İlan Pazarı</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        lux: {
+                            dark: '#07332c',
+                            olive: '#485b46',
+                            sage: '#afb7ac',
+                            gold: '#bca879',
+                            bg: '#ededed'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icon Set -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet.js CSS (Harita Modülü) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { background-color: #ededed; }
+        .vip-card {
+            border: 1.5px solid #bca879;
+            box-shadow: 0 10px 25px -5px rgba(188, 168, 121, 0.25);
+            background: linear-gradient(180deg, #ffffff 0%, #faf8f5 100%);
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: 200%;
+            animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+        #map { height: 180px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        
+        /* iPhone / Netlify Çakışmasını Önleyen Katman & Yükseklik Ayarı */
+        .mobile-bottom-nav {
+            z-index: 9999 !important;
+            padding-top: 0.5rem;
+            padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
+        }
+    </style>
+</head>
+<body class="text-gray-800 font-sans antialiased pb-24 sm:pb-12">
+
+    <!-- HEADER / NAV -->
+    <header class="bg-lux-dark text-white sticky top-0 z-40 shadow-sm border-b border-lux-olive/40">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex justify-between items-center gap-2">
+            
+            <!-- MOBİLDE RAHAT GÖRÜNEN DİNAMİK LOGO ALANI -->
+            <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters()">
+                <div class="bg-white px-2.5 py-1 rounded-xl flex items-center justify-center shadow-md border border-lux-gold/30 hover:opacity-95 transition">
+                    <img src="logo.jpeg" alt="ORONTES" class="h-8 sm:h-10 w-auto max-w-[120px] sm:max-w-none object-contain block">
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+                <!-- GİRİŞ YAPILMAMIŞSA -->
+                <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
+                    <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-[11px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
+                    <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs transition">Kayıt Ol</button>
+                </div>
+
+                <!-- GİRİŞ YAPILMIŞSA -->
+                <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
+                    <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs border border-lux-gold/30 transition flex items-center space-x-1">
+                        <i class="fa-solid fa-user-gear"></i>
+                        <span>Hesabım</span>
+                    </button>
+                    <button onclick="handleLogout()" title="Çıkış Yap" class="text-gray-300 hover:text-red-400 text-xs px-1.5 py-1"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    <button onclick="openFormModal()" class="hidden sm:flex bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition items-center space-x-1.5">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>İlan Ver</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- GERÇEK İLANLARDAN OLUŞAN CANLI HAL FİYAT ENDEKSİ BARI -->
+    <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
+        <div class="animate-marquee whitespace-nowrap flex space-x-8 items-center" id="marquee-container">
+            <!-- JavaScript ile doldurulur -->
+        </div>
+    </div>
+
+    <!-- HERO SECTION -->
+    <section class="bg-lux-dark text-white py-8 sm:py-10 px-4 border-b border-lux-olive/30">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-xl sm:text-4xl font-light tracking-tight mb-2">Hatay’ın Üretici ve Toptancı Pazarı</h1>
+            <p class="text-lux-sage max-w-xl mx-auto text-xs sm:text-sm font-light">Doğrudan üreticiden alıcıya, komisyonsuz ve aracısız dijital pazar yeri.</p>
+        </div>
+    </section>
+
+    <!-- GELİŞMİŞ FİLTRELEME VE ARAMA BAR -->
+    <section id="filter-section" class="max-w-7xl mx-auto px-4 -mt-6 relative z-20">
+        <div class="bg-white p-3.5 rounded-2xl shadow-md border border-gray-200/80 flex flex-col gap-2.5">
+            <div class="flex flex-col lg:flex-row gap-2.5 items-center">
+                <div class="w-full lg:flex-1 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400 text-xs"></i>
+                    <input type="text" id="search-input" onkeyup="filterListings()" placeholder="Ürün adı, zeytinyağı, nar ekşisi, nakliye ara..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive text-xs text-gray-700 bg-lux-bg/30">
+                </div>
+
+                <div class="w-full lg:w-auto flex flex-wrap sm:flex-nowrap gap-2">
+                    <select id="category-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
+                        <option value="">Tüm Kategoriler</option>
+                        <option value="Zeytin & Yağ">Zeytin & Zeytinyağı</option>
+                        <option value="Narenciye">Narenciye & Meyve</option>
+                        <option value="Salça & Sos">Salça, Sos & Baharat</option>
+                        <option value="Nakliye">Nakliye & Lojistik</option>
+                        <option value="Diğer">Diğer Tarım Ürünleri</option>
+                    </select>
+
+                    <select id="district-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
+                        <option value="">Tüm Hatay (İlçeler)</option>
+                        <option value="Altınözü">Altınözü</option>
+                        <option value="Antakya">Antakya</option>
+                        <option value="Arsuz">Arsuz</option>
+                        <option value="Dörtyol">Dörtyol</option>
+                        <option value="Erzin">Erzin</option>
+                        <option value="İskenderun">İskenderun</option>
+                        <option value="Kırıkhan">Kırıkhan</option>
+                        <option value="Samandağ">Samandağ</option>
+                        <option value="Reyhanlı">Reyhanlı</option>
+                        <option value="Hassa">Hassa</option>
+                        <option value="Belen">Belen</option>
+                        <option value="Yayladağı">Yayladağı</option>
+                    </select>
+
+                    <select id="sort-filter" onchange="filterListings()" class="w-full sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs font-medium text-lux-dark">
+                        <option value="newest">En Yeniler</option>
+                        <option value="oldest">En Eskiler</option>
+                        <option value="price-low">Fiyat: Artan</option>
+                        <option value="price-high">Fiyat: Azalan</option>
+                    </select>
+
+                    <button onclick="resetAllFilters()" title="Filtreleri Sıfırla" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FİYAT ARALIĞI VE ÇKS FİLTRESİ -->
+            <div class="flex flex-wrap items-center justify-between border-t border-gray-100 pt-2 gap-2 text-xs">
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400 font-semibold text-[10px] uppercase">Fiyat (TL):</span>
+                    <input type="number" id="min-price-filter" onkeyup="filterListings()" placeholder="Min TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
+                    <span class="text-gray-300">-</span>
+                    <input type="number" id="max-price-filter" onkeyup="filterListings()" placeholder="Maks TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
+                </div>
+                <label class="flex items-center space-x-1.5 cursor-pointer bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
+                    <input type="checkbox" id="verified-only-filter" onchange="filterListings()" class="accent-emerald-700">
+                    <span><i class="fa-solid fa-shield-halved text-emerald-600"></i> Sadece ÇKS Onaylı Üreticiler</span>
+                </label>
+            </div>
+        </div>
+    </section>
+
+    <!-- İLAN LİSTESİ VE SAYFALAMA -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-base font-semibold text-lux-dark flex items-center space-x-2">
+                <span>Vitrin İlanları</span>
+                <span id="total-count" class="text-xs text-gray-400 font-normal">(Yükleniyor...)</span>
+            </h2>
+
+            <div class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80">
+                <button id="view-grid-btn" onclick="setViewMode('grid')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
+                <button id="view-list-btn" onclick="setViewMode('list')" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
+            </div>
+        </div>
+
+        <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            <!-- İlanlar Firebase Canlı Veritabanından Gelecek -->
+        </div>
+
+        <!-- SAYFALAMA BARI -->
+        <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2">
+            <!-- JavaScript ile Doldurulur -->
+        </div>
+    </main>
+
+    <!-- SSS VE İLETİŞİM ALANI -->
+    <section class="max-w-7xl mx-auto px-4 my-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 class="font-bold text-lux-dark text-sm uppercase mb-4 flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-question text-lux-gold"></i>
+                    <span>Sıkça Sorulan Sorular</span>
+                </h3>
+                <div class="space-y-3 text-xs text-gray-600">
+                    <div>
+                        <p class="font-semibold text-gray-800">İlan vermek gerçekten ücretsiz mi?</p>
+                        <p class="font-light">Evet, ORONTES üzerinde tüm üretici ve toptancılar ücretsiz ilan açabilir.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">Doğrulanmış Üretici Rozeti nasıl alınır?</p>
+                        <p class="font-light">Hesabım bölümünden ÇKS belgenizi yükleyebilirsiniz. Sistem belgenizi anında tarayıp onay verecektir.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-lux-dark text-white p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-lux-gold text-sm uppercase mb-2 flex items-center space-x-2">
+                        <i class="fa-solid fa-headset"></i>
+                        <span>Destek & İletişim</span>
+                    </h3>
+                    <p class="text-xs text-lux-sage font-light mb-4">Soru, öneri veya destek talepleriniz için bize e-posta ile ulaşabilirsiniz.</p>
+                    <div class="space-y-2 text-xs">
+                        <p><i class="fa-solid fa-envelope text-lux-gold mr-2"></i> destek@oronteshatay.com.tr</p>
+                    </div>
+                </div>
+                <div class="border-t border-lux-olive/40 pt-3 mt-4 flex justify-between items-center text-[10px] text-lux-sage">
+                    <span>© 2026 ORONTES Hatay Tarım & Ticaret Pazarı.</span>
+                    <button onclick="openTermsModal()" class="hover:underline text-lux-gold font-semibold">Yasal Uyarı ve Sorumluluk Reddi</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MOBİL ALT GEZİNTİ BARI (TAM HİZALANMIŞ VE KUSURSUZ YÜKSEKLİK) -->
+    <div class="sm:hidden fixed bottom-0 left-0 right-0 bg-lux-dark text-white border-t border-lux-olive/40 px-6 flex justify-between items-center shadow-2xl mobile-bottom-nav">
+        <button onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});" class="flex flex-col items-center text-lux-sage hover:text-white text-[10px]">
+            <i class="fa-solid fa-house text-base mb-1"></i>
+            <span>Vitrin</span>
+        </button>
+        <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth'});" class="flex flex-col items-center text-lux-sage hover:text-white text-[10px]">
+            <i class="fa-solid fa-filter text-base mb-1"></i>
+            <span>Filtrele</span>
+        </button>
+        <button onclick="openFormModal()" class="flex flex-col items-center text-lux-gold hover:text-white text-[10px] font-bold">
+            <i class="fa-solid fa-square-plus text-lg mb-1"></i>
+            <span>İlan Ver</span>
+        </button>
+        <button onclick="openAccountModal()" class="flex flex-col items-center text-lux-sage hover:text-white text-[10px]">
+            <i class="fa-solid fa-user text-base mb-1"></i>
+            <span>Hesabım</span>
+        </button>
+    </div>
+
+    <!-- MODAL: HESABIM, FAVORİLERİM, GELEN TEKLİFLER VE BİLGİ GÜNCELLEME -->
+    <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
+            <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
+                <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase" id="account-avatar">U</div>
+                <div>
+                    <h3 class="font-bold text-lux-dark text-base flex items-center space-x-2">
+                        <span id="account-username">Kullanıcı Adı</span>
+                        <span id="account-verified-icon" class="hidden text-emerald-600 text-xs" title="Doğrulanmış Üretici"><i class="fa-solid fa-circle-check"></i> DOĞRULANMIŞ ÜRETİCİ</span>
+                    </h3>
+                    <p class="text-xs text-gray-400" id="account-email">email@domain.com</p>
+                </div>
+            </div>
+
+            <!-- SEKMELİ YÖNETİM PANELİ -->
+            <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500">
+                <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark">İlanlarım</button>
+                <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Favorilerim</button>
+                <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Gelen Teklifler</button>
+                <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Profil Ayarları</button>
+            </div>
+
+            <!-- TAB 1: BENİM İLANLARIM -->
+            <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+
+            <!-- TAB 2: FAVORİLERİM -->
+            <div id="tab-content-favorites" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+
+            <!-- TAB 3: GELEN TEKLİFLER -->
+            <div id="tab-content-offers" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+
+            <!-- TAB 4: PROFİL & ÇKS GÜNCELLEME -->
+            <div id="tab-content-settings" class="hidden space-y-4">
+                <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
+                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Tüm Hesap Bilgilerini Güncelle</span>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase font-semibold">Kullanıcı Adı / Ad Soyad</label>
+                            <input type="text" id="update-username" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 uppercase font-semibold">WhatsApp Tel</label>
+                                <input type="tel" id="update-phone" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni E-Posta</label>
+                                <input type="email" id="update-email-input" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni Şifre</label>
+                                <input type="password" id="update-password-input" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-red-600 uppercase">Mevcut Şifreniz*</label>
+                                <input type="password" id="update-current-password" class="w-full border border-red-200 p-2 rounded-lg text-xs outline-none bg-white">
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Tüm Bilgileri Kaydet ve Güncelle</button>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-emerald-900 block"><i class="fa-solid fa-file-contract text-emerald-600 mr-1"></i> ÇKS Belgesi Doğrulama</span>
+                        <span id="cks-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-600">Henüz Yüklenmedi</span>
+                    </div>
+                    <div class="flex items-center space-x-2 pt-1">
+                        <input type="file" id="cks-file-input" accept="image/*,.pdf" class="w-full border border-emerald-300 p-1 rounded-lg text-[11px] bg-white text-gray-600">
+                        <button onclick="processCksDocument()" id="cks-upload-btn" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap shadow-sm">
+                            Sistem İncelesin
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: İLAN DETAY & CANLI HARİTA & TEKLİF VERME -->
+    <div id="detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+            <div class="relative h-60">
+                <img id="detail-img" src="" class="w-full h-full object-cover">
+                <button id="detail-fav-btn" onclick="toggleFavorite(window.activeListingId)" class="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition">
+                    <i class="fa-solid fa-heart"></i>
+                </button>
+            </div>
+            
+            <div class="p-5">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <div class="flex items-center space-x-1.5 flex-wrap gap-1">
+                            <span id="detail-category" class="text-[10px] bg-lux-bg text-lux-dark font-semibold px-2 py-0.5 rounded-md">Kategori</span>
+                            <span id="detail-verified-badge" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md"><i class="fa-solid fa-circle-check"></i> Doğrulanmış Üretici</span>
+                            <span id="detail-time-badge" class="text-[10px] bg-gray-100 text-gray-600 font-medium px-2 py-0.5 rounded-md">Zaman</span>
+                        </div>
+                        <h2 id="detail-title" class="text-lg font-bold mt-1 text-lux-dark">İlan Başlığı</h2>
+                        <p id="detail-location" class="text-xs text-gray-400 mt-0.5"><i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / Samandağ</p>
+                    </div>
+                    <div class="text-right">
+                        <span id="detail-price" class="text-xl font-bold text-lux-dark block">0 TL</span>
+                        <span id="detail-unit" class="text-[10px] text-gray-400">Birim</span>
+                    </div>
+                </div>
+
+                <hr class="my-3 border-gray-100">
+                <div class="mb-4">
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Açıklama</h4>
+                    <p id="detail-desc" class="text-gray-600 text-xs leading-relaxed whitespace-pre-line">İlan açıklaması...</p>
+                </div>
+
+                <!-- CANLI HATAY İLÇE HARİTASI -->
+                <div class="mb-5">
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1"><i class="fa-solid fa-map-location-dot text-lux-gold mr-1"></i> Ürün Konumu (Hatay)</h4>
+                    <div id="map"></div>
+                </div>
+
+                <!-- DOĞRUDAN FİYAT TEKLİFİ VERME ALANI -->
+                <div class="bg-amber-50/60 border border-amber-200/80 p-3 rounded-xl mb-4 space-y-2">
+                    <span class="text-xs font-bold text-amber-900 block"><i class="fa-solid fa-handshake text-amber-600 mr-1"></i> Satıcıya Özel Fiyat Teklifi Gönder</span>
+                    <div class="flex gap-2">
+                        <input type="number" id="offer-price-input" placeholder="Teklif Birim Fiyatı (TL)" class="w-1/2 border border-amber-200 p-1.5 rounded-lg text-xs bg-white outline-none">
+                        <input type="text" id="offer-note-input" placeholder="Miktar / Not (Örn: 10 Ton)" class="w-1/2 border border-amber-200 p-1.5 rounded-lg text-xs bg-white outline-none">
+                    </div>
+                    <button onclick="submitPriceOffer()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm">Teklifi İlet</button>
+                </div>
+
+                <div class="bg-lux-bg/40 p-3.5 rounded-xl flex items-center justify-between border border-gray-200/60 flex-wrap gap-2">
+                    <div>
+                        <span class="text-[9px] text-gray-400 uppercase font-bold block">Satıcı / Toptancı</span>
+                        <span id="detail-seller" class="font-bold text-lux-dark text-sm">Ahmet Yılmaz</span>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <button onclick="openReportModal()" title="Şikayet Et" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition text-xs"><i class="fa-solid fa-flag"></i></button>
+                        <button id="edit-btn" onclick="openFormModalForEdit()" class="hidden bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Düzenle</button>
+                        <button id="delete-btn" onclick="deleteCurrentListing()" class="hidden bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Sil</button>
+                        <button onclick="shareOnWhatsApp()" title="WhatsApp'ta Paylaş" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>Paylaş</span>
+                        </button>
+                        <a id="detail-whatsapp" href="#" target="_blank" class="bg-lux-dark text-white px-3 py-1.5 rounded-lg font-semibold text-xs shadow-sm">İletişim</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GİRİŞ / KAYIT -->
+    <div id="auth-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative border border-gray-100">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="auth-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Giriş Yap</h3>
+            <p class="text-xs text-gray-500 mb-4">İlan vermek ve teklif iletmek için hesabınıza girin.</p>
+
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-3">
+                <input type="hidden" id="auth-mode" value="login">
+                <div id="register-fields-box" class="hidden space-y-3">
+                    <input type="text" id="auth-username" placeholder="Kullanıcı Adı / Ad Soyad*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="tel" id="auth-phone" placeholder="WhatsApp Tel (05XX...)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                </div>
+                <input type="email" id="auth-email" required placeholder="E-Posta Adresi*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                <input type="password" id="auth-password" required minlength="6" placeholder="Şifre*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
+            </form>
+            <div class="mt-4 text-center">
+                <button id="auth-switch-btn" onclick="toggleAuthMode()" class="text-xs text-lux-olive hover:underline font-semibold">Hesabın yok mu? Kayıt Ol</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: İLAN EKLEME VE DÜZENLEME FORMU -->
+    <div id="form-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
+            <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Ücretsiz İlan Oluştur</h3>
+            <p class="text-xs text-gray-500 mb-4">Ürününüzü Hatay genelindeki alıcılara ücretsiz ulaştırın.</p>
+
+            <form id="add-listing-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+                <input type="hidden" id="edit-listing-id" value="">
+                <input type="text" id="form-title" required placeholder="İlan Başlığı*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="Zeytin & Yağ">Zeytin & Yağ</option>
+                        <option value="Narenciye">Narenciye</option>
+                        <option value="Salça & Sos">Salça & Sos</option>
+                        <option value="Nakliye">Nakliye</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                    <select id="form-district" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="Altınözü">Altınözü</option>
+                        <option value="Antakya">Antakya</option>
+                        <option value="Arsuz">Arsuz</option>
+                        <option value="Dörtyol">Dörtyol</option>
+                        <option value="Erzin">Erzin</option>
+                        <option value="İskenderun">İskenderun</option>
+                        <option value="Kırıkhan">Kırıkhan</option>
+                        <option value="Samandağ">Samandağ</option>
+                        <option value="Reyhanlı">Reyhanlı</option>
+                        <option value="Hassa">Hassa</option>
+                        <option value="Belen">Belen</option>
+                        <option value="Yayladağı">Yayladağı</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="number" id="form-price" required placeholder="Fiyat (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="text" id="form-unit" placeholder="Miktar / Birim (Litre / Ton)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="form-seller" required placeholder="Ad Soyad / Firma*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="tel" id="form-phone" required placeholder="WhatsApp Tel*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">Ürün Fotoğrafı</label>
+                    <input type="file" id="form-file" accept="image/*" onchange="compressAndConvertImage(event)" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
+                    <input type="hidden" id="form-image">
+                </div>
+                <textarea id="form-desc" rows="2" placeholder="Ürün açıklaması..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                
+                <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-lux-dark">⭐ VIP Vitrin Rozeti</span>
+                        <input type="checkbox" id="form-vip" checked class="accent-lux-gold cursor-pointer">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-red-700">🔥 Acil Satılık Rozeti</span>
+                        <input type="checkbox" id="form-urgent" class="accent-red-600 cursor-pointer">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-lux-olive">🏷️ Fiyatı Düşen İlan</span>
+                        <input type="checkbox" id="form-discount" class="accent-lux-olive cursor-pointer">
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">İlanı Kaydet</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: YASAL UYARI & ŞİKAYET -->
+    <div id="terms-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
+            <button onclick="closeTermsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="font-bold text-lux-dark text-base mb-3"><i class="fa-solid fa-scale-balanced text-lux-gold mr-1"></i> Yasal Uyarı ve Kullanım Koşulları</h3>
+            <p class="text-xs text-gray-600 leading-relaxed font-light">ORONTES, Hatay bölgesindeki tarım üreticileri ve alıcıları bir araya getiren bağımsız bir ilan platformudur. İlan içeriklerinin ve gerçekleşen ticari anlaşmaların hukuki sorumluluğu kullanıcılara aittir.</p>
+            <button onclick="closeTermsModal()" class="w-full mt-4 bg-lux-dark text-white font-bold py-2 rounded-xl text-xs">Anladım</button>
+        </div>
+    </div>
+
+    <div id="report-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="closeReportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="font-bold text-lux-dark text-sm mb-1"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> İlanı Bildir</h3>
+            <form onsubmit="handleReportSubmit(event)" class="space-y-3 mt-3">
+                <select id="report-reason" required class="w-full border border-gray-200 p-2 rounded-xl text-xs outline-none bg-white">
+                    <option value="">Şikayet Nedeni Seçin*</option>
+                    <option value="Hatalı Fiyat">Hatalı Fiyat</option>
+                    <option value="Sahte İlan">Sahte İlan</option>
+                    <option value="Ulaşılamıyor">Ulaşılamıyor</option>
+                </select>
+                <textarea id="report-note" rows="2" placeholder="Ek not..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                <button type="submit" id="report-btn" class="w-full bg-red-600 text-white font-bold py-2 rounded-xl text-xs">Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- LEAFLET.JS HARİTA SCRIPTI -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- FIREBASE AUTH & REALTIME DATABASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
+            authDomain: "orontes-886a3.firebaseapp.com",
+            databaseURL: "https://orontes-886a3-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "orontes-886a3",
+            storageBucket: "orontes-886a3.firebasestorage.app",
+            messagingSenderId: "220241708945",
+            appId: "1:220241708945:web:1a638ad256a7872282fc30",
+            measurementId: "G-WP8LYJG7N9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        window.db = db;
+        window.ref = ref;
+        window.push = push;
+        window.remove = remove;
+        window.update = update;
+        window.currentUser = null;
+        window.userExtraData = { favorites: {}, offers: {} };
+        window.listings = [];
+        window.filteredListings = [];
+        window.currentViewMode = 'grid';
+        window.activeListingId = null;
+        window.mapInstance = null;
+        
+        window.currentPage = 1;
+        window.itemsPerPage = 12;
+
+        // OTURUM DİNLENİYOR
+        onAuthStateChanged(auth, async (user) => {
+            window.currentUser = user;
+            const loggedOutBox = document.getElementById('auth-logged-out');
+            const loggedInBox = document.getElementById('auth-logged-in');
+
+            if (user) {
+                loggedOutBox.classList.add('hidden');
+                loggedInBox.classList.remove('hidden');
+                
+                const userRef = ref(db, 'users/' + user.uid);
+                const snap = await get(userRef);
+                if (snap.exists()) {
+                    window.userExtraData = snap.val();
+                    if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
+                }
+            } else {
+                loggedOutBox.classList.remove('hidden');
+                loggedInBox.classList.add('hidden');
+                window.userExtraData = { favorites: {} };
+            }
+            renderListings();
+        });
+
+        // CANLI VERİTABANI DİNLER
+        onValue(ref(db, 'listings'), (snapshot) => {
+            const data = snapshot.val();
+            window.listings = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+            filterListings();
+            updateMarqueeData();
+        });
+
+        // GİRİŞ / KAYIT
+        window.handleAuthSubmit = async function(e) {
+            e.preventDefault();
+            const mode = document.getElementById('auth-mode').value;
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const username = document.getElementById('auth-username').value;
+            const phone = document.getElementById('auth-phone').value;
+            const btn = document.getElementById('auth-submit-btn');
+
+            btn.disabled = true;
+            btn.innerText = "İşlem yapılıyor...";
+
+            try {
+                if (mode === 'login') {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    const res = await createUserWithEmailAndPassword(auth, email, password);
+                    if (username) await updateProfile(res.user, { displayName: username });
+                    await update(ref(db, 'users/' + res.user.uid), {
+                        username: username,
+                        phone: phone,
+                        email: email,
+                        isVerified: false
+                    });
+                }
+                closeAuthModal();
+            } catch (err) {
+                alert("Hata: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = mode === 'login' ? "Giriş Yap" : "Kayıt Ol";
+            }
+        };
+
+        window.handleLogout = function() { signOut(auth); };
+
+        // FAVORİ EKLE / ÇIKAR
+        window.toggleFavorite = async function(id) {
+            if (!window.currentUser) {
+                alert("Favorilere eklemek için giriş yapmalısınız.");
+                openAuthModal('login');
+                return;
+            }
+
+            const favRef = ref(db, `users/${window.currentUser.uid}/favorites/${id}`);
+            if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
+                await remove(favRef);
+                delete window.userExtraData.favorites[id];
+                alert("İlan favorilerinizden çıkarıldı.");
+            } else {
+                await update(ref(db, `users/${window.currentUser.uid}/favorites`), { [id]: true });
+                if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
+                window.userExtraData.favorites[id] = true;
+                alert("İlan favorilerinize eklendi!");
+            }
+            renderListings();
+            updateFavBtnStyle(id);
+        };
+
+        // FİYAT TEKLİFİ GÖNDERME
+        window.submitPriceOffer = async function() {
+            if (!window.currentUser) {
+                alert("Teklif vermek için giriş yapmalısınız.");
+                openAuthModal('login');
+                return;
+            }
+            const price = document.getElementById('offer-price-input').value;
+            const note = document.getElementById('offer-note-input').value;
+
+            if (!price) {
+                alert("Lütfen teklif ettiğiniz birim fiyatı girin.");
+                return;
+            }
+
+            const item = window.listings.find(l => l.id === window.activeListingId);
+            if (!item) return;
+
+            try {
+                await push(ref(db, 'offers'), {
+                    listingId: item.id,
+                    listingTitle: item.title,
+                    sellerUid: item.uid,
+                    buyerUid: window.currentUser.uid,
+                    buyerName: window.currentUser.displayName || window.currentUser.email,
+                    buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
+                    offeredPrice: price,
+                    note: note,
+                    status: 'Beklemede',
+                    date: Date.now()
+                });
+                alert("Teklifiniz ilan sahibine başarıyla iletildi!");
+                document.getElementById('offer-price-input').value = '';
+                document.getElementById('offer-note-input').value = '';
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
+        };
+
+        // İLAN FORM SUBMIT
+        window.handleFormSubmit = async function(e) {
+            e.preventDefault();
+            if (!window.currentUser) return;
+
+            const editId = document.getElementById('edit-listing-id').value;
+            const category = document.getElementById('form-category').value;
+            
+            const listingData = {
+                uid: window.currentUser.uid,
+                userEmail: window.currentUser.email,
+                title: document.getElementById('form-title').value,
+                category: category,
+                district: document.getElementById('form-district').value,
+                price: Number(document.getElementById('form-price').value),
+                unit: document.getElementById('form-unit').value || 'Birim Belirtilmedi',
+                seller: document.getElementById('form-seller').value,
+                phone: document.getElementById('form-phone').value,
+                desc: document.getElementById('form-desc').value,
+                image: document.getElementById('form-image').value || getDefaultImage(category),
+                isVerified: window.userExtraData.isVerified || false,
+                isVip: document.getElementById('form-vip').checked,
+                isUrgent: document.getElementById('form-urgent').checked,
+                isDiscount: document.getElementById('form-discount').checked,
+                date: Date.now()
+            };
+
+            try {
+                if (editId) {
+                    await update(ref(db, 'listings/' + editId), listingData);
+                    alert('İlan güncellendi!');
+                } else {
+                    await push(ref(db, 'listings'), listingData);
+                    alert('İlan yayınlandı!');
+                }
+                closeFormModal();
+                closeDetailModal();
+            } catch (err) {
+                alert('Hata: ' + err.message);
+            }
+        };
+    </script>
+
+    <script>
+        // HATAY İLÇELERİ KOORDİNAT HARİTASI
+        const districtCoords = {
+            'Altınözü': [36.1176, 36.2472],
+            'Antakya': [36.2023, 36.1613],
+            'Arsuz': [36.4111, 35.8858],
+            'Dörtyol': [36.8528, 36.2239],
+            'Erzin': [36.9531, 36.2031],
+            'İskenderun': [36.5872, 36.1733],
+            'Kırıkhan': [36.4981, 36.3564],
+            'Samandağ': [36.0842, 35.9575],
+            'Reyhanlı': [36.2683, 36.5681],
+            'Hassa': [36.7972, 36.5186],
+            'Belen': [36.4889, 36.1944],
+            'Yayladağı': [35.9033, 36.0594]
+        };
+
+        function renderMap(district) {
+            const coords = districtCoords[district] || [36.2023, 36.1613];
+            
+            if (window.mapInstance) {
+                window.mapInstance.remove();
+            }
+
+            window.mapInstance = L.map('map').setView(coords, 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(window.mapInstance);
+
+            L.marker(coords).addTo(window.mapInstance)
+                .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${district}`)
+                .openPopup();
+        }
+
+        function shareOnWhatsApp() {
+            const item = (window.listings || []).find(l => l.id === window.activeListingId);
+            if (!item) return;
+            const text = `📌 *ORONTES HATAY PAZARI*\n\n🌾 *${item.title}*\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: Hatay / ${item.district}\n\nİlanı İnceleyin: ${window.location.href}`;
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function updateFavBtnStyle(id) {
+            const btn = document.getElementById('detail-fav-btn');
+            if(!btn) return;
+            if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
+                btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center text-base shadow hover:scale-110 transition";
+            } else {
+                btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition";
+            }
+        }
+
+        function switchAccountTab(tab) {
+            ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
+                document.getElementById(`tab-content-${t}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
+            });
+
+            document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
+
+            if (tab === 'favorites') loadFavoriteListings();
+            if (tab === 'offers') loadIncomingOffers();
+        }
+
+        function loadFavoriteListings() {
+            const container = document.getElementById('tab-content-favorites');
+            const favIds = Object.keys(window.userExtraData.favorites || {});
+            const favItems = (window.listings || []).filter(l => favIds.includes(l.id));
+
+            container.innerHTML = '';
+            if (favItems.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz favori ilanınız bulunmuyor.</p>`;
+                return;
+            }
+
+            favItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
+                        <div>
+                            <span class="font-bold text-lux-dark block line-clamp-1">${item.title}</span>
+                            <span class="text-[10px] text-gray-500">${item.price} TL • ${item.district}</span>
+                        </div>
+                    </div>
+                    <button onclick="openDetailModal('${item.id}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function loadIncomingOffers() {
+            const container = document.getElementById('tab-content-offers');
+            container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+
+            const snap = await window.get(window.ref(window.db, 'offers'));
+            const data = snap.val();
+
+            if (!data) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+                return;
+            }
+
+            const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]})).filter(o => o.sellerUid === window.currentUser.uid);
+            container.innerHTML = '';
+
+            if (myOffers.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+                return;
+            }
+
+            myOffers.forEach(o => {
+                const div = document.createElement('div');
+                div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-1";
+                div.innerHTML = `
+                    <div class="flex justify-between font-bold text-amber-900">
+                        <span>📌 ${o.listingTitle}</span>
+                        <span class="text-emerald-700">${o.offeredPrice} TL Teklif</span>
+                    </div>
+                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${o.buyerName}</b> (Tel: ${o.buyerPhone})</p>
+                    ${o.note ? `<p class="text-[10px] text-gray-500 italic">Not: "${o.note}"</p>` : ''}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function getTimeAgo(timestamp) {
+            if (!timestamp) return 'Yeni';
+            const diff = Date.now() - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (minutes < 60) return `${minutes <= 1 ? 'Az önce' : minutes + ' dk önce'}`;
+            if (hours < 24) return `${hours} saat önce`;
+            if (days < 30) return `${days} gün önce`;
+            return `${Math.floor(days / 30)} ay önce`;
+        }
+
+        function compressAndConvertImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    document.getElementById('form-image').value = canvas.toDataURL('image/jpeg', 0.7);
+                }
+            }
+        }
+
+        function getDefaultImage(category) {
+            switch(category) {
+                case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
+                case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
+                case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
+                case 'Nakliye': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
+                default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
+            }
+        }
+
+        function updateMarqueeData() {
+            const container = document.getElementById('marquee-container');
+            const items = window.listings || [];
+
+            if (items.length === 0) {
+                container.innerHTML = `<div class="flex space-x-8 items-center"><span class="font-bold text-lux-gold uppercase">Hatay Hal Fiyat Endeksi:</span><span>Sitede henüz ilan bulunmuyor.</span></div>`;
+                return;
+            }
+
+            const priceMap = {};
+            items.forEach(item => {
+                if (!priceMap[item.title]) {
+                    priceMap[item.title] = { min: item.price, max: item.price, unit: item.unit };
+                } else {
+                    priceMap[item.title].min = Math.min(priceMap[item.title].min, item.price);
+                    priceMap[item.title].max = Math.max(priceMap[item.title].max, item.price);
+                }
+            });
+
+            let contentHTML = `<span class="font-bold text-lux-gold uppercase"><i class="fa-solid fa-chart-line"></i> Hatay Canlı Piyasa Endeksi:</span>`;
+            Object.keys(priceMap).forEach(title => {
+                const p = priceMap[title];
+                contentHTML += `<span>📌 <b>${title}:</b> ${p.min === p.max ? p.min + ' TL' : p.min + ' - ' + p.max + ' TL'} (${p.unit})</span>`;
+            });
+
+            container.innerHTML = `<div class="flex space-x-8 items-center">${contentHTML}</div><div class="flex space-x-8 items-center">${contentHTML}</div>`;
+        }
+
+        function openAccountModal() {
+            if (!window.currentUser) return;
+
+            const name = window.currentUser.displayName || window.currentUser.email.split('@')[0];
+            document.getElementById('account-username').innerText = name;
+            document.getElementById('account-email').innerText = window.currentUser.email;
+            document.getElementById('account-avatar').innerText = name.charAt(0).toUpperCase();
+
+            document.getElementById('update-username').value = name;
+            document.getElementById('update-phone').value = window.userExtraData.phone || '';
+            document.getElementById('update-email-input').value = window.currentUser.email;
+
+            switchAccountTab('listings');
+
+            const myListingsContainer = document.getElementById('tab-content-listings');
+            const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
+
+            myListingsContainer.innerHTML = '';
+            if (myListings.length === 0) {
+                myListingsContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz verdiğiniz bir ilan bulunmuyor.</p>`;
+            } else {
+                myListings.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
+                    row.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
+                            <div>
+                                <span class="font-bold text-lux-dark block line-clamp-1">${item.title}</span>
+                                <span class="text-[10px] text-gray-500">${item.price} TL • ${item.district}</span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-1">
+                            <button onclick="openDetailModal('${item.id}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
+                            <button onclick="deleteCurrentListing('${item.id}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    `;
+                    myListingsContainer.appendChild(row);
+                });
+            }
+
+            document.getElementById('account-modal').classList.remove('hidden');
+        }
+
+        function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
+
+        function openFormModal() { 
+            if (!window.currentUser) {
+                alert("İlan eklemek için önce giriş yapmalısınız.");
+                openAuthModal('login');
+                return;
+            }
+            document.getElementById('add-listing-form').reset();
+            document.getElementById('edit-listing-id').value = '';
+            document.getElementById('form-modal-title').innerText = "Ücretsiz İlan Oluştur";
+            
+            const sellerInput = document.getElementById('form-seller');
+            const phoneInput = document.getElementById('form-phone');
+            const userName = window.currentUser.displayName || window.currentUser.email.split('@')[0];
+            
+            sellerInput.value = userName.charAt(0).toUpperCase() + userName.slice(1);
+            phoneInput.value = window.userExtraData.phone || '';
+            document.getElementById('form-modal').classList.remove('hidden'); 
+        }
+
+        function openFormModalForEdit() {
+            const item = (window.listings || []).find(l => l.id === window.activeListingId);
+            if (!item) return;
+
+            document.getElementById('edit-listing-id').value = item.id;
+            document.getElementById('form-modal-title').innerText = "İlanı Düzenle";
+            document.getElementById('form-title').value = item.title;
+            document.getElementById('form-category').value = item.category;
+            document.getElementById('form-district').value = item.district;
+            document.getElementById('form-price').value = item.price;
+            document.getElementById('form-unit').value = item.unit || '';
+            document.getElementById('form-seller').value = item.seller;
+            document.getElementById('form-phone').value = item.phone;
+            document.getElementById('form-desc').value = item.desc || '';
+            document.getElementById('form-image').value = item.image;
+            document.getElementById('form-vip').checked = item.isVip || false;
+            document.getElementById('form-urgent').checked = item.isUrgent || false;
+            document.getElementById('form-discount').checked = item.isDiscount || false;
+
+            document.getElementById('detail-modal').classList.add('hidden');
+            document.getElementById('form-modal').classList.remove('hidden');
+        }
+
+        function openAuthModal(mode) {
+            document.getElementById('auth-mode').value = mode;
+            const regFields = document.getElementById('register-fields-box');
+            if (mode === 'login') {
+                document.getElementById('auth-modal-title').innerText = "Giriş Yap";
+                document.getElementById('auth-submit-btn').innerText = "Giriş Yap";
+                document.getElementById('auth-switch-btn').innerText = "Hesabın yok mu? Kayıt Ol";
+                regFields.classList.add('hidden');
+            } else {
+                document.getElementById('auth-modal-title').innerText = "Kayıt Ol";
+                document.getElementById('auth-submit-btn').innerText = "Kayıt Ol";
+                document.getElementById('auth-switch-btn').innerText = "Zaten hesabın var mı? Giriş Yap";
+                regFields.classList.remove('hidden');
+            }
+            document.getElementById('auth-modal').classList.remove('hidden');
+        }
+
+        function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
+        function toggleAuthMode() { openAuthModal(document.getElementById('auth-mode').value === 'login' ? 'register' : 'login'); }
+
+        function openTermsModal() { document.getElementById('terms-modal').classList.remove('hidden'); }
+        function closeTermsModal() { document.getElementById('terms-modal').classList.add('hidden'); }
+
+        function openReportModal() { 
+            if(!window.currentUser) {
+                alert("Şikayet bildirimi için giriş yapmalısınız.");
+                openAuthModal('login');
+                return;
+            }
+            document.getElementById('report-modal').classList.remove('hidden'); 
+        }
+        function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
+
+        async function handleReportSubmit(e) {
+            e.preventDefault();
+            try {
+                await window.push(window.ref(window.db, 'reports'), {
+                    listingId: window.activeListingId,
+                    reporterUid: window.currentUser.uid,
+                    reason: document.getElementById('report-reason').value,
+                    note: document.getElementById('report-note').value,
+                    date: Date.now()
+                });
+                alert("Şikayetiniz iletildi.");
+                closeReportModal();
+            } catch(err) {
+                alert("Hata: " + err.message);
+            }
+        }
+
+        function renderListings() {
+            const grid = document.getElementById('listings-grid');
+            const items = window.filteredListings || [];
+            document.getElementById('total-count').innerText = `(${items.length} İlan)`;
+            grid.innerHTML = '';
+
+            if (items.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun ilan bulunamadı.</div>`;
+                document.getElementById('pagination-container').innerHTML = '';
+                return;
+            }
+
+            const startIndex = (window.currentPage - 1) * window.itemsPerPage;
+            const paginatedItems = items.slice(startIndex, startIndex + window.itemsPerPage);
+
+            paginatedItems.forEach(item => {
+                const card = document.createElement('div');
+                let cardStyle = 'border border-gray-200/70';
+                if (item.isVip) cardStyle = 'vip-card';
+                else if (item.isUrgent) cardStyle = 'border-1.5 border-red-500 shadow-sm';
+
+                const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
+
+                card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col justify-between ${cardStyle}`;
+                card.innerHTML = `
+                    <div>
+                        <div class="relative h-44 overflow-hidden bg-lux-bg/50">
+                            <img src="${item.image}" class="w-full h-full object-cover">
+                            <button onclick="toggleFavorite('${item.id}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
+                                <i class="fa-solid fa-heart"></i>
+                            </button>
+                            <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                                ${item.isVerified ? '<span class="bg-emerald-700 text-white font-bold text-[9px] px-2 py-0.5 rounded"><i class="fa-solid fa-circle-check"></i> DOĞRULANMIŞ</span>' : ''}
+                                ${item.isVip ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded">VIP</span>' : ''}
+                                ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">ACİL</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="p-3.5">
+                            <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
+                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${item.district}</span>
+                                <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
+                            </div>
+                            <h3 onclick="openDetailModal('${item.id}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${item.title}</h3>
+                        </div>
+                    </div>
+                    <div class="px-3.5 pb-3.5">
+                        <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
+                            <div>
+                                <span class="text-[9px] text-gray-400 block">${item.unit || 'Birim Fiyat'}</span>
+                                <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
+                            </div>
+                            <button onclick="openDetailModal('${item.id}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            renderPaginationControls(items.length);
+        }
+
+        function renderPaginationControls(totalItems) {
+            const container = document.getElementById('pagination-container');
+            const totalPages = Math.ceil(totalItems / window.itemsPerPage);
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+            let html = `<button onclick="changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+            }
+            html += `<button onclick="changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+            container.innerHTML = html;
+        }
+
+        function changePage(page) {
+            window.currentPage = page;
+            renderListings();
+            window.scrollTo({ top: 400, behavior: 'smooth' });
+        }
+
+        function filterListings() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const category = document.getElementById('category-filter').value;
+            const district = document.getElementById('district-filter').value;
+            const sort = document.getElementById('sort-filter').value;
+            const minPrice = Number(document.getElementById('min-price-filter').value) || 0;
+            const maxPrice = Number(document.getElementById('max-price-filter').value) || Infinity;
+            const verifiedOnly = document.getElementById('verified-only-filter').checked;
+
+            window.filteredListings = (window.listings || []).filter(item => {
+                const matchesSearch = item.title.toLowerCase().includes(search) || item.desc.toLowerCase().includes(search);
+                const matchesCategory = category === "" || item.category === category;
+                const matchesDistrict = district === "" || item.district === district;
+                const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
+                const matchesVerified = !verifiedOnly || item.isVerified;
+                return matchesSearch && matchesCategory && matchesDistrict && matchesPrice && matchesVerified;
+            });
+
+            if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
+            else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
+            else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
+            else window.filteredListings.sort((a, b) => b.date - a.date);
+
+            window.currentPage = 1;
+            renderListings();
+        }
+
+        function resetAllFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('category-filter').value = '';
+            document.getElementById('district-filter').value = '';
+            document.getElementById('sort-filter').value = 'newest';
+            document.getElementById('min-price-filter').value = '';
+            document.getElementById('max-price-filter').value = '';
+            document.getElementById('verified-only-filter').checked = false;
+            filterListings();
+        }
+
+        function setViewMode(mode) { window.currentViewMode = mode; renderListings(); }
+        function closeFormModal() { document.getElementById('form-modal').classList.add('hidden'); }
+        function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); window.activeListingId = null; }
+
+        function openDetailModal(id) {
+            const item = (window.listings || []).find(l => l.id === id);
+            if (!item) return;
+
+            window.activeListingId = id;
+            document.getElementById('detail-img').src = item.image;
+            document.getElementById('detail-title').innerText = item.title;
+            document.getElementById('detail-category').innerText = item.category;
+            
+            const badge = document.getElementById('detail-verified-badge');
+            if (item.isVerified) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+
+            document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
+            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / ${item.district}`;
+            document.getElementById('detail-price').innerText = `${item.price} TL`;
+            document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
+            document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
+            document.getElementById('detail-seller').innerText = item.seller;
+
+            const deleteBtn = document.getElementById('delete-btn');
+            const editBtn = document.getElementById('edit-btn');
+            if (window.currentUser && item.uid === window.currentUser.uid) {
+                deleteBtn.classList.remove('hidden');
+                editBtn.classList.remove('hidden');
+            } else {
+                deleteBtn.classList.add('hidden');
+                editBtn.classList.add('hidden');
+            }
+
+            const waMsg = encodeURIComponent(`Merhaba ${item.seller}, ORONTES üzerindeki "${item.title}" ilanınız için iletişime geçiyorum.`);
+            document.getElementById('detail-whatsapp').href = `https://wa.me/90${item.phone.replace(/[^0-9]/g, '')}?text=${waMsg}`;
+
+            updateFavBtnStyle(id);
+            document.getElementById('detail-modal').classList.remove('hidden');
+
+            setTimeout(() => { renderMap(item.district); }, 200);
+        }
+    </script>
+</body>
+</html>
