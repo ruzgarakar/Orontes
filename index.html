@@ -35,7 +35,6 @@
             background: linear-gradient(180deg, #ffffff 0%, #faf8f5 100%);
         }
         
-        /* KESİNTİSİZ KESEN MARQUEE ANIMASYONU */
         @keyframes marquee {
             0% { transform: translateX(0%); }
             100% { transform: translateX(-50%); }
@@ -48,12 +47,13 @@
         .marquee-wrapper:hover {
             animation-play-state: paused;
         }
-        #map { height: 180px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        #map { height: 160px; width: 100%; border-radius: 0.75rem; z-index: 10; }
         #listings-grid.list-mode { display: flex !important; flex-direction: column; gap: 0.75rem; }
         #listings-grid.list-mode > div { width: 100%; }
         #listings-grid.list-mode .listing-card-image { width: 160px; min-width: 160px; height: 120px; }
         @media (max-width: 640px) {
             #listings-grid.list-mode .listing-card-image { width: 110px; min-width: 110px; height: 100px; }
+            #map { height: 140px; }
         }
     </style>
 </head>
@@ -70,7 +70,6 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
             
             <div class="w-full sm:w-auto flex justify-between items-center">
-                <!-- DİNAMİK KESİNTİSİZ SVG LOGO -->
                 <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
                     <div class="bg-lux-dark px-3 py-1.5 rounded-xl flex items-center justify-center border border-lux-gold/40 shadow-sm hover:opacity-95 transition">
                         <div class="flex items-center space-x-2">
@@ -80,7 +79,6 @@
                     </div>
                 </div>
 
-                <!-- MOBİL HIZLI ERİŞİM BUTONLARI -->
                 <div class="flex sm:hidden items-center space-x-1.5">
                     <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth'});" class="bg-lux-olive/60 text-lux-sage px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1">
                         <i class="fa-solid fa-filter"></i>
@@ -93,7 +91,6 @@
                 </div>
             </div>
 
-            <!-- SAĞ ÜST KULLANICI & MENÜ BUTONLARI -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
@@ -115,11 +112,9 @@
         </div>
     </header>
 
-    <!-- CANLI KATEGORİ VE ORTALAMA FİYAT ENDEKSİ BARI (KESİNTİSİZ) -->
+    <!-- CANLI KATEGORİ VE ORTALAMA FİYAT ENDEKSİ BARI -->
     <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
-        <div class="marquee-wrapper" id="marquee-container">
-            <!-- JavaScript ile doldurulur -->
-        </div>
+        <div class="marquee-wrapper" id="marquee-container"></div>
     </div>
 
     <!-- HERO SECTION -->
@@ -234,7 +229,7 @@
                     </div>
                     <div>
                         <p class="font-semibold text-gray-800">Doğrulanmış Üretici Rozeti nasıl alınır?</p>
-                        <p class="font-light">Hesabım bölümünden ÇKS belgenizi yükleyebilirsiniz. Belgeniz inceleme için gönderilir; doğrulama sonucu onaylandıktan sonra rozetiniz aktifleşir.</p>
+                        <p class="font-light">Hesabım bölümünden ÇKS belgenizi yükleyebilirsiniz. Belgeniz yönetim onayına gönderilir; incelendikten sonra rozetiniz aktifleşir.</p>
                     </div>
                 </div>
             </div>
@@ -329,7 +324,7 @@
                     <div class="flex items-center space-x-2 pt-1">
                         <input type="file" id="cks-file-input" accept="image/*,.pdf" class="w-full border border-emerald-300 p-1 rounded-lg text-[11px] bg-white text-gray-600">
                         <button onclick="processCksDocument()" id="cks-upload-btn" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap shadow-sm">
-                            Sistem İncelesin
+                            Onaya Gönder
                         </button>
                     </div>
                 </div>
@@ -442,10 +437,9 @@
             <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Ücretsiz İlan Oluştur</h3>
             
-            <!-- DİNAMİK LANSMAN VIP HEDİYE BİLGİLENDİRMESİ -->
             <div id="launch-vip-info" class="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs mb-3 flex items-center space-x-2">
                 <i class="fa-solid fa-gift text-lux-gold text-lg"></i>
-                <span><b>Lansman Fırsatı:</b> İlanınız otomatik olarak <b>3 Aylık Ücretsiz VIP Vitrin</b> rozeti kazanacaktır!</span>
+                <span><b>Lansman Fırsatı:</b> İlk 100 ilandan biriyseniz otomatik olarak <b>3 Aylık Ücretsiz VIP Vitrin</b> kazanacaktır!</span>
             </div>
 
             <form id="add-listing-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
@@ -495,8 +489,8 @@
                 
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-lux-dark">⭐ VIP Vitrin Rozeti (3 Ay Ücretsiz)</span>
-                        <input type="checkbox" id="form-vip" checked class="accent-lux-gold cursor-pointer">
+                        <span class="text-xs font-semibold text-lux-dark">⭐ VIP Vitrin Rozeti</span>
+                        <input type="checkbox" id="form-vip" class="accent-lux-gold cursor-pointer">
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold text-red-700">🔥 Acil Satılık Rozeti</span>
@@ -546,8 +540,8 @@
     <!-- FIREBASE MODULE & UYGULAMA MANTIĞI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, signInWithCredential, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, remove, update, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
@@ -570,6 +564,7 @@
         window.remove = remove;
         window.update = update;
         window.get = get;
+        window.runTransaction = runTransaction;
         window.reauthenticateWithCredential = reauthenticateWithCredential;
         window.currentUser = null;
         window.userExtraData = { favorites: {}, offers: {} };
@@ -596,6 +591,8 @@
                 if (snap.exists()) {
                     window.userExtraData = snap.val();
                     if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
+                } else {
+                    window.userExtraData = { favorites: {} };
                 }
             } else {
                 loggedOutBox.classList.remove('hidden');
@@ -673,7 +670,7 @@
             }
             try {
                 await sendPasswordResetEmail(auth, email);
-                alert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünü) kontrol edin.");
+                alert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.");
             } catch(err) {
                 alert("Hata: " + err.message);
             }
@@ -746,7 +743,6 @@
             }
         };
 
-        // YENİLENDİ: İLK 100 İLANA 3 AYLIK OTOMATİK VIP HEDİYESİ
         window.handleFormSubmit = async function(e) {
             e.preventDefault();
             if (!window.currentUser) {
@@ -762,12 +758,33 @@
                     return;
                 }
             }
+
             const category = document.getElementById('form-category').value;
-            
-            // İLK 100 İLAN KONTROLÜ (3 AYLIK VIP SÜRESİ: 90 GÜN)
-            const isFirst100 = (window.listings || []).length < 100;
+            let isFirst100 = false;
+            let newCount = 0;
+
+            // Yeni ilan eklenirken atomik sayaç ile ilk 100 kontrolü
+            if (!editId) {
+                try {
+                    const counterRef = ref(db, 'listingCounter');
+                    const result = await runTransaction(counterRef, (currentData) => {
+                        let count = (currentData && currentData.count) || 0;
+                        // eğer count < 100 ise VIP hakkı kazanır
+                        isFirst100 = (count < 100);
+                        return { count: count + 1 };
+                    });
+                    if (!result.committed) {
+                        throw new Error('Sayaç güncellenemedi, lütfen tekrar deneyin.');
+                    }
+                    newCount = result.snapshot.val().count;
+                } catch (err) {
+                    alert('Sistem yoğun, lütfen tekrar deneyin. (' + err.message + ')');
+                    return;
+                }
+            }
+
             const userVipChoice = document.getElementById('form-vip').checked;
-            const finalVip = isFirst100 ? true : userVipChoice;
+            const finalVip = (!editId && isFirst100) ? true : userVipChoice;
             const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
 
             const listingData = {
@@ -781,7 +798,7 @@
                 seller: document.getElementById('form-seller').value,
                 phone: document.getElementById('form-phone').value,
                 desc: document.getElementById('form-desc').value,
-                image: document.getElementById('form-image').value || getDefaultImage(category),
+                image: document.getElementById('form-image').value || window.getDefaultImage(category),
                 isVerified: window.userExtraData.isVerified || false,
                 isVip: finalVip,
                 vipExpireDate: editId
@@ -801,7 +818,7 @@
                 } else {
                     await push(ref(db, 'listings'), listingData);
                     if (isFirst100) {
-                        alert('🚀 İlanınız yayınlandı! Lansmana özel 3 AYLIK ÜCRETSİZ VIP VİTRİN rozeti ilanınıza eklendi.');
+                        alert('🚀 İlanınız yayınlandı! İlk 100 ilan kapsamında 3 AYLIK ÜCRETSİZ VIP VİTRİN rozeti eklendi.');
                     } else {
                         alert('İlan yayınlandı!');
                     }
@@ -820,19 +837,22 @@
                 return;
             }
             const btn = document.getElementById('cks-upload-btn');
-            btn.innerText = "İnceleniyor...";
+            btn.innerText = "Gönderiliyor...";
             btn.disabled = true;
 
-            setTimeout(async () => {
+            try {
                 if (window.currentUser) {
                     await update(ref(db, 'users/' + window.currentUser.uid), { cksReviewStatus: 'pending' });
                     document.getElementById('cks-status-badge').innerText = "İnceleme Bekliyor";
                     document.getElementById('cks-status-badge').className = "text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800";
-                    alert("ÇKS belgeniz inceleme için gönderildi. Doğrulama sonucu onaylandıktan sonra rozetiniz aktifleşir.");
+                    alert("ÇKS belgeniz başarıyla inceleme kuyruğuna gönderildi. Yetkili onayından sonra doğrulanmış üretici rozetiniz aktifleşecektir.");
                 }
-                btn.innerText = "Sistem İncelesin";
+            } catch (err) {
+                alert("Hata: " + err.message);
+            } finally {
+                btn.innerText = "Onaya Gönder";
                 btn.disabled = false;
-            }, 1500);
+            }
         };
 
         window.updateAccountDetails = async function() {
@@ -956,16 +976,16 @@
                 div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
                 
                 const cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-                const waMsg = encodeURIComponent(`Merhaba ${escapeHtml(o.buyerName)}, "${escapeHtml(o.listingTitle)}" ilanım için verdiğiniz ${escapeHtml(o.offeredPrice)} TL teklif üzerine görüşmek istiyorum.`);
-                const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${waMsg}` : '#';
+                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
+                const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
                 div.innerHTML = `
                     <div class="flex justify-between font-bold text-amber-900">
-                        <span>📌 ${escapeHtml(o.listingTitle)}</span>
-                        <span class="text-emerald-700">${escapeHtml(o.offeredPrice)} TL Teklif</span>
+                        <span>📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</span>
+                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
                     </div>
-                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${escapeHtml(o.buyerName)}</b> (${escapeHtml(o.buyerPhone)})</p>
-                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${escapeHtml(o.note)}"</p>` : ''}
+                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
                     ${cleanPhone ? `
                         <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
@@ -1014,7 +1034,9 @@
 
         function renderMap(district) {
             const coords = districtCoords[district] || [36.2023, 36.1613];
-            if (window.mapInstance) window.mapInstance.remove();
+            if (window.mapInstance) {
+                window.mapInstance.remove();
+            }
 
             window.mapInstance = L.map('map').setView(coords, 11);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1023,14 +1045,18 @@
             }).addTo(window.mapInstance);
 
             L.marker(coords).addTo(window.mapInstance)
-                .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${district}`)
+                .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${escapeHtml(district)}`)
                 .openPopup();
+                
+            setTimeout(() => {
+                if(window.mapInstance) window.mapInstance.invalidateSize();
+            }, 250);
         }
 
         function shareOnWhatsApp() {
             const item = (window.listings || []).find(l => l.id === window.activeListingId);
             if (!item) return;
-            const text = `📌 *ORONTES HATAY PAZARI*\n\n🌾 *${escapeHtml(item.title)}*\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: Hatay / ${escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+            const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: Hatay / ${escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         }
 
@@ -1073,21 +1099,21 @@
                 div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
                 div.innerHTML = `
                     <div class="flex items-center space-x-2">
-                        <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
+                        <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                         <div>
                             <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                             <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(item.district)}</span>
                         </div>
                     </div>
-                    <button onclick="openDetailModal('${item.id}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
+                    <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
                 `;
                 container.appendChild(div);
             });
         }
 
         function getTimeAgo(timestamp) {
-            if (!timestamp) return 'Yeni';
-            const diff = Date.now() - timestamp;
+            if (!timestamp || isNaN(timestamp)) return 'Yeni';
+            const diff = Date.now() - Number(timestamp);
             const minutes = Math.floor(diff / 60000);
             const hours = Math.floor(diff / 3600000);
             const days = Math.floor(diff / 86400000);
@@ -1104,7 +1130,7 @@
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = function(event) {
+            reader.onload = (event) => {
                 const img = new Image();
                 img.src = event.target.result;
                 img.onload = function() {
@@ -1124,8 +1150,11 @@
                     ctx.drawImage(img, 0, 0, width, height);
 
                     document.getElementById('form-image').value = canvas.toDataURL('image/jpeg', 0.7);
-                }
-            }
+                };
+                img.onerror = function() {
+                    alert("Görsel yüklenirken bir hata oluştu.");
+                };
+            };
         }
 
         function getDefaultImage(category) {
@@ -1140,7 +1169,6 @@
             }
         }
 
-        // KESİNTİSİZ KANLI KATEGORİ VEYA FİYAT ENDEKSİ BARI (SÜREKLİ DÖNGÜ)
         function updateMarqueeData() {
             const container = document.getElementById('marquee-container');
             const items = window.listings || [];
@@ -1162,9 +1190,9 @@
                 const catListings = items.filter(i => i.category === cat);
                 if (catListings.length > 0) {
                     const emoji = categoryEmojis[cat] || '🌾';
-                    contentHTML += `<button onclick="openCategoryDetailModal('${cat}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+                    contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
                         <span>${emoji}</span>
-                        <span><b>${cat}</b> (${catListings.length} İlan)</span>
+                        <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan)</span>
                     </button>`;
                 }
             });
@@ -1173,7 +1201,6 @@
             container.innerHTML = contentHTML + contentHTML;
         }
 
-        // KATEGORİ DETAY MODALI VE EMOJİ DESTEĞİ
         function openCategoryDetailModal(cat) {
             const items = (window.listings || []).filter(i => i.category === cat);
             const emoji = categoryEmojis[cat] || '🌾';
@@ -1193,7 +1220,7 @@
                     unit = 'KG';
                 }
 
-                const key = `${title}___${unit}`;
+                const key = `${title}_${unit}`;
                 if (!products[key]) {
                     products[key] = { title: title, unit: unit, prices: [price], count: 1 };
                 } else {
@@ -1214,12 +1241,12 @@
                 div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs";
                 div.innerHTML = `
                     <div>
-                        <span class="font-bold text-lux-dark block text-xs">${emoji} ${p.title}</span>
+                        <span class="font-bold text-lux-dark block text-xs">${emoji} ${escapeHtml(p.title)}</span>
                         <span class="text-[10px] text-gray-500">${p.count} Aktif İlan</span>
                     </div>
                     <div class="text-right">
                         <span class="font-extrabold text-emerald-700 text-sm">${avgPrice} TL</span>
-                        <span class="text-[9px] text-gray-400 block">Ort. / ${p.unit}</span>
+                        <span class="text-[9px] text-gray-400 block">Ort. / ${escapeHtml(p.unit)}</span>
                     </div>
                 `;
                 content.appendChild(div);
@@ -1259,15 +1286,15 @@
                     row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
                     row.innerHTML = `
                         <div class="flex items-center space-x-2">
-                            <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
+                            <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                             <div>
                                 <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                                 <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(item.district)}</span>
                             </div>
                         </div>
                         <div class="flex space-x-1">
-                            <button onclick="openDetailModal('${item.id}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
-                            <button onclick="deleteCurrentListing('${item.id}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
+                            <button onclick="deleteCurrentListing('${escapeHtml(item.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     `;
                     myListingsContainer.appendChild(row);
@@ -1380,7 +1407,7 @@
             grid.className = window.currentViewMode === 'list'
                 ? 'list-mode'
                 : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
-            document.getElementById('total-count').innerText = `(${items.length} İlan)`;
+            document.getElementById('total-count').innerText = `${items.length} İlan`;
             grid.innerHTML = '';
 
             if (items.length === 0) {
@@ -1395,12 +1422,11 @@
             paginatedItems.forEach(item => {
                 const card = document.createElement('div');
 
-                // SÜRESI DOLMUŞ VIP KONTROLÜ
                 const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
 
                 let cardStyle = 'border border-gray-200/70';
                 if (isVipActive) cardStyle = 'vip-card';
-                else if (item.isUrgent) cardStyle = 'border-1.5 border-red-500 shadow-sm';
+                else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
 
                 const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
                 const emoji = categoryEmojis[item.category] || '🌾';
@@ -1409,8 +1435,8 @@
                 card.innerHTML = `
                     <div>
                         <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
-                            <img src="${item.image}" class="w-full h-full object-cover">
-                            <button onclick="toggleFavorite('${item.id}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
+                            <img src="${escapeHtml(item.image)}" class="w-full h-full object-cover">
+                            <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
                                 <i class="fa-solid fa-heart"></i>
                             </button>
                             <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
@@ -1424,7 +1450,7 @@
                                 <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(item.district)}</span>
                                 <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
                             </div>
-                            <h3 onclick="openDetailModal('${item.id}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
+                            <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
                         </div>
                     </div>
                     <div class="px-3.5 pb-3.5">
@@ -1433,7 +1459,7 @@
                                 <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Birim Fiyat')}</span>
                                 <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
                             </div>
-                            <button onclick="openDetailModal('${item.id}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
+                            <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
                         </div>
                     </div>
                 `;
@@ -1535,8 +1561,8 @@
                 editBtn.classList.add('hidden');
             }
 
-            const waMsg = encodeURIComponent(`Merhaba ${item.seller}, ORONTES üzerindeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`);
-            document.getElementById('detail-whatsapp').href = `https://wa.me/90${item.phone.replace(/[^0-9]/g, '')}?text=${waMsg}`;
+            const waMsg = `Merhaba ${item.seller}, ORONTES üzerindeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
+            document.getElementById('detail-whatsapp').href = `https://wa.me/90${item.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waMsg)}`;
 
             updateFavBtnStyle(id);
             document.getElementById('detail-modal').classList.remove('hidden');
@@ -1545,4 +1571,4 @@
         }
     </script>
 </body>
-</html>
+                    </html>
