@@ -49,6 +49,12 @@
             animation-play-state: paused;
         }
         #map { height: 180px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        #listings-grid.list-mode { display: flex !important; flex-direction: column; gap: 0.75rem; }
+        #listings-grid.list-mode > div { width: 100%; }
+        #listings-grid.list-mode .listing-card-image { width: 160px; min-width: 160px; height: 120px; }
+        @media (max-width: 640px) {
+            #listings-grid.list-mode .listing-card-image { width: 110px; min-width: 110px; height: 100px; }
+        }
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased pb-12">
@@ -228,7 +234,7 @@
                     </div>
                     <div>
                         <p class="font-semibold text-gray-800">Doğrulanmış Üretici Rozeti nasıl alınır?</p>
-                        <p class="font-light">Hesabım bölümünden ÇKS belgenizi yükleyebilirsiniz. Sistem belgenizi anında tarayıp onay verecektir.</p>
+                        <p class="font-light">Hesabım bölümünden ÇKS belgenizi yükleyebilirsiniz. Belgeniz inceleme için gönderilir; doğrulama sonucu onaylandıktan sonra rozetiniz aktifleşir.</p>
                     </div>
                 </div>
             </div>
@@ -541,7 +547,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, signInWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, signInWithCredential, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
@@ -564,6 +570,7 @@
         window.remove = remove;
         window.update = update;
         window.get = get;
+        window.reauthenticateWithCredential = reauthenticateWithCredential;
         window.currentUser = null;
         window.userExtraData = { favorites: {}, offers: {} };
         window.listings = [];
@@ -713,6 +720,11 @@
             const item = window.listings.find(l => l.id === window.activeListingId);
             if (!item) return;
 
+            if (item.uid === window.currentUser.uid) {
+                alert("Kendi ilanınıza teklif gönderemezsiniz.");
+                return;
+            }
+
             try {
                 await push(ref(db, 'offers'), {
                     listingId: item.id,
@@ -737,9 +749,19 @@
         // YENİLENDİ: İLK 100 İLANA 3 AYLIK OTOMATİK VIP HEDİYESİ
         window.handleFormSubmit = async function(e) {
             e.preventDefault();
-            if (!window.currentUser) return;
+            if (!window.currentUser) {
+                alert("İlan vermek için giriş yapmalısınız.");
+                return;
+            }
 
             const editId = document.getElementById('edit-listing-id').value;
+            if (editId) {
+                const existing = (window.listings || []).find(l => l.id === editId);
+                if (!existing || existing.uid !== window.currentUser.uid) {
+                    alert("Bu ilanı düzenleme yetkiniz yok.");
+                    return;
+                }
+            }
             const category = document.getElementById('form-category').value;
             
             // İLK 100 İLAN KONTROLÜ (3 AYLIK VIP SÜRESİ: 90 GÜN)
@@ -762,10 +784,14 @@
                 image: document.getElementById('form-image').value || getDefaultImage(category),
                 isVerified: window.userExtraData.isVerified || false,
                 isVip: finalVip,
-                vipExpireDate: Date.now() + threeMonthsInMs,
+                vipExpireDate: editId
+                    ? ((window.listings || []).find(l => l.id === editId)?.vipExpireDate || (Date.now() + threeMonthsInMs))
+                    : (Date.now() + threeMonthsInMs),
                 isUrgent: document.getElementById('form-urgent').checked,
                 isDiscount: document.getElementById('form-discount').checked,
-                date: Date.now()
+                date: editId
+                    ? ((window.listings || []).find(l => l.id === editId)?.date || Date.now())
+                    : Date.now()
             };
 
             try {
@@ -799,11 +825,10 @@
 
             setTimeout(async () => {
                 if (window.currentUser) {
-                    await update(ref(db, 'users/' + window.currentUser.uid), { isVerified: true });
-                    window.userExtraData.isVerified = true;
-                    document.getElementById('cks-status-badge').innerText = "Onaylandı";
-                    document.getElementById('cks-status-badge').className = "text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800";
-                    alert("ÇKS Belgeniz başarıyla doğrulandı! Profilinize 'Doğrulanmış Üretici' rozeti eklendi.");
+                    await update(ref(db, 'users/' + window.currentUser.uid), { cksReviewStatus: 'pending' });
+                    document.getElementById('cks-status-badge').innerText = "İnceleme Bekliyor";
+                    document.getElementById('cks-status-badge').className = "text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800";
+                    alert("ÇKS belgeniz inceleme için gönderildi. Doğrulama sonucu onaylandıktan sonra rozetiniz aktifleşir.");
                 }
                 btn.innerText = "Sistem İncelesin";
                 btn.disabled = false;
@@ -828,7 +853,7 @@
 
             try {
                 const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
-                await signInWithCredential(window.currentUser, credential);
+                await window.reauthenticateWithCredential(window.currentUser, credential);
 
                 await update(ref(db, 'users/' + window.currentUser.uid), {
                     username: newUsername,
@@ -872,7 +897,7 @@
 
             try {
                 const credential = EmailAuthProvider.credential(window.currentUser.email, password);
-                await signInWithCredential(window.currentUser, credential);
+                await window.reauthenticateWithCredential(window.currentUser, credential);
 
                 await remove(ref(db, 'users/' + window.currentUser.uid));
                 await deleteUser(window.currentUser);
@@ -886,7 +911,13 @@
 
         window.deleteCurrentListing = async function(id) {
             const targetId = id || window.activeListingId;
-            if (!targetId) return;
+            if (!targetId || !window.currentUser) return;
+
+            const target = (window.listings || []).find(l => l.id === targetId);
+            if (!target || target.uid !== window.currentUser.uid) {
+                alert("Bu ilanı silme yetkiniz yok.");
+                return;
+            }
 
             if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
                 try {
@@ -925,16 +956,16 @@
                 div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
                 
                 const cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-                const waMsg = encodeURIComponent(`Merhaba ${o.buyerName}, "${o.listingTitle}" ilanım için verdiğiniz ${o.offeredPrice} TL teklif üzerine görüşmek istiyorum.`);
+                const waMsg = encodeURIComponent(`Merhaba ${escapeHtml(o.buyerName)}, "${escapeHtml(o.listingTitle)}" ilanım için verdiğiniz ${escapeHtml(o.offeredPrice)} TL teklif üzerine görüşmek istiyorum.`);
                 const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${waMsg}` : '#';
 
                 div.innerHTML = `
                     <div class="flex justify-between font-bold text-amber-900">
-                        <span>📌 ${o.listingTitle}</span>
-                        <span class="text-emerald-700">${o.offeredPrice} TL Teklif</span>
+                        <span>📌 ${escapeHtml(o.listingTitle)}</span>
+                        <span class="text-emerald-700">${escapeHtml(o.offeredPrice)} TL Teklif</span>
                     </div>
-                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${o.buyerName}</b> (${o.buyerPhone})</p>
-                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${o.note}"</p>` : ''}
+                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${escapeHtml(o.buyerName)}</b> (${escapeHtml(o.buyerPhone)})</p>
+                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${escapeHtml(o.note)}"</p>` : ''}
                     ${cleanPhone ? `
                         <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
@@ -948,6 +979,12 @@
     </script>
 
     <script>
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+            }[ch]));
+        }
+
         const categoryEmojis = {
             "Zeytin & Yağ": "🫒",
             "Narenciye": "🍊",
@@ -993,7 +1030,7 @@
         function shareOnWhatsApp() {
             const item = (window.listings || []).find(l => l.id === window.activeListingId);
             if (!item) return;
-            const text = `📌 *ORONTES HATAY PAZARI*\n\n🌾 *${item.title}*\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: Hatay / ${item.district}\n\nİlanı İnceleyin: ${window.location.href}`;
+            const text = `📌 *ORONTES HATAY PAZARI*\n\n🌾 *${escapeHtml(item.title)}*\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: Hatay / ${escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         }
 
@@ -1038,8 +1075,8 @@
                     <div class="flex items-center space-x-2">
                         <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
                         <div>
-                            <span class="font-bold text-lux-dark block line-clamp-1">${item.title}</span>
-                            <span class="text-[10px] text-gray-500">${item.price} TL • ${item.district}</span>
+                            <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                            <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(item.district)}</span>
                         </div>
                     </div>
                     <button onclick="openDetailModal('${item.id}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
@@ -1224,8 +1261,8 @@
                         <div class="flex items-center space-x-2">
                             <img src="${item.image}" class="w-10 h-10 rounded-lg object-cover">
                             <div>
-                                <span class="font-bold text-lux-dark block line-clamp-1">${item.title}</span>
-                                <span class="text-[10px] text-gray-500">${item.price} TL • ${item.district}</span>
+                                <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                                <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(item.district)}</span>
                             </div>
                         </div>
                         <div class="flex space-x-1">
@@ -1339,6 +1376,10 @@
         function renderListings() {
             const grid = document.getElementById('listings-grid');
             const items = window.filteredListings || [];
+            grid.classList.toggle('list-mode', window.currentViewMode === 'list');
+            grid.className = window.currentViewMode === 'list'
+                ? 'list-mode'
+                : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
             document.getElementById('total-count').innerText = `(${items.length} İlan)`;
             grid.innerHTML = '';
 
@@ -1364,10 +1405,10 @@
                 const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
                 const emoji = categoryEmojis[item.category] || '🌾';
 
-                card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col justify-between ${cardStyle}`;
+                card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
                 card.innerHTML = `
                     <div>
-                        <div class="relative h-44 overflow-hidden bg-lux-bg/50">
+                        <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
                             <img src="${item.image}" class="w-full h-full object-cover">
                             <button onclick="toggleFavorite('${item.id}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
                                 <i class="fa-solid fa-heart"></i>
@@ -1380,16 +1421,16 @@
                         </div>
                         <div class="p-3.5">
                             <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
-                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${item.district}</span>
+                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(item.district)}</span>
                                 <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
                             </div>
-                            <h3 onclick="openDetailModal('${item.id}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${item.title}</h3>
+                            <h3 onclick="openDetailModal('${item.id}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
                         </div>
                     </div>
                     <div class="px-3.5 pb-3.5">
                         <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
                             <div>
-                                <span class="text-[9px] text-gray-400 block">${item.unit || 'Birim Fiyat'}</span>
+                                <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Birim Fiyat')}</span>
                                 <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
                             </div>
                             <button onclick="openDetailModal('${item.id}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
@@ -1416,7 +1457,8 @@
         }
 
         function changePage(page) {
-            window.currentPage = page;
+            const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
+            window.currentPage = Math.min(Math.max(1, page), totalPages);
             renderListings();
             window.scrollTo({ top: 400, behavior: 'smooth' });
         }
@@ -1431,7 +1473,7 @@
             const verifiedOnly = document.getElementById('verified-only-filter').checked;
 
             window.filteredListings = (window.listings || []).filter(item => {
-                const matchesSearch = item.title.toLowerCase().includes(search) || item.desc.toLowerCase().includes(search);
+                const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
                 const matchesCategory = category === "" || item.category === category;
                 const matchesDistrict = district === "" || item.district === district;
                 const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
@@ -1477,7 +1519,7 @@
             else badge.classList.add('hidden');
 
             document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
-            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / ${item.district}`;
+            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / ${escapeHtml(item.district)}`;
             document.getElementById('detail-price').innerText = `${item.price} TL`;
             document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
             document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
@@ -1493,7 +1535,7 @@
                 editBtn.classList.add('hidden');
             }
 
-            const waMsg = encodeURIComponent(`Merhaba ${item.seller}, ORONTES üzerindeki "${item.title}" ilanınız hakkında görüşmek istiyorum.`);
+            const waMsg = encodeURIComponent(`Merhaba ${item.seller}, ORONTES üzerindeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`);
             document.getElementById('detail-whatsapp').href = `https://wa.me/90${item.phone.replace(/[^0-9]/g, '')}?text=${waMsg}`;
 
             updateFavBtnStyle(id);
