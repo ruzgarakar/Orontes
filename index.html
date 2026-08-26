@@ -34,22 +34,30 @@
             box-shadow: 0 10px 25px -5px rgba(188, 168, 121, 0.25);
             background: linear-gradient(180deg, #ffffff 0%, #faf8f5 100%);
         }
+        
+        /* KESİNTİSİZ KESEN MARQUEE ANIMASYONU */
         @keyframes marquee {
             0% { transform: translateX(0%); }
             100% { transform: translateX(-50%); }
         }
-        .animate-marquee {
+        .marquee-wrapper {
             display: flex;
-            width: 200%;
+            width: max-content;
             animation: marquee 25s linear infinite;
         }
-        .animate-marquee:hover {
+        .marquee-wrapper:hover {
             animation-play-state: paused;
         }
         #map { height: 180px; width: 100%; border-radius: 0.75rem; z-index: 10; }
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased pb-12">
+
+    <!-- LANSMAN HEDİYESİ DUYURU BARI -->
+    <div class="bg-gradient-to-r from-amber-600 via-lux-gold to-amber-700 text-lux-dark text-center text-xs font-bold py-2 px-4 shadow-inner flex justify-center items-center space-x-2">
+        <span>🚀 HATAY TARIM PAZARI LANSMANINA ÖZEL:</span>
+        <span class="bg-lux-dark text-lux-gold px-2 py-0.5 rounded-md text-[11px] uppercase tracking-wider">İlk 100 İlana 3 Aylık VIP Vitrin ÜCRETSİZ!</span>
+    </div>
 
     <!-- HEADER / NAV -->
     <header class="bg-lux-dark text-white sticky top-0 z-40 shadow-sm border-b border-lux-olive/40">
@@ -101,9 +109,9 @@
         </div>
     </header>
 
-    <!-- CANLI HAL FİYAT ENDEKSİ BARI -->
+    <!-- CANLI KATEGORİ VE ORTALAMA FİYAT ENDEKSİ BARI (KESİNTİSİZ) -->
     <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
-        <div class="animate-marquee whitespace-nowrap flex space-x-8 items-center" id="marquee-container">
+        <div class="marquee-wrapper" id="marquee-container">
             <!-- JavaScript ile doldurulur -->
         </div>
     </div>
@@ -128,15 +136,15 @@
                 <div class="w-full lg:w-auto flex flex-wrap sm:flex-nowrap gap-2">
                     <select id="category-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Kategoriler</option>
-                        <option value="Zeytin & Yağ">Zeytin & Zeytinyağı</option>
-                        <option value="Narenciye">Narenciye & Meyve</option>
-                        <option value="Salça & Sos">Salça, Sos & Baharat</option>
-                        <option value="Bakliyat & Hububat">Bakliyat & Hububat</option>
-                        <option value="Sebze & Sera">Sebze & Sera Ürünleri</option>
-                        <option value="Canlı Hayvan & Süt">Canlı Hayvan & Süt Ürünleri</option>
-                        <option value="Fide & Tohum">Fide, Tohum & Gübre</option>
-                        <option value="Nakliye">Nakliye & Lojistik</option>
-                        <option value="Diğer">Diğer Tarım Ürünleri</option>
+                        <option value="Zeytin & Yağ">🫒 Zeytin & Zeytinyağı</option>
+                        <option value="Narenciye">🍊 Narenciye & Meyve</option>
+                        <option value="Salça & Sos">🌶️ Salça, Sos & Baharat</option>
+                        <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
+                        <option value="Sebze & Sera">🥬 Sebze & Sera Ürünleri</option>
+                        <option value="Canlı Hayvan & Süt">🐄 Canlı Hayvan & Süt Ürünleri</option>
+                        <option value="Fide & Tohum">🌱 Fide, Tohum & Gübre</option>
+                        <option value="Nakliye">🚛 Nakliye & Lojistik</option>
+                        <option value="Diğer">📦 Diğer Tarım Ürünleri</option>
                     </select>
 
                     <select id="district-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
@@ -201,7 +209,7 @@
         <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
 
-    <!-- SSS VE GÜNCELLENMİŞ DESTEK E-POSTASI -->
+    <!-- SSS VE DESTEK E-POSTASI ALANI -->
     <section class="max-w-7xl mx-auto px-4 my-12">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -213,6 +221,10 @@
                     <div>
                         <p class="font-semibold text-gray-800">İlan vermek gerçekten ücretsiz mi?</p>
                         <p class="font-light">Evet, ORONTES üzerinde tüm üretici ve toptancılar ücretsiz ilan açabilir.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">3 Aylık Hediye VIP Vitrin Rozeti nedir?</p>
+                        <p class="font-light">Lansmanımıza özel açılan ilk 100 ilana otomatik olarak 3 ay boyunca geçerli VIP Vitrin rozeti ücretsiz tanımlanır.</p>
                     </div>
                     <div>
                         <p class="font-semibold text-gray-800">Doğrulanmış Üretici Rozeti nasıl alınır?</p>
@@ -229,8 +241,8 @@
                     </h3>
                     <p class="text-xs text-lux-sage font-light mb-4">Soru, öneri veya destek talepleriniz için bize e-posta ile ulaşabilirsiniz.</p>
                     <div class="space-y-2 text-xs">
-                        <a href="mailto:orontesdestek@gmail.com" class="text-lux-gold hover:underline font-semibold flex items-center">
-                            <i class="fa-solid fa-envelope mr-2"></i> orontesdestek@gmail.com
+                        <a href="mailto:Orontesdestek@gmail.com" class="text-lux-gold hover:underline font-semibold flex items-center">
+                            <i class="fa-solid fa-envelope mr-2"></i> Orontesdestek@gmail.com
                         </a>
                     </div>
                 </div>
@@ -241,6 +253,16 @@
             </div>
         </div>
     </section>
+
+    <!-- MODAL: KATEGORİ FİYAT DETAYI MODALI -->
+    <div id="category-detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
+            <button onclick="closeCategoryDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 id="cat-modal-title" class="text-base font-bold text-lux-dark mb-1">Kategori Fiyat Analizi</h3>
+            <p id="cat-modal-sub" class="text-xs text-gray-400 mb-4">Otomatik birim dönüşümü ile ortalama fiyatlar</p>
+            <div id="cat-modal-content" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
 
     <!-- MODAL: HESABIM & ŞİFRE/HESAP KAPATMA PANELİ -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
@@ -413,22 +435,27 @@
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Ücretsiz İlan Oluştur</h3>
-            <p class="text-xs text-gray-500 mb-4">Ürününüzü Hatay genelindeki alıcılara ücretsiz ulaştırın.</p>
+            
+            <!-- DİNAMİK LANSMAN VIP HEDİYE BİLGİLENDİRMESİ -->
+            <div id="launch-vip-info" class="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs mb-3 flex items-center space-x-2">
+                <i class="fa-solid fa-gift text-lux-gold text-lg"></i>
+                <span><b>Lansman Fırsatı:</b> İlanınız otomatik olarak <b>3 Aylık Ücretsiz VIP Vitrin</b> rozeti kazanacaktır!</span>
+            </div>
 
             <form id="add-listing-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
                 <input type="hidden" id="edit-listing-id" value="">
                 <input type="text" id="form-title" required placeholder="İlan Başlığı*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 <div class="grid grid-cols-2 gap-3">
                     <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
-                        <option value="Zeytin & Yağ">Zeytin & Yağ</option>
-                        <option value="Narenciye">Narenciye</option>
-                        <option value="Salça & Sos">Salça & Sos</option>
-                        <option value="Bakliyat & Hububat">Bakliyat & Hububat</option>
-                        <option value="Sebze & Sera">Sebze & Sera</option>
-                        <option value="Canlı Hayvan & Süt">Canlı Hayvan & Süt</option>
-                        <option value="Fide & Tohum">Fide & Tohum</option>
-                        <option value="Nakliye">Nakliye</option>
-                        <option value="Diğer">Diğer</option>
+                        <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
+                        <option value="Narenciye">🍊 Narenciye</option>
+                        <option value="Salça & Sos">🌶️ Salça & Sos</option>
+                        <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
+                        <option value="Sebze & Sera">🥬 Sebze & Sera</option>
+                        <option value="Canlı Hayvan & Süt">🐄 Canlı Hayvan & Süt</option>
+                        <option value="Fide & Tohum">🌱 Fide & Tohum</option>
+                        <option value="Nakliye">🚛 Nakliye</option>
+                        <option value="Diğer">📦 Diğer</option>
                     </select>
                     <select id="form-district" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
                         <option value="Altınözü">Altınözü</option>
@@ -447,7 +474,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="number" id="form-price" required placeholder="Fiyat (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
-                    <input type="text" id="form-unit" placeholder="Miktar / Birim (Litre / Ton)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="text" id="form-unit" placeholder="Miktar / Birim (Litre / Ton / KG)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="text" id="form-seller" required placeholder="Ad Soyad / Firma*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
@@ -462,7 +489,7 @@
                 
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold text-lux-dark">⭐ VIP Vitrin Rozeti</span>
+                        <span class="text-xs font-semibold text-lux-dark">⭐ VIP Vitrin Rozeti (3 Ay Ücretsiz)</span>
                         <input type="checkbox" id="form-vip" checked class="accent-lux-gold cursor-pointer">
                     </div>
                     <div class="flex items-center justify-between">
@@ -594,6 +621,20 @@
                 if (mode === 'login') {
                     await signInWithEmailAndPassword(auth, email, password);
                 } else {
+                    const usersSnap = await get(ref(db, 'users'));
+                    if (usersSnap.exists()) {
+                        const usersData = usersSnap.val();
+                        const isUsernameTaken = Object.values(usersData).some(u => 
+                            u.username && u.username.trim().toLowerCase() === username.trim().toLowerCase()
+                        );
+                        if (isUsernameTaken) {
+                            alert("❌ Bu kullanıcı adı daha önceden alınmış! Lütfen başka bir kullanıcı adı belirleyin.");
+                            btn.disabled = false;
+                            btn.innerText = "Kayıt Ol";
+                            return;
+                        }
+                    }
+
                     const res = await createUserWithEmailAndPassword(auth, email, password);
                     if (username) await updateProfile(res.user, { displayName: username });
                     await update(ref(db, 'users/' + res.user.uid), {
@@ -693,6 +734,7 @@
             }
         };
 
+        // YENİLENDİ: İLK 100 İLANA 3 AYLIK OTOMATİK VIP HEDİYESİ
         window.handleFormSubmit = async function(e) {
             e.preventDefault();
             if (!window.currentUser) return;
@@ -700,6 +742,12 @@
             const editId = document.getElementById('edit-listing-id').value;
             const category = document.getElementById('form-category').value;
             
+            // İLK 100 İLAN KONTROLÜ (3 AYLIK VIP SÜRESİ: 90 GÜN)
+            const isFirst100 = (window.listings || []).length < 100;
+            const userVipChoice = document.getElementById('form-vip').checked;
+            const finalVip = isFirst100 ? true : userVipChoice;
+            const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
+
             const listingData = {
                 uid: window.currentUser.uid,
                 userEmail: window.currentUser.email,
@@ -707,13 +755,14 @@
                 category: category,
                 district: document.getElementById('form-district').value,
                 price: Number(document.getElementById('form-price').value),
-                unit: document.getElementById('form-unit').value || 'Birim Belirtilmedi',
+                unit: document.getElementById('form-unit').value || 'KG',
                 seller: document.getElementById('form-seller').value,
                 phone: document.getElementById('form-phone').value,
                 desc: document.getElementById('form-desc').value,
                 image: document.getElementById('form-image').value || getDefaultImage(category),
                 isVerified: window.userExtraData.isVerified || false,
-                isVip: document.getElementById('form-vip').checked,
+                isVip: finalVip,
+                vipExpireDate: Date.now() + threeMonthsInMs,
                 isUrgent: document.getElementById('form-urgent').checked,
                 isDiscount: document.getElementById('form-discount').checked,
                 date: Date.now()
@@ -725,7 +774,11 @@
                     alert('İlan güncellendi!');
                 } else {
                     await push(ref(db, 'listings'), listingData);
-                    alert('İlan yayınlandı!');
+                    if (isFirst100) {
+                        alert('🚀 İlanınız yayınlandı! Lansmana özel 3 AYLIK ÜCRETSİZ VIP VİTRİN rozeti ilanınıza eklendi.');
+                    } else {
+                        alert('İlan yayınlandı!');
+                    }
                 }
                 closeFormModal();
                 closeDetailModal();
@@ -895,6 +948,18 @@
     </script>
 
     <script>
+        const categoryEmojis = {
+            "Zeytin & Yağ": "🫒",
+            "Narenciye": "🍊",
+            "Salça & Sos": "🌶️",
+            "Bakliyat & Hububat": "🌾",
+            "Sebze & Sera": "🥬",
+            "Canlı Hayvan & Süt": "🐄",
+            "Fide & Tohum": "🌱",
+            "Nakliye": "🚛",
+            "Diğer": "📦"
+        };
+
         const districtCoords = {
             'Altınözü': [36.1176, 36.2472],
             'Antakya': [36.2023, 36.1613],
@@ -1038,32 +1103,96 @@
             }
         }
 
+        // KESİNTİSİZ KANLI KATEGORİ VEYA FİYAT ENDEKSİ BARI (SÜREKLİ DÖNGÜ)
         function updateMarqueeData() {
             const container = document.getElementById('marquee-container');
             const items = window.listings || [];
 
             if (items.length === 0) {
-                container.innerHTML = `<div class="flex space-x-8 items-center"><span class="font-bold text-lux-gold uppercase">Hatay Hal Fiyat Endeksi:</span><span>Sitede henüz ilan bulunmuyor.</span></div>`;
+                container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Hatay Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
                 return;
             }
 
-            const priceMap = {};
-            items.forEach(item => {
-                if (!priceMap[item.title]) {
-                    priceMap[item.title] = { min: item.price, max: item.price, unit: item.unit };
-                } else {
-                    priceMap[item.title].min = Math.min(priceMap[item.title].min, item.price);
-                    priceMap[item.title].max = Math.max(priceMap[item.title].max, item.price);
+            const categories = [
+                "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
+                "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye", "Diğer"
+            ];
+
+            let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
+                <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Hatay Canlı Piyasa Endeksi:</span></span>`;
+
+            categories.forEach(cat => {
+                const catListings = items.filter(i => i.category === cat);
+                if (catListings.length > 0) {
+                    const emoji = categoryEmojis[cat] || '🌾';
+                    contentHTML += `<button onclick="openCategoryDetailModal('${cat}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+                        <span>${emoji}</span>
+                        <span><b>${cat}</b> (${catListings.length} İlan)</span>
+                    </button>`;
                 }
             });
 
-            let contentHTML = `<span class="font-bold text-lux-gold uppercase"><i class="fa-solid fa-chart-line"></i> Hatay Canlı Piyasa Endeksi:</span>`;
-            Object.keys(priceMap).forEach(title => {
-                const p = priceMap[title];
-                contentHTML += `<span>📌 <b>${title}:</b> ${p.min === p.max ? p.min + ' TL' : p.min + ' - ' + p.max + ' TL'} (${p.unit})</span>`;
+            contentHTML += `</div>`;
+            container.innerHTML = contentHTML + contentHTML;
+        }
+
+        // KATEGORİ DETAY MODALI VE EMOJİ DESTEĞİ
+        function openCategoryDetailModal(cat) {
+            const items = (window.listings || []).filter(i => i.category === cat);
+            const emoji = categoryEmojis[cat] || '🌾';
+
+            document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — Ürün & Fiyat Analizi`;
+            document.getElementById('cat-modal-sub').innerText = `Toplam ${items.length} ilan taranarak hesaplandı`;
+
+            const products = {};
+
+            items.forEach(item => {
+                const title = item.title.trim();
+                let unit = (item.unit || 'KG').trim().toUpperCase();
+                let price = item.price;
+
+                if (unit.includes('TON')) {
+                    price = price / 1000;
+                    unit = 'KG';
+                }
+
+                const key = `${title}___${unit}`;
+                if (!products[key]) {
+                    products[key] = { title: title, unit: unit, prices: [price], count: 1 };
+                } else {
+                    products[key].prices.push(price);
+                    products[key].count += 1;
+                }
             });
 
-            container.innerHTML = `<div class="flex space-x-8 items-center">${contentHTML}</div><div class="flex space-x-8 items-center">${contentHTML}</div>`;
+            const content = document.getElementById('cat-modal-content');
+            content.innerHTML = '';
+
+            Object.keys(products).forEach(k => {
+                const p = products[k];
+                const sum = p.prices.reduce((a, b) => a + b, 0);
+                const avgPrice = Math.round(sum / p.prices.length);
+
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs";
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-lux-dark block text-xs">${emoji} ${p.title}</span>
+                        <span class="text-[10px] text-gray-500">${p.count} Aktif İlan</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-extrabold text-emerald-700 text-sm">${avgPrice} TL</span>
+                        <span class="text-[9px] text-gray-400 block">Ort. / ${p.unit}</span>
+                    </div>
+                `;
+                content.appendChild(div);
+            });
+
+            document.getElementById('category-detail-modal').classList.remove('hidden');
+        }
+
+        function closeCategoryDetailModal() {
+            document.getElementById('category-detail-modal').classList.add('hidden');
         }
 
         function openAccountModal() {
@@ -1224,11 +1353,16 @@
 
             paginatedItems.forEach(item => {
                 const card = document.createElement('div');
+
+                // SÜRESI DOLMUŞ VIP KONTROLÜ
+                const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
+
                 let cardStyle = 'border border-gray-200/70';
-                if (item.isVip) cardStyle = 'vip-card';
+                if (isVipActive) cardStyle = 'vip-card';
                 else if (item.isUrgent) cardStyle = 'border-1.5 border-red-500 shadow-sm';
 
                 const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
+                const emoji = categoryEmojis[item.category] || '🌾';
 
                 card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col justify-between ${cardStyle}`;
                 card.innerHTML = `
@@ -1240,7 +1374,7 @@
                             </button>
                             <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
                                 ${item.isVerified ? '<span class="bg-emerald-700 text-white font-bold text-[9px] px-2 py-0.5 rounded"><i class="fa-solid fa-circle-check"></i> DOĞRULANMIŞ</span>' : ''}
-                                ${item.isVip ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded">VIP</span>' : ''}
+                                ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded">VIP</span>' : ''}
                                 ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">ACİL</span>' : ''}
                             </div>
                         </div>
@@ -1249,7 +1383,7 @@
                                 <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${item.district}</span>
                                 <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
                             </div>
-                            <h3 onclick="openDetailModal('${item.id}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${item.title}</h3>
+                            <h3 onclick="openDetailModal('${item.id}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${item.title}</h3>
                         </div>
                     </div>
                     <div class="px-3.5 pb-3.5">
