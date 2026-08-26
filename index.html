@@ -56,7 +56,7 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
             
             <div class="w-full sm:w-auto flex justify-between items-center">
-                <!-- DİNAMİK KESİNTİSİZ SVG LOGO (MOBİL DAHİL HER YERDE %100 ÇALIŞIR) -->
+                <!-- DİNAMİK KESİNTİSİZ SVG LOGO -->
                 <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
                     <div class="bg-lux-dark px-3 py-1.5 rounded-xl flex items-center justify-center border border-lux-gold/40 shadow-sm hover:opacity-95 transition">
                         <div class="flex items-center space-x-2">
@@ -131,6 +131,10 @@
                         <option value="Zeytin & Yağ">Zeytin & Zeytinyağı</option>
                         <option value="Narenciye">Narenciye & Meyve</option>
                         <option value="Salça & Sos">Salça, Sos & Baharat</option>
+                        <option value="Bakliyat & Hububat">Bakliyat & Hububat</option>
+                        <option value="Sebze & Sera">Sebze & Sera Ürünleri</option>
+                        <option value="Canlı Hayvan & Süt">Canlı Hayvan & Süt Ürünleri</option>
+                        <option value="Fide & Tohum">Fide, Tohum & Gübre</option>
                         <option value="Nakliye">Nakliye & Lojistik</option>
                         <option value="Diğer">Diğer Tarım Ürünleri</option>
                     </select>
@@ -197,7 +201,7 @@
         <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
 
-    <!-- SSS VE TIKLANABİLİR DESTEK E-POSTASI -->
+    <!-- SSS VE GÜNCELLENMİŞ DESTEK E-POSTASI -->
     <section class="max-w-7xl mx-auto px-4 my-12">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -225,8 +229,8 @@
                     </h3>
                     <p class="text-xs text-lux-sage font-light mb-4">Soru, öneri veya destek talepleriniz için bize e-posta ile ulaşabilirsiniz.</p>
                     <div class="space-y-2 text-xs">
-                        <a href="mailto:destek@oronteshatay.com.tr" class="text-lux-gold hover:underline font-semibold flex items-center">
-                            <i class="fa-solid fa-envelope mr-2"></i> destek@oronteshatay.com.tr
+                        <a href="mailto:Orontesdestek@gmail.com" class="text-lux-gold hover:underline font-semibold flex items-center">
+                            <i class="fa-solid fa-envelope mr-2"></i> Orontesdestek@gmail.com
                         </a>
                     </div>
                 </div>
@@ -238,7 +242,7 @@
         </div>
     </section>
 
-    <!-- MODAL: HESABIM & ŞİFRE GÜNCELLEME DESTEKLİ PANEL -->
+    <!-- MODAL: HESABIM & ŞİFRE/HESAP KAPATMA PANELİ -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -267,7 +271,7 @@
 
             <div id="tab-content-settings" class="hidden space-y-4">
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
-                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Tüm Hesap Bilgilerini Güncelle</span>
+                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
                     <div class="space-y-2">
                         <div>
                             <label class="block text-[10px] text-gray-500 uppercase font-semibold">Kullanıcı Adı / Ad Soyad</label>
@@ -279,10 +283,14 @@
                         </div>
                         <div class="pt-2 border-t border-gray-200">
                             <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni Şifre (İsteğe Bağlı)</label>
-                            <input type="password" id="update-new-password" placeholder="Değiştirmek istemiyorsanız boş bırakın" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                            <input type="password" id="update-new-password" placeholder="Boş bırakırsanız değişmez" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-red-600 uppercase">Mevcut Şifreniz* (Güvenlik İçin Şart)</label>
+                            <input type="password" id="update-current-password" required placeholder="Mevcut şifrenizi girin" class="w-full border border-red-200 p-2 rounded-lg text-xs outline-none bg-white">
                         </div>
                     </div>
-                    <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Tüm Bilgileri Kaydet ve Güncelle</button>
+                    <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
                 </div>
 
                 <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl space-y-2">
@@ -296,6 +304,13 @@
                             Sistem İncelesin
                         </button>
                     </div>
+                </div>
+
+                <!-- HESABI KALICI OLARAK KAPATMA -->
+                <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
+                    <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
+                    <p class="text-[10px] text-red-700">Hesabınızı kalıcı olarak kapatmak ve silmek istiyorsanız aşağıdaki butona basabilirsiniz.</p>
+                    <button onclick="deleteUserAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-xs transition">Hesabımı Kalıcı Olarak Kapat</button>
                 </div>
             </div>
         </div>
@@ -369,7 +384,7 @@
         </div>
     </div>
 
-    <!-- MODAL: GİRİŞ / KAYIT -->
+    <!-- MODAL: GİRİŞ / KAYIT & ŞİFREMİ UNUTTUM -->
     <div id="auth-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative border border-gray-100">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -386,7 +401,8 @@
                 <input type="password" id="auth-password" required minlength="6" placeholder="Şifre*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
             </form>
-            <div class="mt-4 text-center">
+            <div class="mt-4 flex flex-col items-center space-y-2">
+                <button id="forgot-password-btn" onclick="handleForgotPassword()" class="text-[11px] text-gray-500 hover:underline">Şifremi Unuttum?</button>
                 <button id="auth-switch-btn" onclick="toggleAuthMode()" class="text-xs text-lux-olive hover:underline font-semibold">Hesabın yok mu? Kayıt Ol</button>
             </div>
         </div>
@@ -407,6 +423,10 @@
                         <option value="Zeytin & Yağ">Zeytin & Yağ</option>
                         <option value="Narenciye">Narenciye</option>
                         <option value="Salça & Sos">Salça & Sos</option>
+                        <option value="Bakliyat & Hububat">Bakliyat & Hububat</option>
+                        <option value="Sebze & Sera">Sebze & Sera</option>
+                        <option value="Canlı Hayvan & Süt">Canlı Hayvan & Süt</option>
+                        <option value="Fide & Tohum">Fide & Tohum</option>
                         <option value="Nakliye">Nakliye</option>
                         <option value="Diğer">Diğer</option>
                     </select>
@@ -487,14 +507,14 @@
         </div>
     </div>
 
-    <!-- LEAFLET.JS HARİTA SCRIPTI -->
+    <!-- LEAFLET.JS HARİTA SCRİPTİ -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- FIREBASE MODULE & UYGULAMA MANTIĞI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, signInWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
@@ -528,7 +548,6 @@
         window.currentPage = 1;
         window.itemsPerPage = 12;
 
-        // OTURUM DİNLENİYOR VE BİLGİLER SENKRONİZE EDİLİYOR
         onAuthStateChanged(auth, async (user) => {
             window.currentUser = user;
             const loggedOutBox = document.getElementById('auth-logged-out');
@@ -552,7 +571,6 @@
             renderListings();
         });
 
-        // CANLI VERİTABANI DİNLER
         onValue(ref(db, 'listings'), (snapshot) => {
             const data = snapshot.val();
             window.listings = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
@@ -560,7 +578,6 @@
             updateMarqueeData();
         });
 
-        // GİRİŞ / KAYIT
         window.handleAuthSubmit = async function(e) {
             e.preventDefault();
             const mode = document.getElementById('auth-mode').value;
@@ -585,19 +602,37 @@
                         email: email,
                         isVerified: false
                     });
+                    alert("Kayıt işlemi başarılı! Hoş geldiniz.");
                 }
                 closeAuthModal();
             } catch (err) {
-                alert("Hata: " + err.message);
+                if (err.code === 'auth/email-already-in-use') {
+                    alert("Bu e-posta adresi zaten daha önceden kayıtlı! Lütfen giriş yapın veya şifrenizi unuttuysanız sıfırlayın.");
+                } else {
+                    alert("Hata: " + err.message);
+                }
             } finally {
                 btn.disabled = false;
                 btn.innerText = mode === 'login' ? "Giriş Yap" : "Kayıt Ol";
             }
         };
 
+        window.handleForgotPassword = async function() {
+            const email = document.getElementById('auth-email').value;
+            if (!email) {
+                alert("Lütfen önce üstteki e-posta alanına hesabınıza ait e-posta adresinizi yazın.");
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünü) kontrol edin.");
+            } catch(err) {
+                alert("Hata: " + err.message);
+            }
+        };
+
         window.handleLogout = function() { signOut(auth); };
 
-        // FAVORİ EKLE / ÇIKAR
         window.toggleFavorite = async function(id) {
             if (!window.currentUser) {
                 alert("Favorilere eklemek için giriş yapmalısınız.");
@@ -620,7 +655,6 @@
             updateFavBtnStyle(id);
         };
 
-        // FİYAT TEKLİFİ GÖNDERME
         window.submitPriceOffer = async function() {
             if (!window.currentUser) {
                 alert("Teklif vermek için giriş yapmalısınız.");
@@ -659,7 +693,6 @@
             }
         };
 
-        // İLAN FORM SUBMIT
         window.handleFormSubmit = async function(e) {
             e.preventDefault();
             if (!window.currentUser) return;
@@ -701,7 +734,6 @@
             }
         };
 
-        // ÇKS DOĞRULAMA
         window.processCksDocument = async function() {
             const fileInput = document.getElementById('cks-file-input');
             if (!fileInput.files || fileInput.files.length === 0) {
@@ -725,54 +757,80 @@
             }, 1500);
         };
 
-        // PROFİL VE ŞİFRE GÜNCELLEME (YENİLENMİŞ VE SENKRONİZE)
         window.updateAccountDetails = async function() {
             if (!window.currentUser) return;
             const newUsername = document.getElementById('update-username').value;
             const newPhone = document.getElementById('update-phone').value;
             const newPass = document.getElementById('update-new-password').value;
+            const currentPass = document.getElementById('update-current-password').value;
             const btn = document.getElementById('update-acc-btn');
+
+            if (!currentPass) {
+                alert("Bilgilerinizi güncelleyebilmek için lütfen mevcut şifrenizi girin.");
+                return;
+            }
 
             btn.disabled = true;
             btn.innerText = "Güncelleniyor...";
 
             try {
-                // Firebase DB Güncelle
+                const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
+                await signInWithCredential(window.currentUser, credential);
+
                 await update(ref(db, 'users/' + window.currentUser.uid), {
                     username: newUsername,
                     phone: newPhone
                 });
-
-                // Auth Profil Adı Güncelle
                 await updateProfile(window.currentUser, { displayName: newUsername });
 
-                // Şifre Değiştirilmek İstenmişse
                 if (newPass.trim() !== "") {
                     if (newPass.length < 6) {
                         alert("Yeni şifre en az 6 karakter olmalıdır.");
                         btn.disabled = false;
-                        btn.innerText = "Tüm Bilgileri Kaydet ve Güncelle";
+                        btn.innerText = "Değişiklikleri Kaydet";
                         return;
                     }
                     await updatePassword(window.currentUser, newPass);
-                    alert("Şifreniz başarıyla güncellendi!");
+                    alert("Şifreniz ve profil bilgileriniz başarıyla güncellendi!");
+                } else {
+                    alert("Profil bilgileriniz başarıyla güncellendi!");
                 }
 
-                // Yerel Değişkenleri Senkronize Et
                 window.userExtraData.username = newUsername;
                 window.userExtraData.phone = newPhone;
-
-                alert("Profil bilgileriniz başarıyla güncellendi!");
+                document.getElementById('update-current-password').value = '';
+                document.getElementById('update-new-password').value = '';
                 closeAccountModal();
             } catch (err) {
-                alert("Hata: " + err.message + "\n(Şifre değişikliği için yakın zamanda giriş yapmış olmalısınız)");
+                alert("Hata: Mevcut şifrenizi yanlış girdiniz veya işlem başarısız oldu.");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Tüm Bilgileri Kaydet ve Güncelle";
+                btn.innerText = "Değişiklikleri Kaydet";
             }
         };
 
-        // İLAN SİLME
+        window.deleteUserAccount = async function() {
+            if (!window.currentUser) return;
+            const confirmDelete = confirm("⚠️ DİKKAT: Hesabınızı kalıcı olarak kapatmak istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinir.");
+            if (!confirmDelete) return;
+
+            const password = prompt("Hesabınızı silmek için lütfen mevcut şifrenizi girin:");
+            if (!password) return;
+
+            try {
+                const credential = EmailAuthProvider.credential(window.currentUser.email, password);
+                await signInWithCredential(window.currentUser, credential);
+
+                await remove(ref(db, 'users/' + window.currentUser.uid));
+                await deleteUser(window.currentUser);
+
+                alert("Hesabınız kalıcı olarak kapatıldı.");
+                closeAccountModal();
+            } catch (err) {
+                alert("Hata: Şifre yanlış veya işlem gerçekleştirilemedi. " + err.message);
+            }
+        };
+
         window.deleteCurrentListing = async function(id) {
             const targetId = id || window.activeListingId;
             if (!targetId) return;
@@ -789,7 +847,6 @@
             }
         };
 
-        // GELEN TEKLİFLER VE WHATSAPP BUTONU
         window.loadIncomingOffers = async function() {
             const container = document.getElementById('tab-content-offers');
             container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
@@ -815,7 +872,7 @@
                 div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
                 
                 const cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-                const waMsg = encodeURIComponent(`Merhaba ${o.buyerName}, "${o.listingTitle}" ilanım için verdiğiniz ${o.offeredPrice} TL teklif hakkında yazıyorum.`);
+                const waMsg = encodeURIComponent(`Merhaba ${o.buyerName}, "${o.listingTitle}" ilanım için verdiğiniz ${o.offeredPrice} TL teklif üzerine görüşmek istiyorum.`);
                 const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${waMsg}` : '#';
 
                 div.innerHTML = `
@@ -826,11 +883,11 @@
                     <p class="text-[10px] text-gray-600">Teklif Veren: <b>${o.buyerName}</b> (${o.buyerPhone})</p>
                     ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${o.note}"</p>` : ''}
                     ${cleanPhone ? `
-                        <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-[11px] transition">
+                        <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>Teklif Veren İle WhatsApp'tan Konuş</span>
+                            <span>Teklif Veren İle WhatsApp'tan Yazış</span>
                         </a>
-                    ` : ''}
+                    ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
                 `;
                 container.appendChild(div);
             });
@@ -974,6 +1031,8 @@
                 case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
                 case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
                 case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
+                case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
+                case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
                 case 'Nakliye': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
                 default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
             }
@@ -1018,6 +1077,7 @@
             document.getElementById('update-username').value = name;
             document.getElementById('update-phone').value = window.userExtraData.phone || '';
             document.getElementById('update-new-password').value = '';
+            document.getElementById('update-current-password').value = '';
 
             switchAccountTab('listings');
 
@@ -1053,7 +1113,6 @@
 
         function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
 
-        // GÜNCEL KULLANICI BİLGİLERİYLE İLAN FORMU AÇMA (ESKİ BİLGİ KALMAZ)
         function openFormModal() { 
             if (!window.currentUser) {
                 alert("İlan eklemek için önce giriş yapmalısınız.");
@@ -1300,7 +1359,7 @@
                 editBtn.classList.add('hidden');
             }
 
-            const waMsg = encodeURIComponent(`Merhaba ${item.seller}, ORONTES üzerindeki "${item.title}" ilanınız için iletişime geçiyorum.`);
+            const waMsg = encodeURIComponent(`Merhaba ${item.seller}, ORONTES üzerindeki "${item.title}" ilanınız hakkında görüşmek istiyorum.`);
             document.getElementById('detail-whatsapp').href = `https://wa.me/90${item.phone.replace(/[^0-9]/g, '')}?text=${waMsg}`;
 
             updateFavBtnStyle(id);
