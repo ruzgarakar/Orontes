@@ -56,10 +56,13 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
             
             <div class="w-full sm:w-auto flex justify-between items-center">
-                <!-- LOGO -->
+                <!-- DİNAMİK KESİNTİSİZ SVG LOGO (MOBİL DAHİL HER YERDE %100 ÇALIŞIR) -->
                 <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
-                    <div class="bg-white px-2.5 py-1 rounded-xl flex items-center justify-center shadow-md border border-lux-gold/30 hover:opacity-95 transition">
-                        <img src="logo.jpeg" alt="ORONTES" class="h-7 sm:h-10 w-auto max-w-[110px] sm:max-w-none object-contain block">
+                    <div class="bg-lux-dark px-3 py-1.5 rounded-xl flex items-center justify-center border border-lux-gold/40 shadow-sm hover:opacity-95 transition">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-wheat-awn text-lux-gold text-lg"></i>
+                            <span class="font-extrabold tracking-widest text-white text-base sm:text-lg">ORONTES</span>
+                        </div>
                     </div>
                 </div>
 
@@ -78,13 +81,11 @@
 
             <!-- SAĞ ÜST KULLANICI & MENÜ BUTONLARI -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
-                <!-- GİRİŞ YAPILMAMIŞSA -->
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
                     <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
                 </div>
 
-                <!-- GİRİŞ YAPILMIŞSA -->
                 <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
                     <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
                         <i class="fa-solid fa-user-gear"></i>
@@ -192,14 +193,11 @@
             </div>
         </div>
 
-        <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            <!-- Firebase'den Yüklenir -->
-        </div>
-
+        <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
         <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
 
-    <!-- SSS VE İLETİŞİM -->
+    <!-- SSS VE TIKLANABİLİR DESTEK E-POSTASI -->
     <section class="max-w-7xl mx-auto px-4 my-12">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -227,7 +225,9 @@
                     </h3>
                     <p class="text-xs text-lux-sage font-light mb-4">Soru, öneri veya destek talepleriniz için bize e-posta ile ulaşabilirsiniz.</p>
                     <div class="space-y-2 text-xs">
-                        <p><i class="fa-solid fa-envelope text-lux-gold mr-2"></i> destek@oronteshatay.com.tr</p>
+                        <a href="mailto:destek@oronteshatay.com.tr" class="text-lux-gold hover:underline font-semibold flex items-center">
+                            <i class="fa-solid fa-envelope mr-2"></i> destek@oronteshatay.com.tr
+                        </a>
                     </div>
                 </div>
                 <div class="border-t border-lux-olive/40 pt-3 mt-4 flex justify-between items-center text-[10px] text-lux-sage">
@@ -238,7 +238,7 @@
         </div>
     </section>
 
-    <!-- MODAL: HESABIM & PROFİL AYARLARI -->
+    <!-- MODAL: HESABIM & ŞİFRE GÜNCELLEME DESTEKLİ PANEL -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -267,7 +267,7 @@
 
             <div id="tab-content-settings" class="hidden space-y-4">
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
-                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
+                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Tüm Hesap Bilgilerini Güncelle</span>
                     <div class="space-y-2">
                         <div>
                             <label class="block text-[10px] text-gray-500 uppercase font-semibold">Kullanıcı Adı / Ad Soyad</label>
@@ -276,6 +276,10 @@
                         <div>
                             <label class="block text-[10px] text-gray-500 uppercase font-semibold">WhatsApp Tel</label>
                             <input type="tel" id="update-phone" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                        </div>
+                        <div class="pt-2 border-t border-gray-200">
+                            <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni Şifre (İsteğe Bağlı)</label>
+                            <input type="password" id="update-new-password" placeholder="Değiştirmek istemiyorsanız boş bırakın" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
                         </div>
                     </div>
                     <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Tüm Bilgileri Kaydet ve Güncelle</button>
@@ -486,11 +490,11 @@
     <!-- LEAFLET.JS HARİTA SCRIPTI -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- FIREBASE AUTH & REALTIME DATABASE & MODÜL SCRIPTLERI -->
+    <!-- FIREBASE MODULE & UYGULAMA MANTIĞI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
@@ -524,7 +528,7 @@
         window.currentPage = 1;
         window.itemsPerPage = 12;
 
-        // OTURUM DİNLENİYOR
+        // OTURUM DİNLENİYOR VE BİLGİLER SENKRONİZE EDİLİYOR
         onAuthStateChanged(auth, async (user) => {
             window.currentUser = user;
             const loggedOutBox = document.getElementById('auth-logged-out');
@@ -640,7 +644,7 @@
                     listingTitle: item.title,
                     sellerUid: item.uid,
                     buyerUid: window.currentUser.uid,
-                    buyerName: window.currentUser.displayName || window.currentUser.email,
+                    buyerName: window.userExtraData.username || window.currentUser.displayName || window.currentUser.email,
                     buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
                     offeredPrice: price,
                     note: note,
@@ -697,7 +701,7 @@
             }
         };
 
-        // YENİ EKLENEN FONKSİYONLAR (ÇKS, PROFİL GÜNCELLEME VE SİLME)
+        // ÇKS DOĞRULAMA
         window.processCksDocument = async function() {
             const fileInput = document.getElementById('cks-file-input');
             if (!fileInput.files || fileInput.files.length === 0) {
@@ -721,24 +725,54 @@
             }, 1500);
         };
 
+        // PROFİL VE ŞİFRE GÜNCELLEME (YENİLENMİŞ VE SENKRONİZE)
         window.updateAccountDetails = async function() {
             if (!window.currentUser) return;
             const newUsername = document.getElementById('update-username').value;
             const newPhone = document.getElementById('update-phone').value;
+            const newPass = document.getElementById('update-new-password').value;
+            const btn = document.getElementById('update-acc-btn');
+
+            btn.disabled = true;
+            btn.innerText = "Güncelleniyor...";
 
             try {
+                // Firebase DB Güncelle
                 await update(ref(db, 'users/' + window.currentUser.uid), {
                     username: newUsername,
                     phone: newPhone
                 });
+
+                // Auth Profil Adı Güncelle
+                await updateProfile(window.currentUser, { displayName: newUsername });
+
+                // Şifre Değiştirilmek İstenmişse
+                if (newPass.trim() !== "") {
+                    if (newPass.length < 6) {
+                        alert("Yeni şifre en az 6 karakter olmalıdır.");
+                        btn.disabled = false;
+                        btn.innerText = "Tüm Bilgileri Kaydet ve Güncelle";
+                        return;
+                    }
+                    await updatePassword(window.currentUser, newPass);
+                    alert("Şifreniz başarıyla güncellendi!");
+                }
+
+                // Yerel Değişkenleri Senkronize Et
+                window.userExtraData.username = newUsername;
                 window.userExtraData.phone = newPhone;
+
                 alert("Profil bilgileriniz başarıyla güncellendi!");
                 closeAccountModal();
             } catch (err) {
-                alert("Hata: " + err.message);
+                alert("Hata: " + err.message + "\n(Şifre değişikliği için yakın zamanda giriş yapmış olmalısınız)");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Tüm Bilgileri Kaydet ve Güncelle";
             }
         };
 
+        // İLAN SİLME
         window.deleteCurrentListing = async function(id) {
             const targetId = id || window.activeListingId;
             if (!targetId) return;
@@ -754,10 +788,56 @@
                 }
             }
         };
+
+        // GELEN TEKLİFLER VE WHATSAPP BUTONU
+        window.loadIncomingOffers = async function() {
+            const container = document.getElementById('tab-content-offers');
+            container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+
+            const snap = await get(ref(db, 'offers'));
+            const data = snap.val();
+
+            if (!data) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+                return;
+            }
+
+            const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]})).filter(o => o.sellerUid === window.currentUser.uid);
+            container.innerHTML = '';
+
+            if (myOffers.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+                return;
+            }
+
+            myOffers.forEach(o => {
+                const div = document.createElement('div');
+                div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
+                
+                const cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
+                const waMsg = encodeURIComponent(`Merhaba ${o.buyerName}, "${o.listingTitle}" ilanım için verdiğiniz ${o.offeredPrice} TL teklif hakkında yazıyorum.`);
+                const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${waMsg}` : '#';
+
+                div.innerHTML = `
+                    <div class="flex justify-between font-bold text-amber-900">
+                        <span>📌 ${o.listingTitle}</span>
+                        <span class="text-emerald-700">${o.offeredPrice} TL Teklif</span>
+                    </div>
+                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${o.buyerName}</b> (${o.buyerPhone})</p>
+                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${o.note}"</p>` : ''}
+                    ${cleanPhone ? `
+                        <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-[11px] transition">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>Teklif Veren İle WhatsApp'tan Konuş</span>
+                        </a>
+                    ` : ''}
+                `;
+                container.appendChild(div);
+            });
+        };
     </script>
 
     <script>
-        // HATAY İLÇELERİ KOORDİNAT HARİTASI
         const districtCoords = {
             'Altınözü': [36.1176, 36.2472],
             'Antakya': [36.2023, 36.1613],
@@ -775,10 +855,7 @@
 
         function renderMap(district) {
             const coords = districtCoords[district] || [36.2023, 36.1613];
-            
-            if (window.mapInstance) {
-                window.mapInstance.remove();
-            }
+            if (window.mapInstance) window.mapInstance.remove();
 
             window.mapInstance = L.map('map').setView(coords, 11);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -818,7 +895,7 @@
             document.getElementById(`tab-btn-${tab}`).className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
 
             if (tab === 'favorites') loadFavoriteListings();
-            if (tab === 'offers') loadIncomingOffers();
+            if (tab === 'offers') window.loadIncomingOffers();
         }
 
         function loadFavoriteListings() {
@@ -844,41 +921,6 @@
                         </div>
                     </div>
                     <button onclick="openDetailModal('${item.id}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        async function loadIncomingOffers() {
-            const container = document.getElementById('tab-content-offers');
-            container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
-
-            const snap = await window.get(window.ref(window.db, 'offers'));
-            const data = snap.val();
-
-            if (!data) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
-                return;
-            }
-
-            const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]})).filter(o => o.sellerUid === window.currentUser.uid);
-            container.innerHTML = '';
-
-            if (myOffers.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
-                return;
-            }
-
-            myOffers.forEach(o => {
-                const div = document.createElement('div');
-                div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-1";
-                div.innerHTML = `
-                    <div class="flex justify-between font-bold text-amber-900">
-                        <span>📌 ${o.listingTitle}</span>
-                        <span class="text-emerald-700">${o.offeredPrice} TL Teklif</span>
-                    </div>
-                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${o.buyerName}</b> (Tel: ${o.buyerPhone})</p>
-                    ${o.note ? `<p class="text-[10px] text-gray-500 italic">Not: "${o.note}"</p>` : ''}
                 `;
                 container.appendChild(div);
             });
@@ -968,13 +1010,14 @@
         function openAccountModal() {
             if (!window.currentUser) return;
 
-            const name = window.currentUser.displayName || window.currentUser.email.split('@')[0];
+            const name = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
             document.getElementById('account-username').innerText = name;
             document.getElementById('account-email').innerText = window.currentUser.email;
             document.getElementById('account-avatar').innerText = name.charAt(0).toUpperCase();
 
             document.getElementById('update-username').value = name;
             document.getElementById('update-phone').value = window.userExtraData.phone || '';
+            document.getElementById('update-new-password').value = '';
 
             switchAccountTab('listings');
 
@@ -1010,6 +1053,7 @@
 
         function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
 
+        // GÜNCEL KULLANICI BİLGİLERİYLE İLAN FORMU AÇMA (ESKİ BİLGİ KALMAZ)
         function openFormModal() { 
             if (!window.currentUser) {
                 alert("İlan eklemek için önce giriş yapmalısınız.");
@@ -1022,10 +1066,12 @@
             
             const sellerInput = document.getElementById('form-seller');
             const phoneInput = document.getElementById('form-phone');
-            const userName = window.currentUser.displayName || window.currentUser.email.split('@')[0];
             
-            sellerInput.value = userName.charAt(0).toUpperCase() + userName.slice(1);
-            phoneInput.value = window.userExtraData.phone || '';
+            const latestName = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
+            const latestPhone = window.userExtraData.phone || '';
+
+            sellerInput.value = latestName;
+            phoneInput.value = latestPhone;
             document.getElementById('form-modal').classList.remove('hidden'); 
         }
 
