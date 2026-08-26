@@ -47,38 +47,46 @@
             animation-play-state: paused;
         }
         #map { height: 180px; width: 100%; border-radius: 0.75rem; z-index: 10; }
-        
-        /* iPhone / Netlify Çakışmasını Önleyen Katman & Yükseklik Ayarı */
-        .mobile-bottom-nav {
-            z-index: 9999 !important;
-            padding-top: 0.5rem;
-            padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
-        }
     </style>
 </head>
-<body class="text-gray-800 font-sans antialiased pb-24 sm:pb-12">
+<body class="text-gray-800 font-sans antialiased pb-12">
 
     <!-- HEADER / NAV -->
     <header class="bg-lux-dark text-white sticky top-0 z-40 shadow-sm border-b border-lux-olive/40">
-        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex justify-between items-center gap-2">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
             
-            <!-- MOBİLDE RAHAT GÖRÜNEN DİNAMİK LOGO ALANI -->
-            <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters()">
-                <div class="bg-white px-2.5 py-1 rounded-xl flex items-center justify-center shadow-md border border-lux-gold/30 hover:opacity-95 transition">
-                    <img src="logo.jpeg" alt="ORONTES" class="h-8 sm:h-10 w-auto max-w-[120px] sm:max-w-none object-contain block">
+            <div class="w-full sm:w-auto flex justify-between items-center">
+                <!-- LOGO -->
+                <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
+                    <div class="bg-white px-2.5 py-1 rounded-xl flex items-center justify-center shadow-md border border-lux-gold/30 hover:opacity-95 transition">
+                        <img src="logo.jpeg" alt="ORONTES" class="h-7 sm:h-10 w-auto max-w-[110px] sm:max-w-none object-contain block">
+                    </div>
+                </div>
+
+                <!-- MOBİL HIZLI ERİŞİM BUTONLARI -->
+                <div class="flex sm:hidden items-center space-x-1.5">
+                    <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth'});" class="bg-lux-olive/60 text-lux-sage px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>Filtre</span>
+                    </button>
+                    <button onclick="openFormModal()" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-sm">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>İlan Ver</span>
+                    </button>
                 </div>
             </div>
 
+            <!-- SAĞ ÜST KULLANICI & MENÜ BUTONLARI -->
             <div class="flex items-center space-x-1.5 sm:space-x-2">
                 <!-- GİRİŞ YAPILMAMIŞSA -->
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
-                    <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-[11px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
-                    <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs transition">Kayıt Ol</button>
+                    <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
+                    <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
                 </div>
 
                 <!-- GİRİŞ YAPILMIŞSA -->
                 <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
-                    <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs border border-lux-gold/30 transition flex items-center space-x-1">
+                    <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
                         <i class="fa-solid fa-user-gear"></i>
                         <span>Hesabım</span>
                     </button>
@@ -92,7 +100,7 @@
         </div>
     </header>
 
-    <!-- GERÇEK İLANLARDAN OLUŞAN CANLI HAL FİYAT ENDEKSİ BARI -->
+    <!-- CANLI HAL FİYAT ENDEKSİ BARI -->
     <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
         <div class="animate-marquee whitespace-nowrap flex space-x-8 items-center" id="marquee-container">
             <!-- JavaScript ile doldurulur -->
@@ -107,7 +115,7 @@
         </div>
     </section>
 
-    <!-- GELİŞMİŞ FİLTRELEME VE ARAMA BAR -->
+    <!-- FİLTRELEME VE ARAMA BARI -->
     <section id="filter-section" class="max-w-7xl mx-auto px-4 -mt-6 relative z-20">
         <div class="bg-white p-3.5 rounded-2xl shadow-md border border-gray-200/80 flex flex-col gap-2.5">
             <div class="flex flex-col lg:flex-row gap-2.5 items-center">
@@ -155,7 +163,6 @@
                 </div>
             </div>
 
-            <!-- FİYAT ARALIĞI VE ÇKS FİLTRESİ -->
             <div class="flex flex-wrap items-center justify-between border-t border-gray-100 pt-2 gap-2 text-xs">
                 <div class="flex items-center space-x-2">
                     <span class="text-gray-400 font-semibold text-[10px] uppercase">Fiyat (TL):</span>
@@ -171,7 +178,7 @@
         </div>
     </section>
 
-    <!-- İLAN LİSTESİ VE SAYFALAMA -->
+    <!-- İLAN LİSTESİ -->
     <main class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-base font-semibold text-lux-dark flex items-center space-x-2">
@@ -186,16 +193,13 @@
         </div>
 
         <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            <!-- İlanlar Firebase Canlı Veritabanından Gelecek -->
+            <!-- Firebase'den Yüklenir -->
         </div>
 
-        <!-- SAYFALAMA BARI -->
-        <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2">
-            <!-- JavaScript ile Doldurulur -->
-        </div>
+        <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
 
-    <!-- SSS VE İLETİŞİM ALANI -->
+    <!-- SSS VE İLETİŞİM -->
     <section class="max-w-7xl mx-auto px-4 my-12">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -234,27 +238,7 @@
         </div>
     </section>
 
-    <!-- MOBİL ALT GEZİNTİ BARI (TAM HİZALANMIŞ VE KUSURSUZ YÜKSEKLİK) -->
-    <div class="sm:hidden fixed bottom-0 left-0 right-0 bg-lux-dark text-white border-t border-lux-olive/40 px-6 flex justify-between items-center shadow-2xl mobile-bottom-nav">
-        <button onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});" class="flex flex-col items-center text-lux-sage hover:text-white text-[10px]">
-            <i class="fa-solid fa-house text-base mb-1"></i>
-            <span>Vitrin</span>
-        </button>
-        <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth'});" class="flex flex-col items-center text-lux-sage hover:text-white text-[10px]">
-            <i class="fa-solid fa-filter text-base mb-1"></i>
-            <span>Filtrele</span>
-        </button>
-        <button onclick="openFormModal()" class="flex flex-col items-center text-lux-gold hover:text-white text-[10px] font-bold">
-            <i class="fa-solid fa-square-plus text-lg mb-1"></i>
-            <span>İlan Ver</span>
-        </button>
-        <button onclick="openAccountModal()" class="flex flex-col items-center text-lux-sage hover:text-white text-[10px]">
-            <i class="fa-solid fa-user text-base mb-1"></i>
-            <span>Hesabım</span>
-        </button>
-    </div>
-
-    <!-- MODAL: HESABIM, FAVORİLERİM, GELEN TEKLİFLER VE BİLGİ GÜNCELLEME -->
+    <!-- MODAL: HESABIM & PROFİL AYARLARI -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -270,7 +254,6 @@
                 </div>
             </div>
 
-            <!-- SEKMELİ YÖNETİM PANELİ -->
             <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500">
                 <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark">İlanlarım</button>
                 <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Favorilerim</button>
@@ -278,43 +261,21 @@
                 <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Profil Ayarları</button>
             </div>
 
-            <!-- TAB 1: BENİM İLANLARIM -->
             <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
-
-            <!-- TAB 2: FAVORİLERİM -->
             <div id="tab-content-favorites" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
-
-            <!-- TAB 3: GELEN TEKLİFLER -->
             <div id="tab-content-offers" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
 
-            <!-- TAB 4: PROFİL & ÇKS GÜNCELLEME -->
             <div id="tab-content-settings" class="hidden space-y-4">
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
-                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Tüm Hesap Bilgilerini Güncelle</span>
+                    <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
                     <div class="space-y-2">
                         <div>
                             <label class="block text-[10px] text-gray-500 uppercase font-semibold">Kullanıcı Adı / Ad Soyad</label>
                             <input type="text" id="update-username" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[10px] text-gray-500 uppercase font-semibold">WhatsApp Tel</label>
-                                <input type="tel" id="update-phone" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni E-Posta</label>
-                                <input type="email" id="update-email-input" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni Şifre</label>
-                                <input type="password" id="update-password-input" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-red-600 uppercase">Mevcut Şifreniz*</label>
-                                <input type="password" id="update-current-password" class="w-full border border-red-200 p-2 rounded-lg text-xs outline-none bg-white">
-                            </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 uppercase font-semibold">WhatsApp Tel</label>
+                            <input type="tel" id="update-phone" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
                         </div>
                     </div>
                     <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Tüm Bilgileri Kaydet ve Güncelle</button>
@@ -336,7 +297,7 @@
         </div>
     </div>
 
-    <!-- MODAL: İLAN DETAY & CANLI HARİTA & TEKLİF VERME -->
+    <!-- MODAL: İLAN DETAY & HARİTA -->
     <div id="detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
@@ -370,13 +331,11 @@
                     <p id="detail-desc" class="text-gray-600 text-xs leading-relaxed whitespace-pre-line">İlan açıklaması...</p>
                 </div>
 
-                <!-- CANLI HATAY İLÇE HARİTASI -->
                 <div class="mb-5">
                     <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1"><i class="fa-solid fa-map-location-dot text-lux-gold mr-1"></i> Ürün Konumu (Hatay)</h4>
                     <div id="map"></div>
                 </div>
 
-                <!-- DOĞRUDAN FİYAT TEKLİFİ VERME ALANI -->
                 <div class="bg-amber-50/60 border border-amber-200/80 p-3 rounded-xl mb-4 space-y-2">
                     <span class="text-xs font-bold text-amber-900 block"><i class="fa-solid fa-handshake text-amber-600 mr-1"></i> Satıcıya Özel Fiyat Teklifi Gönder</span>
                     <div class="flex gap-2">
@@ -527,11 +486,11 @@
     <!-- LEAFLET.JS HARİTA SCRIPTI -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- FIREBASE AUTH & REALTIME DATABASE -->
+    <!-- FIREBASE AUTH & REALTIME DATABASE & MODÜL SCRIPTLERI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updateEmail, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
@@ -553,6 +512,7 @@
         window.push = push;
         window.remove = remove;
         window.update = update;
+        window.get = get;
         window.currentUser = null;
         window.userExtraData = { favorites: {}, offers: {} };
         window.listings = [];
@@ -734,6 +694,64 @@
                 closeDetailModal();
             } catch (err) {
                 alert('Hata: ' + err.message);
+            }
+        };
+
+        // YENİ EKLENEN FONKSİYONLAR (ÇKS, PROFİL GÜNCELLEME VE SİLME)
+        window.processCksDocument = async function() {
+            const fileInput = document.getElementById('cks-file-input');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Lütfen önce bir ÇKS belgesi seçin.");
+                return;
+            }
+            const btn = document.getElementById('cks-upload-btn');
+            btn.innerText = "İnceleniyor...";
+            btn.disabled = true;
+
+            setTimeout(async () => {
+                if (window.currentUser) {
+                    await update(ref(db, 'users/' + window.currentUser.uid), { isVerified: true });
+                    window.userExtraData.isVerified = true;
+                    document.getElementById('cks-status-badge').innerText = "Onaylandı";
+                    document.getElementById('cks-status-badge').className = "text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800";
+                    alert("ÇKS Belgeniz başarıyla doğrulandı! Profilinize 'Doğrulanmış Üretici' rozeti eklendi.");
+                }
+                btn.innerText = "Sistem İncelesin";
+                btn.disabled = false;
+            }, 1500);
+        };
+
+        window.updateAccountDetails = async function() {
+            if (!window.currentUser) return;
+            const newUsername = document.getElementById('update-username').value;
+            const newPhone = document.getElementById('update-phone').value;
+
+            try {
+                await update(ref(db, 'users/' + window.currentUser.uid), {
+                    username: newUsername,
+                    phone: newPhone
+                });
+                window.userExtraData.phone = newPhone;
+                alert("Profil bilgileriniz başarıyla güncellendi!");
+                closeAccountModal();
+            } catch (err) {
+                alert("Hata: " + err.message);
+            }
+        };
+
+        window.deleteCurrentListing = async function(id) {
+            const targetId = id || window.activeListingId;
+            if (!targetId) return;
+
+            if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
+                try {
+                    await remove(ref(db, 'listings/' + targetId));
+                    alert("İlan başarıyla silindi.");
+                    closeDetailModal();
+                    closeAccountModal();
+                } catch (err) {
+                    alert("Hata: " + err.message);
+                }
             }
         };
     </script>
@@ -957,7 +975,6 @@
 
             document.getElementById('update-username').value = name;
             document.getElementById('update-phone').value = window.userExtraData.phone || '';
-            document.getElementById('update-email-input').value = window.currentUser.email;
 
             switchAccountTab('listings');
 
