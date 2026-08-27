@@ -184,10 +184,6 @@
                     <span class="text-gray-300">-</span>
                     <input type="number" id="max-price-filter" onkeyup="filterListings()" placeholder="Maks TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
                 </div>
-                <label class="flex items-center space-x-1.5 cursor-pointer bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
-                    <input type="checkbox" id="verified-only-filter" onchange="filterListings()" class="accent-emerald-700">
-                    <span><i class="fa-solid fa-shield-halved text-emerald-600"></i> Sadece ÇKS Onaylı Üreticiler</span>
-                </label>
             </div>
         </div>
     </section>
@@ -227,10 +223,6 @@
                         <p class="font-semibold text-gray-800">3 Aylık Hediye VIP Vitrin Rozeti nedir?</p>
                         <p class="font-light">Lansmanımıza özel açılan ilk 100 ilana otomatik olarak 3 ay boyunca geçerli VIP Vitrin rozeti ücretsiz tanımlanır.</p>
                     </div>
-                    <div>
-                        <p class="font-semibold text-gray-800">Doğrulanmış Üretici Rozeti nasıl alınır?</p>
-                        <p class="font-light">Hesabım bölümünden ÇKS belgenizi yükleyebilirsiniz. Belgeniz yönetim onayına gönderilir; incelendikten sonra rozetiniz aktifleşir.</p>
-                    </div>
                 </div>
             </div>
 
@@ -242,8 +234,8 @@
                     </h3>
                     <p class="text-xs text-lux-sage font-light mb-4">Soru, öneri veya destek talepleriniz için bize e-posta ile ulaşabilirsiniz.</p>
                     <div class="space-y-2 text-xs">
-                        <a href="mailto:Orontesdestek@gmail.com" class="text-lux-gold hover:underline font-semibold flex items-center">
-                            <i class="fa-solid fa-envelope mr-2"></i> Orontesdestek@gmail.com
+                        <a href="mailto:orontesdestek@gmail.com" class="text-lux-gold hover:underline font-semibold flex items-center">
+                            <i class="fa-solid fa-envelope mr-2"></i> orontesdestek@gmail.com
                         </a>
                     </div>
                 </div>
@@ -275,7 +267,6 @@
                 <div>
                     <h3 class="font-bold text-lux-dark text-base flex items-center space-x-2">
                         <span id="account-username">Kullanıcı Adı</span>
-                        <span id="account-verified-icon" class="hidden text-emerald-600 text-xs" title="Doğrulanmış Üretici"><i class="fa-solid fa-circle-check"></i> DOĞRULANMIŞ ÜRETİCİ</span>
                     </h3>
                     <p class="text-xs text-gray-400" id="account-email">email@domain.com</p>
                 </div>
@@ -316,19 +307,6 @@
                     <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
                 </div>
 
-                <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold text-emerald-900 block"><i class="fa-solid fa-file-contract text-emerald-600 mr-1"></i> ÇKS Belgesi Doğrulama</span>
-                        <span id="cks-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-600">Henüz Yüklenmedi</span>
-                    </div>
-                    <div class="flex items-center space-x-2 pt-1">
-                        <input type="file" id="cks-file-input" accept="image/*,.pdf" class="w-full border border-emerald-300 p-1 rounded-lg text-[11px] bg-white text-gray-600">
-                        <button onclick="processCksDocument()" id="cks-upload-btn" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition whitespace-nowrap shadow-sm">
-                            Onaya Gönder
-                        </button>
-                    </div>
-                </div>
-
                 <!-- HESABI KALICI OLARAK KAPATMA -->
                 <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
                     <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
@@ -355,7 +333,6 @@
                     <div>
                         <div class="flex items-center space-x-1.5 flex-wrap gap-1">
                             <span id="detail-category" class="text-[10px] bg-lux-bg text-lux-dark font-semibold px-2 py-0.5 rounded-md">Kategori</span>
-                            <span id="detail-verified-badge" class="hidden text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md"><i class="fa-solid fa-circle-check"></i> Doğrulanmış Üretici</span>
                             <span id="detail-time-badge" class="text-[10px] bg-gray-100 text-gray-600 font-medium px-2 py-0.5 rounded-md">Zaman</span>
                         </div>
                         <h2 id="detail-title" class="text-lg font-bold mt-1 text-lux-dark">İlan Başlığı</h2>
@@ -644,8 +621,7 @@
                     await update(ref(db, 'users/' + res.user.uid), {
                         username: username,
                         phone: phone,
-                        email: email,
-                        isVerified: false
+                        email: email
                     });
                     alert("Kayıt işlemi başarılı! Hoş geldiniz.");
                 }
@@ -795,7 +771,6 @@
                 phone: document.getElementById('form-phone').value,
                 desc: document.getElementById('form-desc').value,
                 image: document.getElementById('form-image').value || window.getDefaultImage(category),
-                isVerified: window.userExtraData.isVerified || false,
                 isVip: finalVip,
                 vipExpireDate: editId
                     ? ((window.listings || []).find(l => l.id === editId)?.vipExpireDate || (Date.now() + threeMonthsInMs))
@@ -823,31 +798,6 @@
                 closeDetailModal();
             } catch (err) {
                 alert('Hata: ' + err.message);
-            }
-        };
-
-        window.processCksDocument = async function() {
-            const fileInput = document.getElementById('cks-file-input');
-            if (!fileInput.files || fileInput.files.length === 0) {
-                alert("Lütfen önce bir ÇKS belgesi seçin.");
-                return;
-            }
-            const btn = document.getElementById('cks-upload-btn');
-            btn.innerText = "Gönderiliyor...";
-            btn.disabled = true;
-
-            try {
-                if (window.currentUser) {
-                    await update(ref(db, 'users/' + window.currentUser.uid), { cksReviewStatus: 'pending' });
-                    document.getElementById('cks-status-badge').innerText = "İnceleme Bekliyor";
-                    document.getElementById('cks-status-badge').className = "text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800";
-                    alert("ÇKS belgeniz başarıyla inceleme kuyruğuna gönderildi. Yetkili onayından sonra doğrulanmış üretici rozetiniz aktifleşecektir.");
-                }
-            } catch (err) {
-                alert("Hata: " + err.message);
-            } finally {
-                btn.innerText = "Onaya Gönder";
-                btn.disabled = false;
             }
         };
 
@@ -1437,7 +1387,6 @@
                                 <i class="fa-solid fa-heart"></i>
                             </button>
                             <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
-                                ${item.isVerified ? '<span class="bg-emerald-700 text-white font-bold text-[9px] px-2 py-0.5 rounded"><i class="fa-solid fa-circle-check"></i> DOĞRULANMIŞ</span>' : ''}
                                 ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded">VIP</span>' : ''}
                                 ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">ACİL</span>' : ''}
                             </div>
@@ -1493,15 +1442,13 @@
             const sort = document.getElementById('sort-filter').value;
             const minPrice = Number(document.getElementById('min-price-filter').value) || 0;
             const maxPrice = Number(document.getElementById('max-price-filter').value) || Infinity;
-            const verifiedOnly = document.getElementById('verified-only-filter').checked;
 
             window.filteredListings = (window.listings || []).filter(item => {
                 const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
                 const matchesCategory = category === "" || item.category === category;
                 const matchesDistrict = district === "" || item.district === district;
                 const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
-                const matchesVerified = !verifiedOnly || item.isVerified;
-                return matchesSearch && matchesCategory && matchesDistrict && matchesPrice && matchesVerified;
+                return matchesSearch && matchesCategory && matchesDistrict && matchesPrice;
             });
 
             if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
@@ -1520,7 +1467,6 @@
             document.getElementById('sort-filter').value = 'newest';
             document.getElementById('min-price-filter').value = '';
             document.getElementById('max-price-filter').value = '';
-            document.getElementById('verified-only-filter').checked = false;
             filterListings();
         }
 
@@ -1537,10 +1483,6 @@
             document.getElementById('detail-title').innerText = item.title;
             document.getElementById('detail-category').innerText = item.category;
             
-            const badge = document.getElementById('detail-verified-badge');
-            if (item.isVerified) badge.classList.remove('hidden');
-            else badge.classList.add('hidden');
-
             document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
             document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / ${escapeHtml(item.district)}`;
             document.getElementById('detail-price').innerText = `${item.price} TL`;
