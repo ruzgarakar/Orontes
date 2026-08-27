@@ -47,13 +47,13 @@
         .marquee-wrapper:hover {
             animation-play-state: paused;
         }
-        #map { height: 160px; width: 100%; border-radius: 0.75rem; z-index: 10; }
+        #map, #form-map { height: 180px; width: 100%; border-radius: 0.75rem; z-index: 10; }
         #listings-grid.list-mode { display: flex !important; flex-direction: column; gap: 0.75rem; }
         #listings-grid.list-mode > div { width: 100%; }
         #listings-grid.list-mode .listing-card-image { width: 160px; min-width: 160px; height: 120px; }
         @media (max-width: 640px) {
             #listings-grid.list-mode .listing-card-image { width: 110px; min-width: 110px; height: 100px; }
-            #map { height: 140px; }
+            #map, #form-map { height: 150px; }
         }
     </style>
 </head>
@@ -421,6 +421,9 @@
 
             <form id="add-listing-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
                 <input type="hidden" id="edit-listing-id" value="">
+                <input type="hidden" id="form-lat" value="">
+                <input type="hidden" id="form-lng" value="">
+
                 <input type="text" id="form-title" required placeholder="İlan Başlığı*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 <div class="grid grid-cols-2 gap-3">
                     <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
@@ -434,7 +437,7 @@
                         <option value="Nakliye">🚛 Nakliye</option>
                         <option value="Diğer">📦 Diğer</option>
                     </select>
-                    <select id="form-district" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                    <select id="form-district" required onchange="updateFormMapCenter(this.value)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
                         <option value="Altınözü">Altınözü</option>
                         <option value="Antakya">Antakya</option>
                         <option value="Arsuz">Arsuz</option>
@@ -449,6 +452,13 @@
                         <option value="Yayladağı">Yayladağı</option>
                     </select>
                 </div>
+
+                <!-- HARİTADAN KONUM SEÇME ALANI -->
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">📍 Harita Üzerinden Tam Konum Seç (Tıkla)</label>
+                    <div id="form-map"></div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <input type="number" id="form-price" required placeholder="Fiyat (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="text" id="form-unit" placeholder="Miktar / Birim (Litre / Ton / KG)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
@@ -459,7 +469,7 @@
                 </div>
                 <div>
                     <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">Ürün Fotoğrafı</label>
-                    <input type="file" id="form-file" accept="image/*" onchange="compressAndConvertImage(event)" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
+                    <input type="file" id="form-file" accept="image/*" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
                     <input type="hidden" id="form-image">
                 </div>
                 <textarea id="form-desc" rows="2" placeholder="Ürün açıklaması..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
@@ -519,13 +529,14 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, update, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
             authDomain: "orontes-886a3.firebaseapp.com",
             databaseURL: "https://orontes-886a3-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "orontes-886a3",
-            storageBucket: "orontes-886a3.firebasestorage.app",
+            storageBucket: "orontes-886a3.appspot.com",
             messagingSenderId: "220241708945",
             appId: "1:220241708945:web:1a638ad256a7872282fc30",
             measurementId: "G-WP8LYJG7N9"
@@ -534,6 +545,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
+        const storage = getStorage(app);
 
         window.db = db;
         window.ref = ref;
@@ -550,6 +562,8 @@
         window.currentViewMode = 'grid';
         window.activeListingId = null;
         window.mapInstance = null;
+        window.formMapInstance = null;
+        window.formMarker = null;
         
         window.currentPage = 1;
         window.itemsPerPage = 12;
@@ -735,11 +749,25 @@
                 }
             }
 
-            const category = document.getElementById('form-category').value;
-            let isFirst100 = false;
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Fotoğraf yükleniyor ve kaydediliyor...";
 
-            if (!editId) {
-                try {
+            try {
+                let imageUrl = document.getElementById('form-image').value;
+                const fileInput = document.getElementById('form-file');
+                
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const fileRef = storageRef(storage, `listings/${Date.now()}_${file.name}`);
+                    const snapshot = await uploadBytes(fileRef, file);
+                    imageUrl = await getDownloadURL(snapshot.ref);
+                }
+
+                const category = document.getElementById('form-category').value;
+                let isFirst100 = false;
+
+                if (!editId) {
                     const counterRef = ref(db, 'listingCounter');
                     const result = await runTransaction(counterRef, (currentData) => {
                         let count = (currentData && currentData.count) || 0;
@@ -749,40 +777,37 @@
                     if (!result.committed) {
                         throw new Error('Sayaç güncellenemedi, lütfen tekrar deneyin.');
                     }
-                } catch (err) {
-                    alert('Sistem yoğun, lütfen tekrar deneyin. (' + err.message + ')');
-                    return;
                 }
-            }
 
-            const userVipChoice = document.getElementById('form-vip').checked;
-            const finalVip = (!editId && isFirst100) ? true : userVipChoice;
-            const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
+                const userVipChoice = document.getElementById('form-vip').checked;
+                const finalVip = (!editId && isFirst100) ? true : userVipChoice;
+                const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
 
-            const listingData = {
-                uid: window.currentUser.uid,
-                userEmail: window.currentUser.email,
-                title: document.getElementById('form-title').value,
-                category: category,
-                district: document.getElementById('form-district').value,
-                price: Number(document.getElementById('form-price').value),
-                unit: document.getElementById('form-unit').value || 'KG',
-                seller: document.getElementById('form-seller').value,
-                phone: document.getElementById('form-phone').value,
-                desc: document.getElementById('form-desc').value,
-                image: document.getElementById('form-image').value || window.getDefaultImage(category),
-                isVip: finalVip,
-                vipExpireDate: editId
-                    ? ((window.listings || []).find(l => l.id === editId)?.vipExpireDate || (Date.now() + threeMonthsInMs))
-                    : (Date.now() + threeMonthsInMs),
-                isUrgent: document.getElementById('form-urgent').checked,
-                isDiscount: document.getElementById('form-discount').checked,
-                date: editId
-                    ? ((window.listings || []).find(l => l.id === editId)?.date || Date.now())
-                    : Date.now()
-            };
+                const listingData = {
+                    uid: window.currentUser.uid,
+                    userEmail: window.currentUser.email,
+                    title: document.getElementById('form-title').value,
+                    category: category,
+                    district: document.getElementById('form-district').value,
+                    lat: Number(document.getElementById('form-lat').value) || null,
+                    lng: Number(document.getElementById('form-lng').value) || null,
+                    price: Number(document.getElementById('form-price').value),
+                    unit: document.getElementById('form-unit').value || 'KG',
+                    seller: document.getElementById('form-seller').value,
+                    phone: document.getElementById('form-phone').value,
+                    desc: document.getElementById('form-desc').value,
+                    image: imageUrl || window.getDefaultImage(category),
+                    isVip: finalVip,
+                    vipExpireDate: editId
+                        ? ((window.listings || []).find(l => l.id === editId)?.vipExpireDate || (Date.now() + threeMonthsInMs))
+                        : (Date.now() + threeMonthsInMs),
+                    isUrgent: document.getElementById('form-urgent').checked,
+                    isDiscount: document.getElementById('form-discount').checked,
+                    date: editId
+                        ? ((window.listings || []).find(l => l.id === editId)?.date || Date.now())
+                        : Date.now()
+                };
 
-            try {
                 if (editId) {
                     await update(ref(db, 'listings/' + editId), listingData);
                     alert('İlan güncellendi!');
@@ -798,6 +823,9 @@
                 closeDetailModal();
             } catch (err) {
                 alert('Hata: ' + err.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = "İlanı Kaydet";
             }
         };
 
@@ -926,12 +954,21 @@
                 const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
                 const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
+                const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
+
                 div.innerHTML = `
                     <div class="flex justify-between font-bold text-amber-900">
                         <span>📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</span>
                         <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
                     </div>
                     <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${o.status || 'Beklemede'}</span>
+                        <div class="space-x-1">
+                            <button onclick="updateOfferStatus('${o.id}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
+                            <button onclick="updateOfferStatus('${o.id}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                        </div>
+                    </div>
                     ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
                     ${cleanPhone ? `
                         <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
@@ -942,6 +979,16 @@
                 `;
                 container.appendChild(div);
             });
+        };
+
+        window.updateOfferStatus = async function(offerId, status) {
+            try {
+                await update(ref(db, `offers/${offerId}`), { status: status });
+                alert(`Teklif durumu "${status}" olarak güncellendi.`);
+                window.loadIncomingOffers();
+            } catch(err) {
+                alert("Hata: " + err.message);
+            }
         };
 
         window.escapeHtml = function(value) {
@@ -991,13 +1038,13 @@
             'Yayladağı': [35.9033, 36.0594]
         };
 
-        function renderMap(district) {
-            const coords = districtCoords[district] || [36.2023, 36.1613];
+        function renderMap(lat, lng, district) {
+            const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
             if (window.mapInstance) {
                 window.mapInstance.remove();
             }
 
-            window.mapInstance = L.map('map').setView(coords, 11);
+            window.mapInstance = L.map('map').setView(coords, 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 18,
                 attribution: '© OpenStreetMap'
@@ -1010,6 +1057,50 @@
             setTimeout(() => {
                 if(window.mapInstance) window.mapInstance.invalidateSize();
             }, 250);
+        }
+
+        function initFormMap(lat, lng, district) {
+            const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
+            if (window.formMapInstance) {
+                window.formMapInstance.remove();
+            }
+
+            window.formMapInstance = L.map('form-map').setView(coords, 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '© OpenStreetMap'
+            }).addTo(window.formMapInstance);
+
+            if (lat && lng) {
+                window.formMarker = L.marker([lat, lng]).addTo(window.formMapInstance);
+                document.getElementById('form-lat').value = lat;
+                document.getElementById('form-lng').value = lng;
+            }
+
+            window.formMapInstance.on('click', function(e) {
+                const clickedLat = e.latlng.lat;
+                const clickedLng = e.latlng.lng;
+
+                document.getElementById('form-lat').value = clickedLat;
+                document.getElementById('form-lng').value = clickedLng;
+
+                if (window.formMarker) {
+                    window.formMarker.setLatLng([clickedLat, clickedLng]);
+                } else {
+                    window.formMarker = L.marker([clickedLat, clickedLng]).addTo(window.formMapInstance);
+                }
+            });
+
+            setTimeout(() => {
+                if(window.formMapInstance) window.formMapInstance.invalidateSize();
+            }, 250);
+        }
+
+        function updateFormMapCenter(district) {
+            const coords = districtCoords[district] || [36.2023, 36.1613];
+            if (window.formMapInstance) {
+                window.formMapInstance.setView(coords, 12);
+            }
         }
 
         function shareOnWhatsApp() {
@@ -1081,39 +1172,6 @@
             if (hours < 24) return `${hours} saat önce`;
             if (days < 30) return `${days} gün önce`;
             return `${Math.floor(days / 30)} ay önce`;
-        }
-
-        function compressAndConvertImage(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    document.getElementById('form-image').value = canvas.toDataURL('image/jpeg', 0.7);
-                };
-                img.onerror = function() {
-                    alert("Görsel yüklenirken bir hata oluştu.");
-                };
-            };
         }
 
         function updateMarqueeData() {
@@ -1261,6 +1319,8 @@
             }
             document.getElementById('add-listing-form').reset();
             document.getElementById('edit-listing-id').value = '';
+            document.getElementById('form-lat').value = '';
+            document.getElementById('form-lng').value = '';
             document.getElementById('form-modal-title').innerText = "Ücretsiz İlan Oluştur";
             
             const sellerInput = document.getElementById('form-seller');
@@ -1272,6 +1332,10 @@
             sellerInput.value = latestName;
             phoneInput.value = latestPhone;
             document.getElementById('form-modal').classList.remove('hidden'); 
+            
+            setTimeout(() => {
+                initFormMap(null, null, document.getElementById('form-district').value);
+            }, 200);
         }
 
         function openFormModalForEdit() {
@@ -1283,6 +1347,8 @@
             document.getElementById('form-title').value = item.title;
             document.getElementById('form-category').value = item.category;
             document.getElementById('form-district').value = item.district;
+            document.getElementById('form-lat').value = item.lat || '';
+            document.getElementById('form-lng').value = item.lng || '';
             document.getElementById('form-price').value = item.price;
             document.getElementById('form-unit').value = item.unit || '';
             document.getElementById('form-seller').value = item.seller;
@@ -1295,6 +1361,10 @@
 
             document.getElementById('detail-modal').classList.add('hidden');
             document.getElementById('form-modal').classList.remove('hidden');
+
+            setTimeout(() => {
+                initFormMap(item.lat, item.lng, item.district);
+            }, 200);
         }
 
         function openAuthModal(mode) {
@@ -1508,7 +1578,7 @@
             updateFavBtnStyle(id);
             document.getElementById('detail-modal').classList.remove('hidden');
 
-            setTimeout(() => { renderMap(item.district); }, 200);
+            setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
         }
     </script>
 </body>
