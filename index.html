@@ -80,13 +80,13 @@
     </style>
 </head>
 <body class="text-gray-800 font-sans antialiased pb-12">
- 
+
     <!-- LANSMAN HEDİYESİ DUYURU BARI -->
     <div class="bg-gradient-to-r from-amber-600 via-lux-gold to-amber-700 text-lux-dark text-center text-xs font-bold py-2 px-4 shadow-inner flex justify-center items-center space-x-2">
         <span>🚀 HATAY TARIM PAZARI LANSMANINA ÖZEL:</span>
         <span class="bg-lux-dark text-lux-gold px-2 py-0.5 rounded-md text-[11px] uppercase tracking-wider">İlk 100 İlana 3 Aylık VIP Vitrin ÜCRETSİZ!</span>
     </div>
- 
+
     <!-- HEADER / NAV -->
     <header class="bg-lux-dark text-white sticky top-0 z-40 shadow-sm border-b border-lux-olive/40">
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -100,7 +100,7 @@
                         </div>
                     </div>
                 </div>
- 
+
                 <div class="flex sm:hidden items-center space-x-1.5">
                     <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth'});" class="bg-lux-olive/60 text-lux-sage px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1">
                         <i class="fa-solid fa-filter"></i>
@@ -112,13 +112,13 @@
                     </button>
                 </div>
             </div>
- 
+
             <div class="flex items-center space-x-1.5 sm:space-x-2">
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
                     <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
                 </div>
- 
+
                 <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
                     <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
                         <i class="fa-solid fa-user-gear"></i>
@@ -133,12 +133,12 @@
             </div>
         </div>
     </header>
- 
+
     <!-- CANLI KATEGORİ VE ORTALAMA FİYAT ENDEKSİ BARI -->
     <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
         <div class="marquee-wrapper" id="marquee-container"></div>
     </div>
- 
+
     <!-- HERO SECTION -->
     <section class="bg-lux-dark text-white py-8 sm:py-10 px-4 border-b border-lux-olive/30">
         <div class="max-w-7xl mx-auto text-center">
@@ -146,7 +146,7 @@
             <p class="text-lux-sage max-w-xl mx-auto text-xs sm:text-sm font-light">Doğrudan üreticiden alıcıya, komisyonsuz ve aracısız dijital pazar yeri.</p>
         </div>
     </section>
- 
+
     <!-- FİLTRELEME VE ARAMA BARI -->
     <section id="filter-section" class="max-w-7xl mx-auto px-4 -mt-6 relative z-20">
         <div class="bg-white p-3.5 rounded-2xl shadow-md border border-gray-200/80 flex flex-col gap-2.5">
@@ -155,7 +155,7 @@
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400 text-xs"></i>
                     <input type="text" id="search-input" onkeyup="filterListings()" placeholder="Ürün adı, zeytinyağı, nar ekşisi, nakliye ara..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive text-xs text-gray-700 bg-lux-bg/30">
                 </div>
- 
+
                 <div class="w-full lg:w-auto flex flex-wrap sm:flex-nowrap gap-2">
                     <select id="category-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Kategoriler</option>
@@ -170,36 +170,43 @@
                         <option value="Nakliye">🚛 Nakliye & Lojistik</option>
                         <option value="Diğer">📦 Diğer Tarım Ürünleri</option>
                     </select>
- 
+
                     <select id="district-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Hatay (İlçeler)</option>
                         <option value="Altınözü">Altınözü</option>
                         <option value="Antakya">Antakya</option>
                         <option value="Arsuz">Arsuz</option>
+                        <option value="Belen">Belen</option>
+                        <option value="Defne">Defne</option>
                         <option value="Dörtyol">Dörtyol</option>
                         <option value="Erzin">Erzin</option>
+                        <option value="Hassa">Hassa</option>
                         <option value="İskenderun">İskenderun</option>
                         <option value="Kırıkhan">Kırıkhan</option>
-                        <option value="Samandağ">Samandağ</option>
+                        <option value="Kumlu">Kumlu</option>
+                        <option value="Payas">Payas</option>
                         <option value="Reyhanlı">Reyhanlı</option>
-                        <option value="Hassa">Hassa</option>
-                        <option value="Belen">Belen</option>
+                        <option value="Samandağ">Samandağ</option>
                         <option value="Yayladağı">Yayladağı</option>
+                        <option value="Hatay Dışı">⚠️ Hatay Dışı</option>
                     </select>
- 
+
                     <select id="sort-filter" onchange="filterListings()" class="w-full sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs font-medium text-lux-dark">
                         <option value="newest">En Yeniler</option>
                         <option value="oldest">En Eskiler</option>
                         <option value="price-low">Fiyat: Artan</option>
                         <option value="price-high">Fiyat: Azalan</option>
                     </select>
- 
+
+                    <button id="nearby-btn" onclick="window.toggleNearbyMode()" title="Yakınımdaki İlanlar" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                    </button>
                     <button onclick="resetAllFilters()" title="Filtreleri Sıfırla" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-rotate-right"></i>
                     </button>
                 </div>
             </div>
- 
+
             <div class="flex flex-wrap items-center justify-between border-t border-gray-100 pt-2 gap-2 text-xs">
                 <div class="flex items-center space-x-2">
                     <span class="text-gray-400 font-semibold text-[10px] uppercase">Fiyat (TL):</span>
@@ -210,7 +217,7 @@
             </div>
         </div>
     </section>
- 
+
     <!-- İLAN LİSTESİ -->
     <main class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
@@ -218,17 +225,17 @@
                 <span>Vitrin İlanları</span>
                 <span id="total-count" class="text-xs text-gray-400 font-normal">(Yükleniyor...)</span>
             </h2>
- 
+
             <div class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80">
                 <button id="view-grid-btn" onclick="setViewMode('grid')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
                 <button id="view-list-btn" onclick="setViewMode('list')" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
             </div>
         </div>
- 
+
         <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
         <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
- 
+
     <!-- SSS VE DESTEK E-POSTASI ALANI -->
     <section class="max-w-7xl mx-auto px-4 my-12">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -248,7 +255,7 @@
                     </div>
                 </div>
             </div>
- 
+
             <div class="bg-lux-dark text-white p-6 rounded-2xl shadow-sm flex flex-col justify-between">
                 <div>
                     <h3 class="font-bold text-lux-gold text-sm uppercase mb-2 flex items-center space-x-2">
@@ -269,7 +276,7 @@
             </div>
         </div>
     </section>
- 
+
     <!-- MODAL: KATEGORİ FİYAT DETAYI MODALI -->
     <div id="category-detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
@@ -279,7 +286,7 @@
             <div id="cat-modal-content" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
         </div>
     </div>
- 
+
     <!-- MODAL: HESABIM & ŞİFRE/HESAP KAPATMA PANELİ -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
@@ -294,18 +301,18 @@
                     <p class="text-xs text-gray-400" id="account-email">email@domain.com</p>
                 </div>
             </div>
- 
+
             <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500">
                 <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark">İlanlarım</button>
                 <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Favorilerim</button>
                 <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Gelen Teklifler</button>
                 <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Profil Ayarları</button>
             </div>
- 
+
             <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
             <div id="tab-content-favorites" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
             <div id="tab-content-offers" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
- 
+
             <div id="tab-content-settings" class="hidden space-y-4">
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
                     <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
@@ -329,7 +336,7 @@
                     </div>
                     <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
                 </div>
- 
+
                 <!-- HESABI KALICI OLARAK KAPATMA -->
                 <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
                     <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
@@ -339,7 +346,7 @@
             </div>
         </div>
     </div>
- 
+
     <!-- MODAL: İLAN DETAY & HARİTA -->
     <div id="detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -366,18 +373,31 @@
                         <span id="detail-unit" class="text-[10px] text-gray-400">Birim</span>
                     </div>
                 </div>
- 
+
                 <hr class="my-3 border-gray-100">
                 <div class="mb-4">
                     <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Açıklama</h4>
                     <p id="detail-desc" class="text-gray-600 text-xs leading-relaxed whitespace-pre-line">İlan açıklaması...</p>
                 </div>
- 
+
                 <div class="mb-5">
                     <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1"><i class="fa-solid fa-map-location-dot text-lux-gold mr-1"></i> Ürün Konumu (Hatay)</h4>
                     <div id="map"></div>
                 </div>
- 
+
+                <!-- DÜZELTME: Toptancı ilanlarında minimum sipariş miktarı burada gösterilir -->
+                <div id="detail-wholesale-box" class="hidden bg-lux-olive/10 border border-lux-olive/30 text-lux-olive p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-building"></i>
+                    <span>Toptancı ilanı — Minimum sipariş: <span id="detail-min-order">-</span></span>
+                </div>
+
+                <!-- DÜZELTME: İlan Hatay dışında bir konuma girildiyse burada
+                     dikkat çeken bir uyarı gösterilir. -->
+                <div id="detail-outside-hatay-box" class="hidden bg-red-50 border border-red-300 text-red-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span id="detail-outside-hatay-text">Bu ilan Hatay dışında bulunuyor.</span>
+                </div>
+
                 <div class="bg-amber-50/60 border border-amber-200/80 p-3 rounded-xl mb-4 space-y-2">
                     <span class="text-xs font-bold text-amber-900 block"><i class="fa-solid fa-handshake text-amber-600 mr-1"></i> Satıcıya Özel Fiyat Teklifi Gönder</span>
                     <div class="flex gap-2">
@@ -386,7 +406,23 @@
                     </div>
                     <button onclick="submitPriceOffer()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm">Teklifi İlet</button>
                 </div>
- 
+
+                <!-- DÜZELTME: Satıcı profili — üyelik tarihi, ilan sayısı, puan.
+                     Tıklanınca satıcının tüm profil/ilan geçmişini gösteren modal açılır. -->
+                <div id="seller-profile-trigger" onclick="window.openSellerProfileModal(window.activeSellerUid)" class="bg-lux-bg/40 hover:bg-lux-sage/20 transition cursor-pointer p-3.5 rounded-xl border border-gray-200/60 mb-4">
+                    <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+                        <div>
+                            <span class="text-[9px] text-gray-400 uppercase font-bold block">Satıcı Profili <i class="fa-solid fa-arrow-up-right-from-square ml-0.5"></i></span>
+                            <span id="detail-seller-joined" class="text-[10px] text-gray-500">Üyelik bilgisi yükleniyor...</span>
+                        </div>
+                        <span id="detail-seller-rating" class="text-xs font-bold text-lux-gold">☆☆☆☆☆</span>
+                    </div>
+                    <div id="rate-seller-box" class="hidden pt-2 border-t border-gray-200/60 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
+                        <span class="text-[10px] text-gray-500">Bu satıcıyı değerlendirin:</span>
+                        <div id="rate-seller-stars" class="flex gap-1 text-lg cursor-pointer"></div>
+                    </div>
+                </div>
+
                 <div class="bg-lux-bg/40 p-3.5 rounded-xl flex items-center justify-between border border-gray-200/60 flex-wrap gap-2">
                     <div>
                         <span class="text-[9px] text-gray-400 uppercase font-bold block">Satıcı / Toptancı</span>
@@ -406,14 +442,34 @@
           </div>
       </div>
     </div>
- 
+
+    <!-- MODAL: SATICI PROFİLİ İNCELEME -->
+    <div id="seller-profile-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+            <div class="bg-lux-dark text-white p-5">
+                <div class="w-14 h-14 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-xl uppercase mb-3" id="seller-profile-avatar">U</div>
+                <h2 id="seller-profile-name" class="text-lg font-bold">Satıcı</h2>
+                <p id="seller-profile-joined" class="text-xs text-lux-sage mt-0.5">Üyelik bilgisi yükleniyor...</p>
+                <div class="flex items-center gap-4 mt-3 text-xs">
+                    <span id="seller-profile-rating" class="font-bold text-lux-gold">☆☆☆☆☆</span>
+                    <span id="seller-profile-count" class="text-lux-sage">0 ilan</span>
+                </div>
+            </div>
+            <div class="p-5">
+                <h3 class="text-[11px] font-bold uppercase text-gray-400 mb-3">Bu Satıcının İlanları</h3>
+                <div id="seller-profile-listings" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: GİRİŞ / KAYIT & ŞİFREMİ UNUTTUM -->
     <div id="auth-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative border border-gray-100">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="auth-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Giriş Yap</h3>
             <p class="text-xs text-gray-500 mb-4">İlan vermek ve teklif iletmek için hesabınıza girin.</p>
- 
+
             <form onsubmit="handleAuthSubmit(event)" class="space-y-3">
                 <input type="hidden" id="auth-mode" value="login">
                 <div id="register-fields-box" class="hidden space-y-3">
@@ -430,7 +486,7 @@
             </div>
         </div>
     </div>
- 
+
     <!-- MODAL: İLAN EKLEME VE DÜZENLEME FORMU -->
     <div id="form-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
@@ -441,47 +497,61 @@
                 <i class="fa-solid fa-gift text-lux-gold text-lg"></i>
                 <span><b>Lansman Fırsatı:</b> İlk 100 ilandan biriyseniz otomatik olarak <b>3 Aylık Ücretsiz VIP Vitrin</b> kazanacaktır!</span>
             </div>
- 
+
             <form id="add-listing-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
                 <input type="hidden" id="edit-listing-id" value="">
                 <input type="hidden" id="form-lat" value="">
                 <input type="hidden" id="form-lng" value="">
- 
+
                 <input type="text" id="form-title" required placeholder="İlan Başlığı*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
-                <div class="grid grid-cols-2 gap-3">
-                    <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
-                        <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
-                        <option value="Narenciye">🍊 Narenciye</option>
-                        <option value="Salça & Sos">🌶️ Salça & Sos</option>
-                        <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
-                        <option value="Sebze & Sera">🥬 Sebze & Sera</option>
-                        <option value="Canlı Hayvan & Süt">🐄 Canlı Hayvan & Süt</option>
-                        <option value="Fide & Tohum">🌱 Fide & Tohum</option>
-                        <option value="Nakliye">🚛 Nakliye</option>
-                        <option value="Diğer">📦 Diğer</option>
-                    </select>
-                    <select id="form-district" required onchange="updateFormMapCenter(this.value)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
-                        <option value="Altınözü">Altınözü</option>
-                        <option value="Antakya">Antakya</option>
-                        <option value="Arsuz">Arsuz</option>
-                        <option value="Dörtyol">Dörtyol</option>
-                        <option value="Erzin">Erzin</option>
-                        <option value="İskenderun">İskenderun</option>
-                        <option value="Kırıkhan">Kırıkhan</option>
-                        <option value="Samandağ">Samandağ</option>
-                        <option value="Reyhanlı">Reyhanlı</option>
-                        <option value="Hassa">Hassa</option>
-                        <option value="Belen">Belen</option>
-                        <option value="Yayladağı">Yayladağı</option>
-                    </select>
-                </div>
- 
-                <!-- HARİTADAN KONUM SEÇME ALANI -->
-                <div>
-                    <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">📍 Harita Üzerinden Tam Konum Seç (Tıkla)</label>
+
+                <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                    <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
+                    <option value="Narenciye">🍊 Narenciye</option>
+                    <option value="Salça & Sos">🌶️ Salça & Sos</option>
+                    <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
+                    <option value="Sebze & Sera">🥬 Sebze & Sera</option>
+                    <option value="Canlı Hayvan & Süt">🐄 Canlı Hayvan & Süt</option>
+                    <option value="Fide & Tohum">🌱 Fide & Tohum</option>
+                    <option value="Nakliye">🚛 Nakliye</option>
+                    <option value="Diğer">📦 Diğer</option>
+                </select>
+
+                <!-- DÜZELTME: Konum artık İLK ÖNCE ilçe seçmekle değil, adres yazarak
+                     veya haritadan tıklayarak belirleniyor. İlçe, seçilen konuma göre
+                     OTOMATİK belirlenir; kullanıcı isterse elle değiştirebilir. -->
+                <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2">
+                    <label class="block text-[11px] font-semibold uppercase text-gray-500">📍 Konum</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="form-address" placeholder="Adres yazın (örn: Kışlak Mah. Reyhanlı)" class="flex-1 border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <button type="button" onclick="window.geocodeAddress()" id="geocode-btn" class="bg-lux-dark text-white px-3 rounded-xl text-xs font-semibold whitespace-nowrap">Bul</button>
+                    </div>
+                    <p class="text-[10px] text-gray-400">Adres yazıp "Bul" deyin ya da doğrudan aşağıdaki haritadan tıklayın. İlçe otomatik seçilecektir.</p>
+                    <div id="outside-hatay-warning" class="hidden bg-red-50 border border-red-300 text-red-700 text-[11px] font-semibold p-2 rounded-lg"></div>
                     <div id="form-map"></div>
+                    <div class="flex items-center justify-between pt-1">
+                        <label class="text-[10px] text-gray-500 uppercase font-semibold">Tespit edilen ilçe:</label>
+                        <select id="form-district" required class="border border-gray-200 p-1.5 rounded-lg text-xs bg-white outline-none">
+                            <option value="Altınözü">Altınözü</option>
+                            <option value="Antakya">Antakya</option>
+                            <option value="Arsuz">Arsuz</option>
+                            <option value="Belen">Belen</option>
+                            <option value="Defne">Defne</option>
+                            <option value="Dörtyol">Dörtyol</option>
+                            <option value="Erzin">Erzin</option>
+                            <option value="Hassa">Hassa</option>
+                            <option value="İskenderun">İskenderun</option>
+                            <option value="Kırıkhan">Kırıkhan</option>
+                            <option value="Kumlu">Kumlu</option>
+                            <option value="Payas">Payas</option>
+                            <option value="Reyhanlı">Reyhanlı</option>
+                            <option value="Samandağ">Samandağ</option>
+                            <option value="Yayladağı">Yayladağı</option>
+                            <option value="Hatay Dışı">⚠️ Hatay Dışı</option>
+                        </select>
+                    </div>
                 </div>
- 
+
                 <div class="grid grid-cols-2 gap-3">
                     <input type="number" id="form-price" required min="0" step="0.01" placeholder="Fiyat (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="text" id="form-unit" placeholder="Miktar / Birim (Litre / Ton / KG)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
@@ -490,9 +560,24 @@
                     <input type="text" id="form-seller" required placeholder="Ad Soyad / Firma*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="tel" id="form-phone" required placeholder="WhatsApp Tel*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
+
+                <!-- DÜZELTME: Büyük toptancılar için ayrı panel. "Toptancı" seçilince
+                     minimum sipariş miktarı alanı açılır. -->
+                <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2.5">
+                    <label class="block text-[11px] font-semibold uppercase text-gray-500">İşletme Tipi</label>
+                    <select id="form-business-type" onchange="window.toggleWholesaleFields()" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="Üretici">👤 Üretici</option>
+                        <option value="Toptancı">🏢 Toptancı</option>
+                    </select>
+                    <div id="wholesale-fields" class="hidden pt-1">
+                        <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">Minimum Sipariş Miktarı</label>
+                        <input type="text" id="form-min-order" placeholder="Örn: 500 KG / 1 Ton / 200 Adet" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                    </div>
+                </div>
                 <div>
                     <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">Ürün Fotoğrafı</label>
-                    <input type="file" id="form-file" accept="image/*" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
+                    <input type="file" id="form-file" accept="image/*" onchange="window.checkFileSize(this)" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
+                    <p class="text-[10px] text-gray-400 mt-1">Maksimum dosya boyutu: 8MB</p>
                     <input type="hidden" id="form-image">
                 </div>
                 <textarea id="form-desc" rows="2" placeholder="Ürün açıklaması..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
@@ -511,12 +596,12 @@
                         <input type="checkbox" id="form-discount" class="accent-lux-olive cursor-pointer">
                     </div>
                 </div>
- 
+
               <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">İlanı Kaydet</button>
             </form>
         </div>
     </div>
- 
+
     <!-- MODAL: YASAL UYARI & ŞİKAYET -->
     <div id="terms-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
@@ -526,7 +611,7 @@
             <button onclick="closeTermsModal()" class="w-full mt-4 bg-lux-dark text-white font-bold py-2 rounded-xl text-xs">Anladım</button>
       </div>
     </div>
- 
+
     <div id="report-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
             <button onclick="closeReportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -543,16 +628,16 @@
           </form>
       </div>
     </div>
- 
+
     <!-- LEAFLET.JS HARİTA SCRİPTİ -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
- 
+
     <!-- FIREBASE MODULE & UYGULAMA MANTIĞI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, update, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
- 
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
             authDomain: "orontes-886a3.firebaseapp.com",
@@ -563,11 +648,11 @@
             appId: "1:220241708945:web:1a638ad256a7872282fc30",
             measurementId: "G-WP8LYJG7N9"
         };
- 
+
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
- 
+
         window.db = db;
         window.ref = ref;
         window.push = push;
@@ -588,22 +673,45 @@
         
         window.currentPage = 1;
         window.itemsPerPage = 12;
- 
+
         // DÜZELTME: Kullanıcı adını Firebase key olarak kullanılabilir hale
         // getiren yardımcı fonksiyon (boşluk, nokta, # $ [ ] gibi karakterler
         // Firebase key'lerinde yasak).
         window.sanitizeUsernameKey = function(name) {
             return String(name || '').trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_');
         };
- 
+
         // DÜZELTME: compressImage artık dosya okuma / görsel yükleme
         // hatalarında Promise'i reject ediyor. Eskiden hata durumunda
         // Promise hiç sonuçlanmıyor, "İlan kaydediliyor..." butonu
         // sonsuza kadar kilitli kalabiliyordu.
+        // DÜZELTME: Görsel dosya boyutu sınırı. Çok büyük dosyalar (özellikle
+        // telefon kameralarından gelen 15-30MB'lık orijinal fotoğraflar)
+        // tarayıcıyı kilitleyebiliyordu. Sınır 8MB olarak belirlendi —
+        // sıkıştırma sonrası zaten görsel çok küçülüyor, bu yalnızca
+        // yükleme öncesi bir güvenlik sınırı.
+        window.MAX_IMAGE_SIZE_MB = 8;
+
+        // Dosya seçilir seçilmez (submit'i beklemeden) anında uyarı verir.
+        window.checkFileSize = function(inputEl) {
+            const file = inputEl.files && inputEl.files[0];
+            if (!file) return;
+            const sizeMb = file.size / (1024 * 1024);
+            if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
+                alert(`Seçtiğiniz görsel ${sizeMb.toFixed(1)}MB — izin verilen en fazla ${window.MAX_IMAGE_SIZE_MB}MB. Lütfen daha küçük bir dosya seçin.`);
+                inputEl.value = '';
+            }
+        };
+
         window.compressImage = function(file) {
             return new Promise((resolve, reject) => {
                 if (!file || !file.type || !file.type.startsWith('image/')) {
                     reject(new Error('Lütfen geçerli bir görsel dosyası seçin.'));
+                    return;
+                }
+                const sizeMb = file.size / (1024 * 1024);
+                if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
+                    reject(new Error(`Görsel çok büyük (${sizeMb.toFixed(1)}MB). Lütfen ${window.MAX_IMAGE_SIZE_MB}MB'dan küçük bir dosya seçin.`));
                     return;
                 }
                 const reader = new FileReader();
@@ -619,7 +727,7 @@
                         const MAX_HEIGHT = 800;
                         let width = img.width;
                         let height = img.height;
- 
+
                         if (width > height && width > MAX_WIDTH) {
                             height *= MAX_WIDTH / width;
                             width = MAX_WIDTH;
@@ -627,7 +735,7 @@
                             width *= MAX_HEIGHT / height;
                             height = MAX_HEIGHT;
                         }
- 
+
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
@@ -637,12 +745,12 @@
                 };
             });
         };
- 
+
         onAuthStateChanged(auth, async (user) => {
             window.currentUser = user;
             const loggedOutBox = document.getElementById('auth-logged-out');
             const loggedInBox = document.getElementById('auth-logged-in');
- 
+
             if (user) {
                 loggedOutBox.classList.add('hidden');
                 loggedInBox.classList.remove('hidden');
@@ -662,14 +770,14 @@
             }
             renderListings();
         });
- 
+
         onValue(ref(db, 'listings'), (snapshot) => {
             const data = snapshot.val();
             window.listings = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
             filterListings();
             updateMarqueeData();
         });
- 
+
         window.handleAuthSubmit = async function(e) {
             e.preventDefault();
             const mode = document.getElementById('auth-mode').value;
@@ -678,13 +786,34 @@
             const username = document.getElementById('auth-username').value;
             const phone = document.getElementById('auth-phone').value;
             const btn = document.getElementById('auth-submit-btn');
- 
+
             btn.disabled = true;
             btn.innerText = "İşlem yapılıyor...";
- 
+
             try {
                 if (mode === 'login') {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    const loginResult = await signInWithEmailAndPassword(auth, email, password);
+
+                    // DÜZELTME: E-posta doğrulama şartı SADECE bu güncellemeden
+                    // sonra kayıt olan hesaplara uygulanıyor (joinedAt alanı
+                    // olanlar). Aksi halde bu değişiklikten önce kayıt olmuş
+                    // ve hiç doğrulama e-postası almamış mevcut üyeler
+                    // (siz dahil) hesaplarından tamamen kilitlenirdi.
+                    const profileSnap = await get(ref(db, 'users/' + loginResult.user.uid));
+                    const isPostMigrationAccount = profileSnap.exists() && !!profileSnap.val().joinedAt;
+
+                    if (isPostMigrationAccount && !loginResult.user.emailVerified) {
+                        try {
+                            await sendEmailVerification(loginResult.user);
+                        } catch (resendErr) {
+                            console.warn('Doğrulama e-postası tekrar gönderilemedi:', resendErr);
+                        }
+                        await signOut(auth);
+                        alert("Hesabınız henüz doğrulanmamış. E-postanıza yeni bir doğrulama bağlantısı gönderdik — lütfen gelen kutunuzu (ve spam klasörünü) kontrol edip bağlantıya tıkladıktan sonra tekrar giriş yapın.");
+                        btn.disabled = false;
+                        btn.innerText = "Giriş Yap";
+                        return;
+                    }
                 } else {
                     if (!username || !username.trim()) {
                         alert("Lütfen bir kullanıcı adı girin.");
@@ -692,7 +821,7 @@
                         btn.innerText = "Kayıt Ol";
                         return;
                     }
- 
+
                     // DÜZELTME: Artık tüm 'users' düğümünü (herkesin e-posta ve
                     // telefon bilgisi dahil) okumuyoruz. Sadece kullanıcı adı ->
                     // uid eşlemesini tutan /usernames/{kullaniciadi} index'ine
@@ -706,24 +835,45 @@
                     } catch (checkErr) {
                         console.warn('Kullanıcı adı kontrolü yapılamadı:', checkErr);
                     }
- 
+
                     if (isUsernameTaken) {
                         alert("❌ Bu kullanıcı adı daha önceden alınmış! Lütfen başka bir kullanıcı adı belirleyin.");
                         btn.disabled = false;
                         btn.innerText = "Kayıt Ol";
                         return;
                     }
- 
+
                     const res = await createUserWithEmailAndPassword(auth, email, password);
                     if (username) await updateProfile(res.user, { displayName: username });
                     await update(ref(db, 'users/' + res.user.uid), {
                         username: username,
                         phone: phone,
-                        email: email
+                        email: email,
+                        joinedAt: Date.now() // DÜZELTME: profilde "üye: ..." tarihini göstermek için
+                    });
+                    // DÜZELTME: users/{uid} artık sadece sahibi tarafından okunabiliyor
+                    // (e-posta/telefon içerdiği için). Ama "üye: ..." ve ilan sayısı gibi
+                    // bilgileri başkalarının görebilmesi gerekiyor. Bu yüzden SADECE
+                    // kullanıcı adı ve üyelik tarihini içeren, herkese açık ayrı bir
+                    // publicProfiles/{uid} düğümü tutuyoruz.
+                    await update(ref(db, 'publicProfiles/' + res.user.uid), {
+                        username: username,
+                        joinedAt: Date.now()
                     });
                     // Kullanıcı adını index'e kaydediyoruz ki sıradaki kayıt kontrolü doğru çalışsın.
                     await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
-                    alert("Kayıt işlemi başarılı! Hoş geldiniz.");
+
+                    // DÜZELTME: E-posta doğrulama bağlantısı gönderiliyor ve
+                    // doğrulanana kadar kullanıcı oturumdan çıkarılıyor.
+                    // Kayıt işlemi, bağlantıya tıklanıp giriş yapılana kadar
+                    // "tam olarak tamamlanmış" sayılmıyor.
+                    await sendEmailVerification(res.user);
+                    await signOut(auth);
+                    alert("Kayıt işlemi alındı! Devam edebilmeniz için " + email + " adresine bir doğrulama bağlantısı gönderdik. Bağlantıya tıkladıktan sonra buradan giriş yapabilirsiniz.");
+                    toggleAuthMode();
+                    btn.disabled = false;
+                    btn.innerText = "Giriş Yap";
+                    return;
                 }
                 closeAuthModal();
             } catch (err) {
@@ -737,7 +887,7 @@
                 btn.innerText = mode === 'login' ? "Giriş Yap" : "Kayıt Ol";
             }
         };
- 
+
         window.handleForgotPassword = async function() {
             const email = document.getElementById('auth-email').value;
             if (!email) {
@@ -751,16 +901,16 @@
                 alert("Hata: " + err.message);
             }
         };
- 
+
         window.handleLogout = function() { signOut(auth); };
- 
+
         window.toggleFavorite = async function(id) {
             if (!window.currentUser) {
                 alert("Favorilere eklemek için giriş yapmalısınız.");
                 openAuthModal('login');
                 return;
             }
- 
+
             const favRef = ref(db, `users/${window.currentUser.uid}/favorites/${id}`);
             if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
                 await remove(favRef);
@@ -775,7 +925,7 @@
             renderListings();
             updateFavBtnStyle(id);
         };
- 
+
         window.submitPriceOffer = async function() {
             if (!window.currentUser) {
                 alert("Teklif vermek için giriş yapmalısınız.");
@@ -784,20 +934,20 @@
             }
             const price = document.getElementById('offer-price-input').value;
             const note = document.getElementById('offer-note-input').value;
- 
+
             if (!price) {
                 alert("Lütfen teklif ettiğiniz birim fiyatı girin.");
                 return;
             }
- 
+
             const item = window.listings.find(l => l.id === window.activeListingId);
             if (!item) return;
- 
+
             if (item.uid === window.currentUser.uid) {
                 alert("Kendi ilanınıza teklif gönderemezsiniz.");
                 return;
             }
- 
+
             try {
                 await push(ref(db, 'offers'), {
                     listingId: item.id,
@@ -818,14 +968,14 @@
                 alert("Hata: " + err.message);
             }
         };
- 
+
         window.handleFormSubmit = async function(e) {
             e.preventDefault();
             if (!window.currentUser) {
                 alert("İlan vermek için giriş yapmalısınız.");
                 return;
             }
- 
+
             const editId = document.getElementById('edit-listing-id').value;
             let existingItem = null;
             if (editId) {
@@ -835,11 +985,11 @@
                     return;
                 }
             }
- 
+
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
             submitBtn.innerText = "İlan kaydediliyor...";
- 
+
             try {
                 let imageUrl = document.getElementById('form-image').value;
                 const fileInput = document.getElementById('form-file');
@@ -848,10 +998,10 @@
                     const file = fileInput.files[0];
                     imageUrl = await window.compressImage(file);
                 }
- 
+
                 const category = document.getElementById('form-category').value;
                 let isFirst100 = false;
- 
+
                 if (!editId) {
                     const counterRef = ref(db, 'listingCounter');
                     const result = await runTransaction(counterRef, (currentData) => {
@@ -861,11 +1011,11 @@
                     });
                     if (!result.committed) throw new Error('Sayaç güncellenemedi.');
                 }
- 
+
                 const userVipChoice = document.getElementById('form-vip').checked;
                 const finalVip = (!editId && isFirst100) ? true : userVipChoice;
                 const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
- 
+
                 let finalExpireDate = null;
                 if (finalVip) {
                     if (existingItem && existingItem.isVip && existingItem.vipExpireDate) {
@@ -874,13 +1024,17 @@
                         finalExpireDate = Date.now() + threeMonthsInMs;
                     }
                 }
- 
+
                 const listingData = {
                     uid: window.currentUser.uid,
                     userEmail: window.currentUser.email,
                     title: document.getElementById('form-title').value,
                     category: category,
                     district: document.getElementById('form-district').value,
+                    address: document.getElementById('form-address').value || null,
+                    outsideHatay: !!window.locationOutsideHatay,
+                    realProvince: window.locationOutsideHatay ? window.locationOutsideHatay.province : null,
+                    realDistrict: window.locationOutsideHatay ? window.locationOutsideHatay.district : null,
                     lat: Number(document.getElementById('form-lat').value) || null,
                     lng: Number(document.getElementById('form-lng').value) || null,
                     price: Number(document.getElementById('form-price').value),
@@ -888,6 +1042,10 @@
                     seller: document.getElementById('form-seller').value,
                     phone: document.getElementById('form-phone').value,
                     desc: document.getElementById('form-desc').value,
+                    businessType: document.getElementById('form-business-type').value,
+                    minOrderQty: document.getElementById('form-business-type').value === 'Toptancı'
+                        ? (document.getElementById('form-min-order').value || null)
+                        : null,
                     image: imageUrl || window.getDefaultImage(category),
                     isVip: finalVip,
                     vipExpireDate: finalExpireDate,
@@ -895,7 +1053,7 @@
                     isDiscount: document.getElementById('form-discount').checked,
                     date: existingItem ? existingItem.date : Date.now()
                 };
- 
+
                 if (editId) {
                     await update(ref(db, 'listings/' + editId), listingData);
                     alert('İlan başarıyla güncellendi!');
@@ -916,7 +1074,7 @@
                 submitBtn.innerText = "İlanı Kaydet";
             }
         };
- 
+
         window.updateAccountDetails = async function() {
             if (!window.currentUser) return;
             const newUsername = document.getElementById('update-username').value;
@@ -924,25 +1082,29 @@
             const newPass = document.getElementById('update-new-password').value;
             const currentPass = document.getElementById('update-current-password').value;
             const btn = document.getElementById('update-acc-btn');
- 
+
             if (!currentPass) {
                 alert("Bilgilerinizi güncelleyebilmek için lütfen mevcut şifrenizi girin.");
                 return;
             }
- 
+
             btn.disabled = true;
             btn.innerText = "Güncelleniyor...";
- 
+
             try {
                 const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
                 await window.reauthenticateWithCredential(window.currentUser, credential);
- 
+
                 await update(ref(db, 'users/' + window.currentUser.uid), {
                     username: newUsername,
                     phone: newPhone
                 });
+                // DÜZELTME: Herkese açık profil düğümündeki kullanıcı adını da senkronize et.
+                await update(ref(db, 'publicProfiles/' + window.currentUser.uid), {
+                    username: newUsername
+                });
                 await updateProfile(window.currentUser, { displayName: newUsername });
- 
+
                 if (newPass.trim() !== "") {
                     if (newPass.length < 6) {
                         alert("Yeni şifre en az 6 karakter olmalıdır.");
@@ -955,7 +1117,7 @@
                 } else {
                     alert("Profil bilgileriniz başarıyla güncellendi!");
                 }
- 
+
                 window.userExtraData.username = newUsername;
                 window.userExtraData.phone = newPhone;
                 document.getElementById('update-current-password').value = '';
@@ -968,19 +1130,19 @@
                 btn.innerText = "Değişiklikleri Kaydet";
             }
         };
- 
+
         window.deleteUserAccount = async function() {
             if (!window.currentUser) return;
             const confirmDelete = confirm("⚠️ DİKKAT: Hesabınızı kalıcı olarak kapatmak istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinir.");
             if (!confirmDelete) return;
- 
+
             const password = prompt("Hesabınızı silmek için lütfen mevcut şifrenizi girin:");
             if (!password) return;
- 
+
             try {
                 const credential = EmailAuthProvider.credential(window.currentUser.email, password);
                 await window.reauthenticateWithCredential(window.currentUser, credential);
- 
+
                 // DÜZELTME: Hesap silinmeden önce kullanıcının kendi ilanları da
                 // temizleniyor. Eskiden hesap silindikten sonra ilanlar
                 // veritabanında "sahipsiz" olarak kalıyordu.
@@ -992,27 +1154,27 @@
                         console.warn('İlan silinemedi:', listing.id, cleanupErr);
                     }
                 }
- 
+
                 await remove(ref(db, 'users/' + window.currentUser.uid));
                 await deleteUser(window.currentUser);
- 
+
                 alert("Hesabınız ve ilanlarınız kalıcı olarak silindi.");
                 closeAccountModal();
             } catch (err) {
                 alert("Hata: Şifre yanlış veya işlem gerçekleştirilemedi. " + err.message);
             }
         };
- 
+
         window.deleteCurrentListing = async function(id) {
             const targetId = id || window.activeListingId;
             if (!targetId || !window.currentUser) return;
- 
+
             const target = (window.listings || []).find(l => l.id === targetId);
             if (!target || target.uid !== window.currentUser.uid) {
                 alert("Bu ilanı silme yetkiniz yok.");
                 return;
             }
- 
+
             if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
                 try {
                     await remove(ref(db, 'listings/' + targetId));
@@ -1024,27 +1186,204 @@
                 }
             }
         };
- 
+
+        // DÜZELTME: Satıcı profil kutusu — üyelik tarihi, ilan sayısı, ortalama puan.
+        // ratings/{satıcıUid}/{değerlendirenUid} = { score: 1-5, date }
+        //
+        // ÖNEMLİ HATA DÜZELTMESİ: Bu fonksiyon önceden hem üyelik bilgisini
+        // (users/{uid}) hem puanları TEK bir Promise.all içinde okuyordu.
+        // users/{uid} artık sadece hesap sahibi tarafından okunabildiği için
+        // (e-posta/telefon içerdiğinden), başkasının ilanına bakarken bu okuma
+        // "izin reddedildi" hatası veriyor ve TÜM fonksiyon (puanlama dahil)
+        // çöküp hiç çalışmıyordu. Şimdi: (1) üyelik bilgisi herkese açık ayrı
+        // bir publicProfiles/{uid} düğümünden okunuyor, (2) iki okuma
+        // birbirinden bağımsız try/catch'lerde, biri başarısız olsa bile
+        // puanlama kısmı çalışmaya devam ediyor.
+        window.loadSellerProfileBox = async function(sellerUid) {
+            const joinedEl = document.getElementById('detail-seller-joined');
+            const ratingEl = document.getElementById('detail-seller-rating');
+            const rateBox = document.getElementById('rate-seller-box');
+            const starsEl = document.getElementById('rate-seller-stars');
+
+            joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
+            ratingEl.innerText = "☆☆☆☆☆";
+            rateBox.classList.add('hidden');
+            starsEl.innerHTML = '';
+
+            const listingCount = (window.listings || []).filter(l => l.uid === sellerUid).length;
+
+            // Üyelik tarihi — bağımsız okuma, başarısız olursa sadece bu kısım boş kalır.
+            try {
+                const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
+                let joinedText = '';
+                if (profileSnap.exists() && profileSnap.val().joinedAt) {
+                    const d = new Date(profileSnap.val().joinedAt);
+                    joinedText = `Üye: ${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} · `;
+                }
+                joinedEl.innerText = `${joinedText}${listingCount} ilan`;
+            } catch (err) {
+                joinedEl.innerText = `${listingCount} ilan`;
+                console.warn('Üyelik bilgisi yüklenemedi:', err);
+            }
+
+            // Puanlama — bağımsız okuma, üyelik bilgisi başarısız olsa bile çalışır.
+            try {
+                const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
+                const ratingsData = ratingsSnap.val() || {};
+                const scores = Object.values(ratingsData).map(r => r.score).filter(s => typeof s === 'number');
+                const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+                const roundedStars = Math.round(avg);
+                ratingEl.innerText = scores.length
+                    ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
+                    : 'Henüz değerlendirme yok';
+
+                // DÜZELTME: Kendi ilanına puan veremez (hem burada hem submitRating
+                // içinde ayrıca kontrol ediliyor — çift güvenlik), giriş yapmamışsa
+                // değerlendirme kutusu hiç gösterilmez.
+                if (window.currentUser && window.currentUser.uid !== sellerUid) {
+                    rateBox.classList.remove('hidden');
+                    const myRating = ratingsData[window.currentUser.uid] ? ratingsData[window.currentUser.uid].score : 0;
+                    for (let i = 1; i <= 5; i++) {
+                        const star = document.createElement('span');
+                        star.innerText = i <= myRating ? '★' : '☆';
+                        star.style.color = i <= myRating ? '#bca879' : '#c7c7c7';
+                        star.onclick = () => window.submitRating(sellerUid, i);
+                        starsEl.appendChild(star);
+                    }
+                }
+            } catch (err) {
+                ratingEl.innerText = 'Puanlar yüklenemedi';
+                console.warn('Puanlar yüklenemedi:', err);
+            }
+        };
+
+        window.submitRating = async function(sellerUid, score) {
+            if (!window.currentUser) {
+                alert("Değerlendirme yapmak için giriş yapmalısınız.");
+                openAuthModal('login');
+                return;
+            }
+            // DÜZELTME: Kendine puan verme istemci tarafında da engelleniyor
+            // (Firebase Rules'ta zaten engelli, bu ek bir güvenlik katmanı).
+            if (window.currentUser.uid === sellerUid) {
+                alert("Kendi ilanınıza puan veremezsiniz.");
+                return;
+            }
+            try {
+                await update(ref(db, `ratings/${sellerUid}/${window.currentUser.uid}`), {
+                    score: score,
+                    date: Date.now()
+                });
+                window.loadSellerProfileBox(sellerUid);
+                // Profil modalı açıksa (aynı satıcı) oradaki puanı da tazele.
+                if (!document.getElementById('seller-profile-modal').classList.contains('hidden')) {
+                    window.openSellerProfileModal(sellerUid);
+                }
+            } catch (err) {
+                alert("Değerlendirme kaydedilemedi: " + err.message);
+            }
+        };
+
+        // DÜZELTME: "Profil inceleme" — satıcının üyelik tarihi, ilan sayısı,
+        // puanı ve tüm verdiği ilanların listesi tek bir modalda gösterilir.
+        window.openSellerProfileModal = async function(sellerUid) {
+            if (!sellerUid) return;
+
+            const nameEl = document.getElementById('seller-profile-name');
+            const avatarEl = document.getElementById('seller-profile-avatar');
+            const joinedEl = document.getElementById('seller-profile-joined');
+            const ratingEl = document.getElementById('seller-profile-rating');
+            const countEl = document.getElementById('seller-profile-count');
+            const listingsEl = document.getElementById('seller-profile-listings');
+
+            const sellerListings = (window.listings || []).filter(l => l.uid === sellerUid).sort((a,b) => b.date - a.date);
+            const displayName = sellerListings.length ? sellerListings[0].seller : 'Satıcı';
+
+            nameEl.innerText = displayName;
+            avatarEl.innerText = (displayName || 'U').charAt(0).toUpperCase();
+            joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
+            ratingEl.innerText = "☆☆☆☆☆";
+            countEl.innerText = `${sellerListings.length} ilan`;
+            listingsEl.innerHTML = '';
+
+            document.getElementById('seller-profile-modal').classList.remove('hidden');
+
+            // Üyelik tarihi — herkese açık publicProfiles düğümünden.
+            try {
+                const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
+                if (profileSnap.exists() && profileSnap.val().joinedAt) {
+                    const d = new Date(profileSnap.val().joinedAt);
+                    const now = Date.now();
+                    const years = Math.floor((now - profileSnap.val().joinedAt) / (365 * 24 * 60 * 60 * 1000));
+                    const sinceText = years >= 1 ? `${years} yıldır üye` : `${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} tarihinden beri üye`;
+                    joinedEl.innerText = sinceText;
+                } else {
+                    joinedEl.innerText = "Üyelik tarihi bilinmiyor";
+                }
+            } catch (err) {
+                joinedEl.innerText = "Üyelik tarihi bilinmiyor";
+            }
+
+            // Puan
+            try {
+                const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
+                const ratingsData = ratingsSnap.val() || {};
+                const scores = Object.values(ratingsData).map(r => r.score).filter(s => typeof s === 'number');
+                const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+                const roundedStars = Math.round(avg);
+                ratingEl.innerText = scores.length
+                    ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
+                    : 'Henüz değerlendirme yok';
+            } catch (err) {
+                ratingEl.innerText = 'Puanlar yüklenemedi';
+            }
+
+            // İlan listesi
+            if (sellerListings.length === 0) {
+                listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Bu satıcının aktif ilanı yok.</p>`;
+            } else {
+                sellerListings.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
+                    row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2 min-w-0">
+                            <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
+                            <div class="min-w-0">
+                                <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                                <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
+                            </div>
+                        </div>
+                    `;
+                    listingsEl.appendChild(row);
+                });
+            }
+        };
+
+        function closeSellerProfileModal() {
+            document.getElementById('seller-profile-modal').classList.add('hidden');
+        }
+
         window.loadIncomingOffers = async function() {
             const container = document.getElementById('tab-content-offers');
             container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
- 
+
             const snap = await get(ref(db, 'offers'));
             const data = snap.val();
- 
+
             if (!data) {
                 container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
                 return;
             }
- 
+
             const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]})).filter(o => o.sellerUid === window.currentUser.uid);
             container.innerHTML = '';
- 
+
             if (myOffers.length === 0) {
                 container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
                 return;
             }
- 
+
             myOffers.forEach(o => {
                 const div = document.createElement('div');
                 div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
@@ -1053,9 +1392,9 @@
                 if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
                 const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
                 const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
- 
+
                 const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
- 
+
                 div.innerHTML = `
                     <div class="flex justify-between font-bold text-amber-900">
                         <span>📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</span>
@@ -1080,7 +1419,7 @@
                 container.appendChild(div);
             });
         };
- 
+
         window.updateOfferStatus = async function(offerId, status) {
             try {
                 await update(ref(db, `offers/${offerId}`), { status: status });
@@ -1090,13 +1429,24 @@
                 alert("Hata: " + err.message);
             }
         };
- 
+
         window.escapeHtml = function(value) {
             return String(value ?? '').replace(/[&<>"']/g, ch => ({
                 '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
             }[ch]));
         };
- 
+
+        // DÜZELTME: İlan Hatay dışındaysa, listelerde ve kartlarda "Hatay Dışı"
+        // sentinel değeri yerine gerçek şehir/ilçe adı gösterilir.
+        window.getListingLocationText = function(item) {
+            if (item.outsideHatay) {
+                if (item.realProvince && item.realDistrict) return `${item.realProvince} / ${item.realDistrict}`;
+                if (item.realProvince) return item.realProvince;
+                return 'Hatay Dışı';
+            }
+            return item.district || '';
+        };
+
         window.getDefaultImage = function(category) {
             switch(category) {
                 case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
@@ -1109,7 +1459,7 @@
             }
         };
     </script>
- 
+
     <script>
         const categoryEmojis = {
             "Zeytin & Yağ": "🫒",
@@ -1122,12 +1472,15 @@
             "Nakliye": "🚛",
             "Diğer": "📦"
         };
- 
+
         const districtCoords = {
             'Altınözü': [36.1176, 36.2472],
             'Antakya': [36.2023, 36.1613],
             'Arsuz': [36.4111, 35.8858],
+            'Defne': [36.1952, 36.1477],
             'Dörtyol': [36.8528, 36.2239],
+            'Kumlu': [36.3627, 36.4511],
+            'Payas': [36.7500, 36.2170],
             'Erzin': [36.9531, 36.2031],
             'İskenderun': [36.5872, 36.1733],
             'Kırıkhan': [36.4981, 36.3564],
@@ -1137,19 +1490,19 @@
             'Belen': [36.4889, 36.1944],
             'Yayladağı': [35.9033, 36.0594]
         };
- 
+
         function renderMap(lat, lng, district) {
             const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
             if (window.mapInstance) {
                 window.mapInstance.remove();
             }
- 
+
             window.mapInstance = L.map('map').setView(coords, 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 18,
                 attribution: '© OpenStreetMap'
             }).addTo(window.mapInstance);
- 
+
             L.marker(coords).addTo(window.mapInstance)
                 .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${escapeHtml(district)}`)
                 .openPopup();
@@ -1158,7 +1511,7 @@
                 if(window.mapInstance) window.mapInstance.invalidateSize();
             }, 250);
         }
- 
+
         function initFormMap(lat, lng, district) {
             const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
             if (window.formMapInstance) {
@@ -1170,52 +1523,174 @@
             // güncellemeye çalışıyor ve kullanıcı ekranda hiç işaretçi göremiyordu
             // (konum arka planda doğru kaydediliyordu ama görünmüyordu).
             window.formMarker = null;
- 
+
             window.formMapInstance = L.map('form-map').setView(coords, 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 18,
                 attribution: '© OpenStreetMap'
             }).addTo(window.formMapInstance);
- 
+
             if (lat && lng) {
                 window.formMarker = L.marker([lat, lng]).addTo(window.formMapInstance);
                 document.getElementById('form-lat').value = lat;
                 document.getElementById('form-lng').value = lng;
             }
- 
+
             window.formMapInstance.on('click', function(e) {
                 const clickedLat = e.latlng.lat;
                 const clickedLng = e.latlng.lng;
- 
-                document.getElementById('form-lat').value = clickedLat;
-                document.getElementById('form-lng').value = clickedLng;
- 
+
                 if (window.formMarker) {
                     window.formMarker.setLatLng([clickedLat, clickedLng]);
                 } else {
                     window.formMarker = L.marker([clickedLat, clickedLng]).addTo(window.formMapInstance);
                 }
+
+                // DÜZELTME: Konum tek bir fonksiyonda çözümleniyor — kara/deniz
+                // kontrolü, Hatay içi/dışı tespiti ve ilçe ataması artık aynı
+                // reverse-geocode sonucuna dayanıyor (önceden ikisi ayrı ayrı
+                // ve tutarsız çalışıyordu).
+                window.resolveLocation(clickedLat, clickedLng);
             });
- 
+
             setTimeout(() => {
                 if(window.formMapInstance) window.formMapInstance.invalidateSize();
             }, 250);
         }
- 
+
+        // DÜZELTME: Tek, birleşik konum çözümleme fonksiyonu.
+        // 1) Nokta denizde/açık suda mı? -> reddedilir, işaretçi kaldırılır.
+        // 2) Nokta Hatay sınırları içinde mi? -> içindeyse en yakın Hatay
+        //    ilçesi otomatik seçilir. Dışındaysa ilçe kutusuna gerçek
+        //    şehir/ilçe ADI YAZILMAZ (liste sadece Hatay ilçelerini içeriyor);
+        //    bunun yerine "Hatay Dışı" seçilir ve gerçek konum ayrıca
+        //    (realProvince/realDistrict) saklanıp ilanda gösterilir.
+        window.locationOutsideHatay = null;
+        window.resolveLocation = async function(lat, lng) {
+            const banner = document.getElementById('outside-hatay-warning');
+            const districtSelect = document.getElementById('form-district');
+            window.locationOutsideHatay = null;
+            banner.classList.add('hidden');
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+                const data = await res.json();
+
+                const waterTypes = ['water', 'sea', 'bay', 'strait', 'ocean', 'reef'];
+                const isSea = !data || data.error || !data.address || !data.address.country ||
+                    waterTypes.includes(data.type) || waterTypes.includes(data.category);
+
+                if (isSea) {
+                    // DÜZELTME: Deniz/açık su üzerine tıklanamaz — işaretçi kaldırılır.
+                    alert("Seçtiğiniz nokta kara üzerinde değil (deniz/açık su olabilir). Lütfen kara üzerinde bir nokta seçin.");
+                    if (window.formMarker) {
+                        window.formMapInstance.removeLayer(window.formMarker);
+                        window.formMarker = null;
+                    }
+                    document.getElementById('form-lat').value = '';
+                    document.getElementById('form-lng').value = '';
+                    return;
+                }
+
+                document.getElementById('form-lat').value = lat;
+                document.getElementById('form-lng').value = lng;
+
+                const addr = data.address;
+                const province = addr.province || addr.state || '';
+                const districtName = addr.county || addr.district || addr.town || addr.city_district || '';
+                const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
+
+                if (isInsideHatay) {
+                    // Hatay içinde — en yakın Hatay ilçe merkezi otomatik seçilir.
+                    let nearest = null, nearestDist = Infinity;
+                    for (const [name, coords] of Object.entries(districtCoords)) {
+                        const d = window.haversineKm(lat, lng, coords[0], coords[1]);
+                        if (d < nearestDist) { nearestDist = d; nearest = name; }
+                    }
+                    if (nearest) districtSelect.value = nearest;
+                } else {
+                    // Hatay dışında — ilçe kutusuna "Hatay Dışı" seçilir, gerçek
+                    // konum ayrıca saklanır ve alıcılara açıkça gösterilir.
+                    districtSelect.value = 'Hatay Dışı';
+                    window.locationOutsideHatay = { province, district: districtName };
+                    banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${districtName ? ' / ' + districtName : ''}. İlanı yine de yayınlayabilirsiniz, ancak "Hatay Dışı" olarak işaretlenip alıcılara böyle gösterilecektir.`;
+                    banner.classList.remove('hidden');
+                }
+            } catch (err) {
+                // Servise ulaşılamazsa engelleyici olmuyoruz; kullanıcı elle
+                // ilçe seçebilir, sadece Hatay-dışı/deniz kontrolü atlanmış olur.
+                console.warn('Konum çözümlenemedi:', err);
+            }
+        };
+
+        // DÜZELTME: Haritadan tıklamak istemeyenler için adres yazıp
+        // konumu bulma özelliği. OpenStreetMap Nominatim (ücretsiz, API
+        // anahtarı gerektirmeyen) servisini kullanır.
+        window.geocodeAddress = async function() {
+            const addressInput = document.getElementById('form-address');
+            const query = addressInput.value.trim();
+            if (!query) {
+                alert("Lütfen önce bir adres yazın.");
+                return;
+            }
+            const btn = document.getElementById('geocode-btn');
+            btn.disabled = true;
+            btn.innerText = "Aranıyor...";
+
+            try {
+                const searchQuery = `${query}, Hatay, Türkiye`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+                const results = await res.json();
+
+                if (!results || results.length === 0) {
+                    alert("Adres bulunamadı. Lütfen haritadan tıklayarak konumu elle işaretleyin.");
+                    return;
+                }
+
+                const foundLat = parseFloat(results[0].lat);
+                const foundLng = parseFloat(results[0].lon);
+
+                if (window.formMapInstance) {
+                    window.formMapInstance.setView([foundLat, foundLng], 14);
+                    if (window.formMarker) {
+                        window.formMarker.setLatLng([foundLat, foundLng]);
+                    } else {
+                        window.formMarker = L.marker([foundLat, foundLng]).addTo(window.formMapInstance);
+                    }
+                }
+
+                await window.resolveLocation(foundLat, foundLng);
+            } catch (err) {
+                alert("Adres aranırken bir sorun oluştu. Lütfen haritadan tıklayarak konumu elle işaretleyin.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Bul";
+            }
+        };
+
+        // DÜZELTME: "Toptancı" seçilince minimum sipariş miktarı alanı açılıyor.
+        window.toggleWholesaleFields = function() {
+            const type = document.getElementById('form-business-type').value;
+            const box = document.getElementById('wholesale-fields');
+            box.classList.toggle('hidden', type !== 'Toptancı');
+        };
+
         function updateFormMapCenter(district) {
             const coords = districtCoords[district] || [36.2023, 36.1613];
             if (window.formMapInstance) {
                 window.formMapInstance.setView(coords, 12);
             }
         }
- 
+
         function shareOnWhatsApp() {
             const item = (window.listings || []).find(l => l.id === window.activeListingId);
             if (!item) return;
-            const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: Hatay / ${escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+            const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         }
- 
+
         function updateFavBtnStyle(id) {
             const btn = document.getElementById('detail-fav-btn');
             if(!btn) return;
@@ -1225,31 +1700,31 @@
                 btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition";
             }
         }
- 
+
         function switchAccountTab(tab) {
             ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
                 document.getElementById(`tab-content-${t}`).classList.add('hidden');
                 document.getElementById(`tab-btn-${t}`).className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
             });
- 
+
             document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-btn-${tab}`).className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
- 
+
             if (tab === 'favorites') loadFavoriteListings();
             if (tab === 'offers') window.loadIncomingOffers();
         }
- 
+
         function loadFavoriteListings() {
             const container = document.getElementById('tab-content-favorites');
             const favIds = Object.keys(window.userExtraData.favorites || {});
             const favItems = (window.listings || []).filter(l => favIds.includes(l.id));
- 
+
             container.innerHTML = '';
             if (favItems.length === 0) {
                 container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz favori ilanınız bulunmuyor.</p>`;
                 return;
             }
- 
+
             favItems.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
@@ -1258,7 +1733,7 @@
                         <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                         <div>
                             <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                            <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(item.district)}</span>
+                            <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
                         </div>
                     </div>
                     <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
@@ -1266,37 +1741,37 @@
                 container.appendChild(div);
             });
         }
- 
+
         function getTimeAgo(timestamp) {
             if (!timestamp || isNaN(timestamp)) return 'Yeni';
             const diff = Date.now() - Number(timestamp);
             const minutes = Math.floor(diff / 60000);
             const hours = Math.floor(diff / 3600000);
             const days = Math.floor(diff / 86400000);
- 
+
             if (minutes < 60) return `${minutes <= 1 ? 'Az önce' : minutes + ' dk önce'}`;
             if (hours < 24) return `${hours} saat önce`;
             if (days < 30) return `${days} gün önce`;
             return `${Math.floor(days / 30)} ay önce`;
         }
- 
+
         function updateMarqueeData() {
             const container = document.getElementById('marquee-container');
             const items = window.listings || [];
- 
+
             if (items.length === 0) {
                 container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Hatay Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
                 return;
             }
- 
+
             const categories = [
                 "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
                 "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye", "Diğer"
             ];
- 
+
             let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
                 <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Hatay Canlı Piyasa Endeksi:</span></span>`;
- 
+
             categories.forEach(cat => {
                 const catListings = items.filter(i => i.category === cat);
                 if (catListings.length > 0) {
@@ -1307,87 +1782,75 @@
                     </button>`;
                 }
             });
- 
+
             contentHTML += `</div>`;
             container.innerHTML = contentHTML + contentHTML;
         }
- 
+
         function openCategoryDetailModal(cat) {
-            const items = (window.listings || []).filter(i => i.category === cat);
+            // DÜZELTME: Bu bölüm artık ürünleri gruplayıp "ortalama fiyat"
+            // hesaplamıyor — çünkü farklı satıcılar farklı birimlerle (Ton/KG/Litre)
+            // ilan girince yanlış ortalamalar çıkıyordu (ör. 10.000 TL'lik toptan
+            // mısır ilanı "10 TL" gibi görünüyordu). Şimdi her ilan kendi girilen
+            // fiyatı ve birimiyle AYRI AYRI listeleniyor, tıklanınca doğrudan
+            // o ilan açılıyor.
+            const items = (window.listings || [])
+                .filter(i => i.category === cat)
+                .sort((a, b) => b.date - a.date);
             const emoji = categoryEmojis[cat] || '🌾';
- 
-            document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — Ürün & Fiyat Analizi`;
-            document.getElementById('cat-modal-sub').innerText = `Toplam ${items.length} ilan taranarak hesaplandı`;
- 
-            const products = {};
- 
-            items.forEach(item => {
-                const title = item.title.trim();
-                let unit = (item.unit || 'KG').trim().toUpperCase();
-                let price = item.price;
- 
-                if (unit.includes('TON')) {
-                    price = price / 1000;
-                    unit = 'KG';
-                }
- 
-                const key = `${title}_${unit}`;
-                if (!products[key]) {
-                    products[key] = { title: title, unit: unit, prices: [price], count: 1 };
-                } else {
-                    products[key].prices.push(price);
-                    products[key].count += 1;
-                }
-            });
- 
+
+            document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
+            document.getElementById('cat-modal-sub').innerText = `${items.length} aktif ilan`;
+
             const content = document.getElementById('cat-modal-content');
             content.innerHTML = '';
- 
-            Object.keys(products).forEach(k => {
-                const p = products[k];
-                const sum = p.prices.reduce((a, b) => a + b, 0);
-                const avgPrice = Math.round(sum / p.prices.length);
- 
+
+            if (items.length === 0) {
+                content.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Bu kategoride henüz ilan yok.</p>`;
+            }
+
+            items.forEach(item => {
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs";
+                div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
+                div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
                 div.innerHTML = `
-                    <div>
-                        <span class="font-bold text-lux-dark block text-xs">${emoji} ${escapeHtml(p.title)}</span>
-                        <span class="text-[10px] text-gray-500">${p.count} Aktif İlan</span>
+                    <div class="min-w-0 pr-2">
+                        <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)}</span>
+                        <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
                     </div>
-                    <div class="text-right">
-                        <span class="font-extrabold text-emerald-700 text-sm">${avgPrice} TL</span>
-                        <span class="text-[9px] text-gray-400 block">Ort. / ${escapeHtml(p.unit)}</span>
+                    <div class="text-right shrink-0">
+                        <span class="font-extrabold text-emerald-700 text-sm">${item.price} TL</span>
+                        <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || '')}</span>
                     </div>
                 `;
                 content.appendChild(div);
             });
- 
+
             document.getElementById('category-detail-modal').classList.remove('hidden');
         }
- 
+
         function closeCategoryDetailModal() {
             document.getElementById('category-detail-modal').classList.add('hidden');
         }
- 
+
         function openAccountModal() {
             if (!window.currentUser) return;
- 
+
             const name = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
             document.getElementById('account-username').innerText = name;
             document.getElementById('account-email').innerText = window.currentUser.email;
             document.getElementById('account-avatar').innerText = name.charAt(0).toUpperCase();
- 
+
             document.getElementById('update-username').value = name;
             document.getElementById('update-phone').value = window.userExtraData.phone || '';
             document.getElementById('update-new-password').value = '';
             document.getElementById('update-current-password').value = '';
- 
+
             switchAccountTab('listings');
- 
+
             const myListingsContainer = document.getElementById('tab-content-listings');
             const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
- 
+
             myListingsContainer.innerHTML = '';
             if (myListings.length === 0) {
                 myListingsContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz verdiğiniz bir ilan bulunmuyor.</p>`;
@@ -1400,7 +1863,7 @@
                             <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                             <div>
                                 <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                                <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(item.district)}</span>
+                                <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
                             </div>
                         </div>
                         <div class="flex space-x-1">
@@ -1411,12 +1874,12 @@
                     myListingsContainer.appendChild(row);
                 });
             }
- 
+
             document.getElementById('account-modal').classList.remove('hidden');
         }
- 
+
         function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
- 
+
         function openFormModal() { 
             if (!window.currentUser) {
                 alert("İlan eklemek için önce giriş yapmalısınız.");
@@ -1427,6 +1890,10 @@
             document.getElementById('edit-listing-id').value = '';
             document.getElementById('form-lat').value = '';
             document.getElementById('form-lng').value = '';
+            document.getElementById('form-address').value = '';
+            window.locationOutsideHatay = null;
+            const owBanner = document.getElementById('outside-hatay-warning');
+            if (owBanner) owBanner.classList.add('hidden');
             document.getElementById('form-modal-title').innerText = "Ücretsiz İlan Oluştur";
             
             const sellerInput = document.getElementById('form-seller');
@@ -1434,25 +1901,37 @@
             
             const latestName = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
             const latestPhone = window.userExtraData.phone || '';
- 
+
             sellerInput.value = latestName;
             phoneInput.value = latestPhone;
+            document.getElementById('form-business-type').value = 'Üretici';
+            document.getElementById('form-min-order').value = '';
+            window.toggleWholesaleFields();
             document.getElementById('form-modal').classList.remove('hidden'); 
             
             setTimeout(() => {
                 initFormMap(null, null, document.getElementById('form-district').value);
             }, 200);
         }
- 
+
         function openFormModalForEdit() {
             const item = (window.listings || []).find(l => l.id === window.activeListingId);
             if (!item) return;
- 
+
             document.getElementById('edit-listing-id').value = item.id;
             document.getElementById('form-modal-title').innerText = "İlanı Düzenle";
             document.getElementById('form-title').value = item.title;
             document.getElementById('form-category').value = item.category;
             document.getElementById('form-district').value = item.district;
+            document.getElementById('form-address').value = item.address || '';
+            window.locationOutsideHatay = item.outsideHatay ? { province: item.realProvince, district: item.realDistrict } : null;
+            const editOwBanner = document.getElementById('outside-hatay-warning');
+            if (item.outsideHatay) {
+                editOwBanner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında görünüyor — ${item.realProvince || ''}${item.realDistrict ? ' / ' + item.realDistrict : ''}.`;
+                editOwBanner.classList.remove('hidden');
+            } else {
+                editOwBanner.classList.add('hidden');
+            }
             document.getElementById('form-lat').value = item.lat || '';
             document.getElementById('form-lng').value = item.lng || '';
             document.getElementById('form-price').value = item.price;
@@ -1464,15 +1943,18 @@
             document.getElementById('form-vip').checked = item.isVip || false;
             document.getElementById('form-urgent').checked = item.isUrgent || false;
             document.getElementById('form-discount').checked = item.isDiscount || false;
- 
+            document.getElementById('form-business-type').value = item.businessType || 'Üretici';
+            document.getElementById('form-min-order').value = item.minOrderQty || '';
+            window.toggleWholesaleFields();
+
             document.getElementById('detail-modal').classList.add('hidden');
             document.getElementById('form-modal').classList.remove('hidden');
- 
+
             setTimeout(() => {
                 initFormMap(item.lat, item.lng, item.district);
             }, 200);
         }
- 
+
         function openAuthModal(mode) {
             document.getElementById('auth-mode').value = mode;
             const regFields = document.getElementById('register-fields-box');
@@ -1489,13 +1971,13 @@
             }
             document.getElementById('auth-modal').classList.remove('hidden');
         }
- 
+
         function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
         function toggleAuthMode() { openAuthModal(document.getElementById('auth-mode').value === 'login' ? 'register' : 'login'); }
- 
+
         function openTermsModal() { document.getElementById('terms-modal').classList.remove('hidden'); }
         function closeTermsModal() { document.getElementById('terms-modal').classList.add('hidden'); }
- 
+
         function openReportModal() { 
             if(!window.currentUser) {
                 alert("Şikayet bildirimi için giriş yapmalısınız.");
@@ -1505,7 +1987,7 @@
             document.getElementById('report-modal').classList.remove('hidden'); 
         }
         function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
- 
+
         async function handleReportSubmit(e) {
             e.preventDefault();
             try {
@@ -1522,7 +2004,7 @@
                 alert("Hata: " + err.message);
             }
         }
- 
+
         function renderListings() {
             const grid = document.getElementById('listings-grid');
             const items = window.filteredListings || [];
@@ -1532,28 +2014,28 @@
                 : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
             document.getElementById('total-count').innerText = `${items.length} İlan`;
             grid.innerHTML = '';
- 
+
             if (items.length === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun ilan bulunamadı.</div>`;
                 document.getElementById('pagination-container').innerHTML = '';
                 return;
             }
- 
+
             const startIndex = (window.currentPage - 1) * window.itemsPerPage;
             const paginatedItems = items.slice(startIndex, startIndex + window.itemsPerPage);
- 
+
             paginatedItems.forEach(item => {
                 const card = document.createElement('div');
- 
+
                 const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
- 
+
                 let cardStyle = 'border border-gray-200/70';
                 if (isVipActive) cardStyle = 'vip-card';
                 else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
- 
+
                 const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
                 const emoji = categoryEmojis[item.category] || '🌾';
- 
+
                 card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
                 card.innerHTML = `
                     <div>
@@ -1565,11 +2047,13 @@
                             <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
                                 ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded">VIP</span>' : ''}
                                 ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">ACİL</span>' : ''}
+                                ${item.businessType === 'Toptancı' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🏢 TOPTANCI</span>' : ''}
+                                ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">⚠️ HATAY DIŞI</span>' : ''}
                             </div>
                         </div>
                         <div class="p-3.5">
                             <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
-                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(item.district)}</span>
+                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
                                 <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
                             </div>
                             <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
@@ -1580,6 +2064,7 @@
                             <div>
                                 <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Birim Fiyat')}</span>
                                 <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
+                                ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${escapeHtml(item.minOrderQty)}</span>` : ''}
                             </div>
                             <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
                         </div>
@@ -1587,15 +2072,15 @@
                 `;
                 grid.appendChild(card);
             });
- 
+
             renderPaginationControls(items.length);
         }
- 
+
         function renderPaginationControls(totalItems) {
             const container = document.getElementById('pagination-container');
             const totalPages = Math.ceil(totalItems / window.itemsPerPage);
             if (totalPages <= 1) { container.innerHTML = ''; return; }
- 
+
             let html = `<button onclick="changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
             for (let i = 1; i <= totalPages; i++) {
                 html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
@@ -1603,14 +2088,14 @@
             html += `<button onclick="changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
             container.innerHTML = html;
         }
- 
+
         function changePage(page) {
             const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
             window.currentPage = Math.min(Math.max(1, page), totalPages);
             renderListings();
             window.scrollTo({ top: 400, behavior: 'smooth' });
         }
- 
+
         function filterListings() {
             const search = document.getElementById('search-input').value.toLowerCase();
             const category = document.getElementById('category-filter').value;
@@ -1618,7 +2103,7 @@
             const sort = document.getElementById('sort-filter').value;
             const minPrice = Number(document.getElementById('min-price-filter').value) || 0;
             const maxPrice = Number(document.getElementById('max-price-filter').value) || Infinity;
- 
+
             window.filteredListings = (window.listings || []).filter(item => {
                 const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
                 const matchesCategory = category === "" || item.category === category;
@@ -1626,16 +2111,71 @@
                 const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
                 return matchesSearch && matchesCategory && matchesDistrict && matchesPrice;
             });
- 
-            if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
+
+            // DÜZELTME: "Yakınımdakiler" modu açıkken, konumu olan ilanlar
+            // kullanıcıya olan mesafeye göre sıralanır; önce diğer sıralama
+            // ölçütleri uygulanır, sonra mesafe önceliklidir.
+            if (window.nearbyModeActive && window.userGeoLocation) {
+                window.filteredListings.forEach(item => {
+                    item._distanceKm = (item.lat && item.lng)
+                        ? window.haversineKm(window.userGeoLocation.lat, window.userGeoLocation.lng, item.lat, item.lng)
+                        : null;
+                });
+                window.filteredListings.sort((a, b) => {
+                    if (a._distanceKm === null) return 1;
+                    if (b._distanceKm === null) return -1;
+                    return a._distanceKm - b._distanceKm;
+                });
+            } else if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
             else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
             else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
             else window.filteredListings.sort((a, b) => b.date - a.date);
- 
+
             window.currentPage = 1;
             renderListings();
         }
- 
+
+        // DÜZELTME: İki koordinat arası kuş uçuşu mesafe (km) — Haversine formülü.
+        window.haversineKm = function(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        };
+
+        window.nearbyModeActive = false;
+        window.userGeoLocation = null;
+
+        window.toggleNearbyMode = function() {
+            const btn = document.getElementById('nearby-btn');
+            if (window.nearbyModeActive) {
+                window.nearbyModeActive = false;
+                btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+                filterListings();
+                return;
+            }
+            if (!navigator.geolocation) {
+                alert("Tarayıcınız konum özelliğini desteklemiyor.");
+                return;
+            }
+            btn.disabled = true;
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    window.userGeoLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    window.nearbyModeActive = true;
+                    btn.disabled = false;
+                    btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
+                    filterListings();
+                },
+                (err) => {
+                    btn.disabled = false;
+                    alert("Konumunuza erişilemedi. Lütfen tarayıcı ayarlarından konum iznini kontrol edin.");
+                },
+                { enableHighAccuracy: false, timeout: 8000 }
+            );
+        };
+
         function resetAllFilters() {
             document.getElementById('search-input').value = '';
             document.getElementById('category-filter').value = '';
@@ -1643,29 +2183,57 @@
             document.getElementById('sort-filter').value = 'newest';
             document.getElementById('min-price-filter').value = '';
             document.getElementById('max-price-filter').value = '';
+            window.nearbyModeActive = false;
+            const nearbyBtn = document.getElementById('nearby-btn');
+            if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
             filterListings();
         }
- 
+
         function setViewMode(mode) { window.currentViewMode = mode; renderListings(); }
         function closeFormModal() { document.getElementById('form-modal').classList.add('hidden'); }
         function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); window.activeListingId = null; }
- 
+
         function openDetailModal(id) {
             const item = (window.listings || []).find(l => l.id === id);
             if (!item) return;
- 
+
             window.activeListingId = id;
+            window.activeSellerUid = item.uid;
             document.getElementById('detail-img').src = item.image;
             document.getElementById('detail-title').innerText = item.title;
             document.getElementById('detail-category').innerText = item.category;
             
             document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
-            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / ${escapeHtml(item.district)}`;
+            const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
+            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
             document.getElementById('detail-price').innerText = `${item.price} TL`;
             document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
             document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
             document.getElementById('detail-seller').innerText = item.seller;
- 
+
+            // DÜZELTME: Toptancı / minimum sipariş kutusu
+            const wholesaleBox = document.getElementById('detail-wholesale-box');
+            if (item.businessType === 'Toptancı' && item.minOrderQty) {
+                document.getElementById('detail-min-order').innerText = item.minOrderQty;
+                wholesaleBox.classList.remove('hidden');
+            } else {
+                wholesaleBox.classList.add('hidden');
+            }
+
+            // DÜZELTME: Hatay dışı konum uyarısı
+            const outsideBox = document.getElementById('detail-outside-hatay-box');
+            if (item.outsideHatay) {
+                const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
+                const districtPart = item.realDistrict ? `, ${item.realDistrict} ilçesinde` : '';
+                document.getElementById('detail-outside-hatay-text').innerText = `Bu ilan Hatay dışında — ${cityPart}${districtPart} bulunuyor.`;
+                outsideBox.classList.remove('hidden');
+            } else {
+                outsideBox.classList.add('hidden');
+            }
+
+            // DÜZELTME: Satıcı profili — üyelik tarihi, ilan sayısı, puan
+            window.loadSellerProfileBox(item.uid);
+
             const deleteBtn = document.getElementById('delete-btn');
             const editBtn = document.getElementById('edit-btn');
             if (window.currentUser && item.uid === window.currentUser.uid) {
@@ -1675,18 +2243,52 @@
                 deleteBtn.classList.add('hidden');
                 editBtn.classList.add('hidden');
             }
- 
+
             let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
             if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
             const waMsg = `Merhaba ${item.seller}, ORONTES üzerindeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
             document.getElementById('detail-whatsapp').href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
- 
+
             updateFavBtnStyle(id);
             document.getElementById('detail-modal').classList.remove('hidden');
- 
+
             setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
         }
+
+        // Global olarak erişilmesi gereken fonksiyonları window'a ata
+        window.openFormModal = openFormModal;
+        window.closeFormModal = closeFormModal;
+        window.openAuthModal = openAuthModal;
+        window.closeAuthModal = closeAuthModal;
+        window.toggleAuthMode = toggleAuthMode;
+        window.openAccountModal = openAccountModal;
+        window.closeAccountModal = closeAccountModal;
+        window.switchAccountTab = switchAccountTab;
+        window.openTermsModal = openTermsModal;
+        window.closeTermsModal = closeTermsModal;
+        window.openReportModal = openReportModal;
+        window.closeReportModal = closeReportModal;
+        window.handleReportSubmit = handleReportSubmit;
+        window.openFormModalForEdit = openFormModalForEdit;
+        window.setViewMode = setViewMode;
+        window.changePage = changePage;
+        window.shareOnWhatsApp = shareOnWhatsApp;
+        window.openDetailModal = openDetailModal;
+        window.closeDetailModal = closeDetailModal;
+        window.filterListings = filterListings;
+        window.renderListings = renderListings;
+        window.resetAllFilters = resetAllFilters;
+        window.updateFavBtnStyle = updateFavBtnStyle;
+        window.getTimeAgo = getTimeAgo;
+        window.closeSellerProfileModal = closeSellerProfileModal;
+        window.openCategoryDetailModal = openCategoryDetailModal;
+        window.closeCategoryDetailModal = closeCategoryDetailModal;
+        window.renderMap = renderMap;
+        window.initFormMap = initFormMap;
+        window.updateFormMapCenter = updateFormMapCenter;
+        window.updateMarqueeData = updateMarqueeData;
+        window.renderPaginationControls = renderPaginationControls;
+        window.loadFavoriteListings = loadFavoriteListings;
     </script>
 </body>
 </html>
- 
