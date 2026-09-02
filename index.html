@@ -253,7 +253,7 @@
         </div>
     </section>
 
-    <!-- MODALLAR (AYNI YAPIDA, MANTIKSAL HATALAR GİDERİLDİ) -->
+    <!-- MODALLAR -->
     <div id="category-detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
             <button onclick="closeCategoryDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -313,10 +313,20 @@
                     <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
                 </div>
 
-                <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
+                <!-- ÇIKIŞ YAP KUTUSU (YENİ EKLENDİ) -->
+                <div class="bg-gray-100 border border-gray-200 p-3.5 rounded-xl flex justify-between items-center">
+                    <div>
+                        <span class="text-xs font-bold text-gray-700 block"><i class="fa-solid fa-right-from-bracket mr-1"></i> Oturumu Sonlandır</span>
+                        <p class="text-[10px] text-gray-500 mt-0.5">Güvenli bir şekilde hesabınızdan çıkış yapın.</p>
+                    </div>
+                    <button onclick="handleLogout()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-xs transition shadow-sm">Çıkış Yap</button>
+                </div>
+
+                <!-- HESABI SİL KUTUSU -->
+                <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2 mt-4">
                     <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
                     <p class="text-[10px] text-red-700">Hesabınızı kalıcı olarak kapatmak ve silmek istiyorsanız aşağıdaki butona basabilirsiniz.</p>
-                    <button onclick="deleteUserAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-xs transition">Hesabımı Kalıcı Olarak Kapat</button>
+                    <button onclick="deleteUserAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm">Hesabımı Kalıcı Olarak Kapat</button>
                 </div>
             </div>
         </div>
@@ -628,7 +638,7 @@
         window.query = query;
         window.orderByChild = orderByChild;
         window.equalTo = equalTo;
-        window.reauthenticateWithCredential = reauthenticateWithCredential;
+        
         window.currentUser = null;
         window.userExtraData = { favorites: {}, offers: {} };
         window.listings = [];
@@ -661,7 +671,7 @@
         window.compressImage = function(file) {
             return new Promise((resolve, reject) => {
                 if (!file || !file.type || !file.type.startsWith('image/')) {
-                    reject(new Error('Lütfen geçerli bir görsel dosyası seçin.'));
+                    resolve(null);
                     return;
                 }
                 const sizeMb = file.size / (1024 * 1024);
@@ -747,18 +757,7 @@
 
             try {
                 if (mode === 'login') {
-                    const loginResult = await signInWithEmailAndPassword(auth, email, password);
-                    const profileSnap = await get(ref(db, 'users/' + loginResult.user.uid));
-                    const isPostMigrationAccount = profileSnap.exists() && !!profileSnap.val().joinedAt;
-
-                    if (isPostMigrationAccount && !loginResult.user.emailVerified) {
-                        try { await sendEmailVerification(loginResult.user); } catch (resendErr) {}
-                        await signOut(auth);
-                        alert("Hesabınız henüz doğrulanmamış. E-postanıza yeni bir doğrulama bağlantısı gönderdik — lütfen gelen kutunuzu (ve spam klasörünü) kontrol edip bağlantıya tıkladıktan sonra tekrar giriş yapın.");
-                        btn.disabled = false;
-                        btn.innerText = "Giriş Yap";
-                        return;
-                    }
+                    await signInWithEmailAndPassword(auth, email, password);
                 } else {
                     if (!username || !username.trim()) {
                         alert("Lütfen bir kullanıcı adı girin.");
@@ -797,16 +796,15 @@
                     });
                     await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
 
-                    await sendEmailVerification(res.user);
-                    await signOut(auth);
-                    alert("Kayıt işlemi alındı! Devam edebilmeniz için " + email + " adresine bir doğrulama bağlantısı gönderdik. Bağlantıya tıkladıktan sonra buradan giriş yapabilirsiniz.");
-                    toggleAuthMode();
-                    btn.disabled = false;
-                    btn.innerText = "Giriş Yap";
+                    // Kullanıcıyı sistemden atmadan arkaplanda doğrulama postası gönderiyoruz.
+                    try { await sendEmailVerification(res.user); } catch(e){}
+                    
+                    alert("Kayıt başarılı! Hesabınıza giriş yapıldı. (E-posta adresinize bir doğrulama bağlantısı gönderildi, vaktiniz olduğunda onaylayabilirsiniz).");
+                    closeAuthModal();
+                    document.getElementById('add-listing-form').reset();
                     return;
                 }
                 closeAuthModal();
-                document.getElementById('add-listing-form').reset();
             } catch (err) {
                 if (err.code === 'auth/email-already-in-use') {
                     alert("Bu e-posta adresi zaten daha önceden kayıtlı! Lütfen giriş yapın veya şifrenizi unuttuysanız sıfırlayın.");
@@ -833,7 +831,18 @@
             }
         };
 
-        window.handleLogout = function() { signOut(auth); };
+        // GÜVENLİ ÇIKIŞ YAP FONKSİYONU
+        window.firebaseLogout = async function() {
+            try {
+                await signOut(auth);
+                const accountModal = document.getElementById('account-modal');
+                if (accountModal && !accountModal.classList.contains('hidden')) {
+                    accountModal.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error("Çıkış hatası:", err);
+            }
+        };
 
         window.toggleFavorite = async function(id) {
             if (!window.currentUser) {
@@ -927,7 +936,8 @@
                 
                 if (fileInput.files && fileInput.files[0]) {
                     const file = fileInput.files[0];
-                    imageUrl = await window.compressImage(file);
+                    const compressed = await window.compressImage(file);
+                    if (compressed) imageUrl = compressed;
                 }
 
                 const category = document.getElementById('form-category').value;
@@ -940,7 +950,7 @@
                         isFirst100 = (count < 100);
                         return { count: count + 1 };
                     });
-                    if (!result.committed) throw new Error('Sayaç güncellenemedi.');
+                    if (!result.committed) throw new Error('Sayaç güncellenemedi, veritabanı kilitli olabilir.');
                 }
 
                 const userVipChoice = document.getElementById('form-vip').checked;
@@ -1026,7 +1036,7 @@
 
             try {
                 const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
-                await window.reauthenticateWithCredential(window.currentUser, credential);
+                await reauthenticateWithCredential(window.currentUser, credential);
 
                 if (newUsername !== window.userExtraData.username) {
                     const newUsernameKey = window.sanitizeUsernameKey(newUsername);
@@ -1092,7 +1102,7 @@
 
             try {
                 const credential = EmailAuthProvider.credential(window.currentUser.email, password);
-                await window.reauthenticateWithCredential(window.currentUser, credential);
+                await reauthenticateWithCredential(window.currentUser, credential);
 
                 const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
                 for (const listing of myListings) {
@@ -1292,7 +1302,6 @@
             container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
 
             try {
-                // Fetch offers only for the current user to prevent reading the entire table
                 const offersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
                 const snap = await get(offersQuery);
                 const data = snap.val();
@@ -1388,6 +1397,15 @@
     </script>
 
     <script>
+        // GLOBALE AÇILAN KESİN ÇIKIŞ FONKSİYONU
+        function handleLogout() {
+            if (window.firebaseLogout) {
+                window.firebaseLogout();
+            } else {
+                console.error("Çıkış fonksiyonu henüz yüklenmedi.");
+            }
+        }
+
         const categoryEmojis = {
             "Zeytin & Yağ": "🫒",
             "Narenciye": "🍊",
