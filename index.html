@@ -4,28 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ORONTES | Hatay Tarım & Ticaret İlan Pazarı</title>
-    <!--
-        DÜZELTMELER (Ahmet için özet):
-        1) Kategori filtresinde "Canlı Hayvan & Süt Ürünleri" değeri, ilan ekleme
-           formundaki "Canlı Hayvan & Süt" değeriyle uyuşmuyordu -> bu kategoriye
-           filtre uygulanınca hiç sonuç gelmiyordu. Değerler eşitlendi.
-        2) initFormMap(): harita her yeniden açıldığında eski marker referansı
-           (window.formMarker) temizlenmiyordu; yeni haritada tıklayınca
-           görünürde işaretçi çıkmıyordu (konum arka planda doğru kaydediliyordu
-           ama kullanıcı göremiyordu). Artık her harita init'inde sıfırlanıyor.
-        3) compressImage(): dosya/okuma/görsel hatalarında Promise hiç
-           resolve/reject olmuyordu -> "İlan kaydediliyor..." butonu sonsuza
-           kadar kilitli kalabiliyordu. Hata yakalama eklendi.
-        4) Kayıt ol akışında kullanıcı adı benzersizliği kontrolü tüm 'users'
-           düğümünü (herkesin e-posta/telefonu dahil) istemci tarafında
-           okuyordu -> ciddi bir gizlilik açığıydı. Artık ayrı ve güvenli bir
-           /usernames/{kullaniciadi} index'i kullanılıyor.
-        5) Hesap silme işlemi kullanıcının ilanlarını silmiyordu, sahipsiz
-           (orphan) ilanlar veritabanında kalıyordu. Artık hesap silinmeden
-           önce kullanıcının kendi ilanları da temizleniyor.
-        Firebase tarafında (kod dışında) yapmanız gerekenler için sohbetteki
-        açıklamaya bakın (Realtime Database Security Rules şart).
-    -->
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -47,7 +25,7 @@
     </script>
     <!-- FontAwesome Icon Set -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Leaflet.js CSS (Harita Modülü) -->
+    <!-- Leaflet.js CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { background-color: #ededed; }
@@ -134,7 +112,6 @@
         </div>
     </header>
 
-    <!-- CANLI KATEGORİ VE ORTALAMA FİYAT ENDEKSİ BARI -->
     <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
         <div class="marquee-wrapper" id="marquee-container"></div>
     </div>
@@ -147,7 +124,7 @@
         </div>
     </section>
 
-    <!-- FİLTRELEME VE ARAMA BARI -->
+    <!-- FİLTRELEME -->
     <section id="filter-section" class="max-w-7xl mx-auto px-4 -mt-6 relative z-20">
         <div class="bg-white p-3.5 rounded-2xl shadow-md border border-gray-200/80 flex flex-col gap-2.5">
             <div class="flex flex-col lg:flex-row gap-2.5 items-center">
@@ -164,7 +141,6 @@
                         <option value="Salça & Sos">🌶️ Salça, Sos & Baharat</option>
                         <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
                         <option value="Sebze & Sera">🥬 Sebze & Sera Ürünleri</option>
-                        <!-- DÜZELTME: value artık form-category ile birebir aynı ("Canlı Hayvan & Süt") -->
                         <option value="Canlı Hayvan & Süt">🐄 Canlı Hayvan & Süt Ürünleri</option>
                         <option value="Fide & Tohum">🌱 Fide, Tohum & Gübre</option>
                         <option value="Nakliye">🚛 Nakliye & Lojistik</option>
@@ -236,7 +212,7 @@
         <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
 
-    <!-- SSS VE DESTEK E-POSTASI ALANI -->
+    <!-- SSS -->
     <section class="max-w-7xl mx-auto px-4 my-12">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -277,17 +253,17 @@
         </div>
     </section>
 
-    <!-- MODAL: KATEGORİ FİYAT DETAYI MODALI -->
+    <!-- MODALLAR (AYNI YAPIDA, MANTIKSAL HATALAR GİDERİLDİ) -->
     <div id="category-detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
             <button onclick="closeCategoryDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            <h3 id="cat-modal-title" class="text-base font-bold text-lux-dark mb-1">Kategori Fiyat Analizi</h3>
+            <h3 id="cat-modal-title" class="text-base font-bold text-lux-dark mb-1">Kategori Analizi</h3>
             <p id="cat-modal-sub" class="text-xs text-gray-400 mb-4">Otomatik birim dönüşümü ile ortalama fiyatlar</p>
             <div id="cat-modal-content" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
         </div>
     </div>
 
-    <!-- MODAL: HESABIM & ŞİFRE/HESAP KAPATMA PANELİ -->
+    <!-- HESABIM MODAL -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -337,7 +313,6 @@
                     <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
                 </div>
 
-                <!-- HESABI KALICI OLARAK KAPATMA -->
                 <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
                     <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
                     <p class="text-[10px] text-red-700">Hesabınızı kalıcı olarak kapatmak ve silmek istiyorsanız aşağıdaki butona basabilirsiniz.</p>
@@ -347,7 +322,7 @@
         </div>
     </div>
 
-    <!-- MODAL: İLAN DETAY & HARİTA -->
+    <!-- İLAN DETAY MODAL -->
     <div id="detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
@@ -366,7 +341,7 @@
                             <span id="detail-time-badge" class="text-[10px] bg-gray-100 text-gray-600 font-medium px-2 py-0.5 rounded-md">Zaman</span>
                         </div>
                         <h2 id="detail-title" class="text-lg font-bold mt-1 text-lux-dark">İlan Başlığı</h2>
-                        <p id="detail-location" class="text-xs text-gray-400 mt-0.5"><i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay / Samandağ</p>
+                        <p id="detail-location" class="text-xs text-gray-400 mt-0.5"><i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay</p>
                     </div>
                     <div class="text-right">
                         <span id="detail-price" class="text-xl font-bold text-lux-dark block">0 TL</span>
@@ -381,18 +356,15 @@
                 </div>
 
                 <div class="mb-5">
-                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1"><i class="fa-solid fa-map-location-dot text-lux-gold mr-1"></i> Ürün Konumu (Hatay)</h4>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1"><i class="fa-solid fa-map-location-dot text-lux-gold mr-1"></i> Ürün Konumu</h4>
                     <div id="map"></div>
                 </div>
 
-                <!-- DÜZELTME: Toptancı ilanlarında minimum sipariş miktarı burada gösterilir -->
                 <div id="detail-wholesale-box" class="hidden bg-lux-olive/10 border border-lux-olive/30 text-lux-olive p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-building"></i>
                     <span>Toptancı ilanı — Minimum sipariş: <span id="detail-min-order">-</span></span>
                 </div>
 
-                <!-- DÜZELTME: İlan Hatay dışında bir konuma girildiyse burada
-                     dikkat çeken bir uyarı gösterilir. -->
                 <div id="detail-outside-hatay-box" class="hidden bg-red-50 border border-red-300 text-red-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     <span id="detail-outside-hatay-text">Bu ilan Hatay dışında bulunuyor.</span>
@@ -407,8 +379,6 @@
                     <button onclick="submitPriceOffer()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm">Teklifi İlet</button>
                 </div>
 
-                <!-- DÜZELTME: Satıcı profili — üyelik tarihi, ilan sayısı, puan.
-                     Tıklanınca satıcının tüm profil/ilan geçmişini gösteren modal açılır. -->
                 <div id="seller-profile-trigger" onclick="window.openSellerProfileModal(window.activeSellerUid)" class="bg-lux-bg/40 hover:bg-lux-sage/20 transition cursor-pointer p-3.5 rounded-xl border border-gray-200/60 mb-4">
                     <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
                         <div>
@@ -426,7 +396,7 @@
                 <div class="bg-lux-bg/40 p-3.5 rounded-xl flex items-center justify-between border border-gray-200/60 flex-wrap gap-2">
                     <div>
                         <span class="text-[9px] text-gray-400 uppercase font-bold block">Satıcı / Toptancı</span>
-                        <span id="detail-seller" class="font-bold text-lux-dark text-sm">Ahmet Yılmaz</span>
+                        <span id="detail-seller" class="font-bold text-lux-dark text-sm">İsim</span>
                     </div>
                     <div class="flex items-center space-x-1.5">
                         <button onclick="openReportModal()" title="Şikayet Et" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition text-xs"><i class="fa-solid fa-flag"></i></button>
@@ -443,7 +413,7 @@
       </div>
     </div>
 
-    <!-- MODAL: SATICI PROFİLİ İNCELEME -->
+    <!-- SATICI PROFİLİ İNCELEME MODAL -->
     <div id="seller-profile-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
@@ -463,7 +433,7 @@
         </div>
     </div>
 
-    <!-- MODAL: GİRİŞ / KAYIT & ŞİFREMİ UNUTTUM -->
+    <!-- GİRİŞ / KAYIT MODAL -->
     <div id="auth-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative border border-gray-100">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -487,7 +457,7 @@
         </div>
     </div>
 
-    <!-- MODAL: İLAN EKLEME VE DÜZENLEME FORMU -->
+    <!-- İLAN EKLEME/DÜZENLEME FORMU -->
     <div id="form-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -517,9 +487,6 @@
                     <option value="Diğer">📦 Diğer</option>
                 </select>
 
-                <!-- DÜZELTME: Konum artık İLK ÖNCE ilçe seçmekle değil, adres yazarak
-                     veya haritadan tıklayarak belirleniyor. İlçe, seçilen konuma göre
-                     OTOMATİK belirlenir; kullanıcı isterse elle değiştirebilir. -->
                 <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2">
                     <label class="block text-[11px] font-semibold uppercase text-gray-500">📍 Konum</label>
                     <div class="flex gap-2">
@@ -561,8 +528,6 @@
                     <input type="tel" id="form-phone" required placeholder="WhatsApp Tel*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
 
-                <!-- DÜZELTME: Büyük toptancılar için ayrı panel. "Toptancı" seçilince
-                     minimum sipariş miktarı alanı açılır. -->
                 <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2.5">
                     <label class="block text-[11px] font-semibold uppercase text-gray-500">İşletme Tipi</label>
                     <select id="form-business-type" onchange="window.toggleWholesaleFields()" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
@@ -602,7 +567,7 @@
         </div>
     </div>
 
-    <!-- MODAL: YASAL UYARI & ŞİKAYET -->
+    <!-- YASAL UYARI & ŞİKAYET MODAL -->
     <div id="terms-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
             <button onclick="closeTermsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -635,7 +600,7 @@
     <!-- FIREBASE MODULE & UYGULAMA MANTIĞI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove, update, get, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove, update, get, runTransaction, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -660,6 +625,9 @@
         window.update = update;
         window.get = get;
         window.runTransaction = runTransaction;
+        window.query = query;
+        window.orderByChild = orderByChild;
+        window.equalTo = equalTo;
         window.reauthenticateWithCredential = reauthenticateWithCredential;
         window.currentUser = null;
         window.userExtraData = { favorites: {}, offers: {} };
@@ -674,25 +642,12 @@
         window.currentPage = 1;
         window.itemsPerPage = 12;
 
-        // DÜZELTME: Kullanıcı adını Firebase key olarak kullanılabilir hale
-        // getiren yardımcı fonksiyon (boşluk, nokta, # $ [ ] gibi karakterler
-        // Firebase key'lerinde yasak).
         window.sanitizeUsernameKey = function(name) {
             return String(name || '').trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_');
         };
 
-        // DÜZELTME: compressImage artık dosya okuma / görsel yükleme
-        // hatalarında Promise'i reject ediyor. Eskiden hata durumunda
-        // Promise hiç sonuçlanmıyor, "İlan kaydediliyor..." butonu
-        // sonsuza kadar kilitli kalabiliyordu.
-        // DÜZELTME: Görsel dosya boyutu sınırı. Çok büyük dosyalar (özellikle
-        // telefon kameralarından gelen 15-30MB'lık orijinal fotoğraflar)
-        // tarayıcıyı kilitleyebiliyordu. Sınır 8MB olarak belirlendi —
-        // sıkıştırma sonrası zaten görsel çok küçülüyor, bu yalnızca
-        // yükleme öncesi bir güvenlik sınırı.
         window.MAX_IMAGE_SIZE_MB = 8;
 
-        // Dosya seçilir seçilmez (submit'i beklemeden) anında uyarı verir.
         window.checkFileSize = function(inputEl) {
             const file = inputEl.files && inputEl.files[0];
             if (!file) return;
@@ -793,21 +748,11 @@
             try {
                 if (mode === 'login') {
                     const loginResult = await signInWithEmailAndPassword(auth, email, password);
-
-                    // DÜZELTME: E-posta doğrulama şartı SADECE bu güncellemeden
-                    // sonra kayıt olan hesaplara uygulanıyor (joinedAt alanı
-                    // olanlar). Aksi halde bu değişiklikten önce kayıt olmuş
-                    // ve hiç doğrulama e-postası almamış mevcut üyeler
-                    // (siz dahil) hesaplarından tamamen kilitlenirdi.
                     const profileSnap = await get(ref(db, 'users/' + loginResult.user.uid));
                     const isPostMigrationAccount = profileSnap.exists() && !!profileSnap.val().joinedAt;
 
                     if (isPostMigrationAccount && !loginResult.user.emailVerified) {
-                        try {
-                            await sendEmailVerification(loginResult.user);
-                        } catch (resendErr) {
-                            console.warn('Doğrulama e-postası tekrar gönderilemedi:', resendErr);
-                        }
+                        try { await sendEmailVerification(loginResult.user); } catch (resendErr) {}
                         await signOut(auth);
                         alert("Hesabınız henüz doğrulanmamış. E-postanıza yeni bir doğrulama bağlantısı gönderdik — lütfen gelen kutunuzu (ve spam klasörünü) kontrol edip bağlantıya tıkladıktan sonra tekrar giriş yapın.");
                         btn.disabled = false;
@@ -822,11 +767,6 @@
                         return;
                     }
 
-                    // DÜZELTME: Artık tüm 'users' düğümünü (herkesin e-posta ve
-                    // telefon bilgisi dahil) okumuyoruz. Sadece kullanıcı adı ->
-                    // uid eşlemesini tutan /usernames/{kullaniciadi} index'ine
-                    // bakıyoruz. Bu index'i okunabilir ama kimseye e-posta/telefon
-                    // sızdırmayacak şekilde kurallamanız gerekiyor (bkz. notlar).
                     const usernameKey = window.sanitizeUsernameKey(username);
                     let isUsernameTaken = false;
                     try {
@@ -849,24 +789,14 @@
                         username: username,
                         phone: phone,
                         email: email,
-                        joinedAt: Date.now() // DÜZELTME: profilde "üye: ..." tarihini göstermek için
+                        joinedAt: Date.now()
                     });
-                    // DÜZELTME: users/{uid} artık sadece sahibi tarafından okunabiliyor
-                    // (e-posta/telefon içerdiği için). Ama "üye: ..." ve ilan sayısı gibi
-                    // bilgileri başkalarının görebilmesi gerekiyor. Bu yüzden SADECE
-                    // kullanıcı adı ve üyelik tarihini içeren, herkese açık ayrı bir
-                    // publicProfiles/{uid} düğümü tutuyoruz.
                     await update(ref(db, 'publicProfiles/' + res.user.uid), {
                         username: username,
                         joinedAt: Date.now()
                     });
-                    // Kullanıcı adını index'e kaydediyoruz ki sıradaki kayıt kontrolü doğru çalışsın.
                     await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
 
-                    // DÜZELTME: E-posta doğrulama bağlantısı gönderiliyor ve
-                    // doğrulanana kadar kullanıcı oturumdan çıkarılıyor.
-                    // Kayıt işlemi, bağlantıya tıklanıp giriş yapılana kadar
-                    // "tam olarak tamamlanmış" sayılmıyor.
                     await sendEmailVerification(res.user);
                     await signOut(auth);
                     alert("Kayıt işlemi alındı! Devam edebilmeniz için " + email + " adresine bir doğrulama bağlantısı gönderdik. Bağlantıya tıkladıktan sonra buradan giriş yapabilirsiniz.");
@@ -876,6 +806,7 @@
                     return;
                 }
                 closeAuthModal();
+                document.getElementById('add-listing-form').reset();
             } catch (err) {
                 if (err.code === 'auth/email-already-in-use') {
                     alert("Bu e-posta adresi zaten daha önceden kayıtlı! Lütfen giriş yapın veya şifrenizi unuttuysanız sıfırlayın.");
@@ -1025,6 +956,8 @@
                     }
                 }
 
+                const isOutside = !!window.locationOutsideHatay;
+
                 const listingData = {
                     uid: window.currentUser.uid,
                     userEmail: window.currentUser.email,
@@ -1032,9 +965,9 @@
                     category: category,
                     district: document.getElementById('form-district').value,
                     address: document.getElementById('form-address').value || null,
-                    outsideHatay: !!window.locationOutsideHatay,
-                    realProvince: window.locationOutsideHatay ? window.locationOutsideHatay.province : null,
-                    realDistrict: window.locationOutsideHatay ? window.locationOutsideHatay.district : null,
+                    outsideHatay: isOutside,
+                    realProvince: isOutside ? window.locationOutsideHatay.province : null,
+                    realDistrict: isOutside ? window.locationOutsideHatay.district : null,
                     lat: Number(document.getElementById('form-lat').value) || null,
                     lng: Number(document.getElementById('form-lng').value) || null,
                     price: Number(document.getElementById('form-price').value),
@@ -1095,11 +1028,29 @@
                 const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
                 await window.reauthenticateWithCredential(window.currentUser, credential);
 
+                if (newUsername !== window.userExtraData.username) {
+                    const newUsernameKey = window.sanitizeUsernameKey(newUsername);
+                    const oldUsernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
+                    
+                    const usernameSnap = await get(ref(db, 'usernames/' + newUsernameKey));
+                    if (usernameSnap.exists()) {
+                        alert("❌ Bu kullanıcı adı başkası tarafından alınmış!");
+                        btn.disabled = false;
+                        btn.innerText = "Değişiklikleri Kaydet";
+                        return;
+                    }
+                    
+                    await update(ref(db, 'usernames/' + newUsernameKey), { uid: window.currentUser.uid });
+                    if (window.userExtraData.username) {
+                        await remove(ref(db, 'usernames/' + oldUsernameKey));
+                    }
+                }
+
                 await update(ref(db, 'users/' + window.currentUser.uid), {
                     username: newUsername,
                     phone: newPhone
                 });
-                // DÜZELTME: Herkese açık profil düğümündeki kullanıcı adını da senkronize et.
+                
                 await update(ref(db, 'publicProfiles/' + window.currentUser.uid), {
                     username: newUsername
                 });
@@ -1143,17 +1094,16 @@
                 const credential = EmailAuthProvider.credential(window.currentUser.email, password);
                 await window.reauthenticateWithCredential(window.currentUser, credential);
 
-                // DÜZELTME: Hesap silinmeden önce kullanıcının kendi ilanları da
-                // temizleniyor. Eskiden hesap silindikten sonra ilanlar
-                // veritabanında "sahipsiz" olarak kalıyordu.
                 const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
                 for (const listing of myListings) {
-                    try {
-                        await remove(ref(db, 'listings/' + listing.id));
-                    } catch (cleanupErr) {
-                        console.warn('İlan silinemedi:', listing.id, cleanupErr);
-                    }
+                    try { await remove(ref(db, 'listings/' + listing.id)); } catch(e) {}
                 }
+
+                try {
+                    const usernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
+                    await remove(ref(db, 'usernames/' + usernameKey));
+                    await remove(ref(db, 'publicProfiles/' + window.currentUser.uid));
+                } catch(e) {}
 
                 await remove(ref(db, 'users/' + window.currentUser.uid));
                 await deleteUser(window.currentUser);
@@ -1187,18 +1137,6 @@
             }
         };
 
-        // DÜZELTME: Satıcı profil kutusu — üyelik tarihi, ilan sayısı, ortalama puan.
-        // ratings/{satıcıUid}/{değerlendirenUid} = { score: 1-5, date }
-        //
-        // ÖNEMLİ HATA DÜZELTMESİ: Bu fonksiyon önceden hem üyelik bilgisini
-        // (users/{uid}) hem puanları TEK bir Promise.all içinde okuyordu.
-        // users/{uid} artık sadece hesap sahibi tarafından okunabildiği için
-        // (e-posta/telefon içerdiğinden), başkasının ilanına bakarken bu okuma
-        // "izin reddedildi" hatası veriyor ve TÜM fonksiyon (puanlama dahil)
-        // çöküp hiç çalışmıyordu. Şimdi: (1) üyelik bilgisi herkese açık ayrı
-        // bir publicProfiles/{uid} düğümünden okunuyor, (2) iki okuma
-        // birbirinden bağımsız try/catch'lerde, biri başarısız olsa bile
-        // puanlama kısmı çalışmaya devam ediyor.
         window.loadSellerProfileBox = async function(sellerUid) {
             const joinedEl = document.getElementById('detail-seller-joined');
             const ratingEl = document.getElementById('detail-seller-rating');
@@ -1212,7 +1150,6 @@
 
             const listingCount = (window.listings || []).filter(l => l.uid === sellerUid).length;
 
-            // Üyelik tarihi — bağımsız okuma, başarısız olursa sadece bu kısım boş kalır.
             try {
                 const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
                 let joinedText = '';
@@ -1223,10 +1160,8 @@
                 joinedEl.innerText = `${joinedText}${listingCount} ilan`;
             } catch (err) {
                 joinedEl.innerText = `${listingCount} ilan`;
-                console.warn('Üyelik bilgisi yüklenemedi:', err);
             }
 
-            // Puanlama — bağımsız okuma, üyelik bilgisi başarısız olsa bile çalışır.
             try {
                 const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
                 const ratingsData = ratingsSnap.val() || {};
@@ -1237,9 +1172,6 @@
                     ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
                     : 'Henüz değerlendirme yok';
 
-                // DÜZELTME: Kendi ilanına puan veremez (hem burada hem submitRating
-                // içinde ayrıca kontrol ediliyor — çift güvenlik), giriş yapmamışsa
-                // değerlendirme kutusu hiç gösterilmez.
                 if (window.currentUser && window.currentUser.uid !== sellerUid) {
                     rateBox.classList.remove('hidden');
                     const myRating = ratingsData[window.currentUser.uid] ? ratingsData[window.currentUser.uid].score : 0;
@@ -1253,7 +1185,6 @@
                 }
             } catch (err) {
                 ratingEl.innerText = 'Puanlar yüklenemedi';
-                console.warn('Puanlar yüklenemedi:', err);
             }
         };
 
@@ -1263,8 +1194,6 @@
                 openAuthModal('login');
                 return;
             }
-            // DÜZELTME: Kendine puan verme istemci tarafında da engelleniyor
-            // (Firebase Rules'ta zaten engelli, bu ek bir güvenlik katmanı).
             if (window.currentUser.uid === sellerUid) {
                 alert("Kendi ilanınıza puan veremezsiniz.");
                 return;
@@ -1275,7 +1204,6 @@
                     date: Date.now()
                 });
                 window.loadSellerProfileBox(sellerUid);
-                // Profil modalı açıksa (aynı satıcı) oradaki puanı da tazele.
                 if (!document.getElementById('seller-profile-modal').classList.contains('hidden')) {
                     window.openSellerProfileModal(sellerUid);
                 }
@@ -1284,8 +1212,6 @@
             }
         };
 
-        // DÜZELTME: "Profil inceleme" — satıcının üyelik tarihi, ilan sayısı,
-        // puanı ve tüm verdiği ilanların listesi tek bir modalda gösterilir.
         window.openSellerProfileModal = async function(sellerUid) {
             if (!sellerUid) return;
 
@@ -1308,7 +1234,6 @@
 
             document.getElementById('seller-profile-modal').classList.remove('hidden');
 
-            // Üyelik tarihi — herkese açık publicProfiles düğümünden.
             try {
                 const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
                 if (profileSnap.exists() && profileSnap.val().joinedAt) {
@@ -1324,7 +1249,6 @@
                 joinedEl.innerText = "Üyelik tarihi bilinmiyor";
             }
 
-            // Puan
             try {
                 const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
                 const ratingsData = ratingsSnap.val() || {};
@@ -1338,7 +1262,6 @@
                 ratingEl.innerText = 'Puanlar yüklenemedi';
             }
 
-            // İlan listesi
             if (sellerListings.length === 0) {
                 listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Bu satıcının aktif ilanı yok.</p>`;
             } else {
@@ -1368,56 +1291,62 @@
             const container = document.getElementById('tab-content-offers');
             container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
 
-            const snap = await get(ref(db, 'offers'));
-            const data = snap.val();
+            try {
+                // Fetch offers only for the current user to prevent reading the entire table
+                const offersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
+                const snap = await get(offersQuery);
+                const data = snap.val();
 
-            if (!data) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
-                return;
-            }
+                if (!data) {
+                    container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+                    return;
+                }
 
-            const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]})).filter(o => o.sellerUid === window.currentUser.uid);
-            container.innerHTML = '';
+                const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]}));
+                container.innerHTML = '';
 
-            if (myOffers.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
-                return;
-            }
+                if (myOffers.length === 0) {
+                    container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+                    return;
+                }
 
-            myOffers.forEach(o => {
-                const div = document.createElement('div');
-                div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
-                
-                let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-                if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
-                const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
+                myOffers.forEach(o => {
+                    const div = document.createElement('div');
+                    div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
+                    
+                    let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
+                    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
+                    const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
-                const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
+                    const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
 
-                div.innerHTML = `
-                    <div class="flex justify-between font-bold text-amber-900">
-                        <span>📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</span>
-                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
-                    </div>
-                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
-                    <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${o.status || 'Beklemede'}</span>
-                        <div class="space-x-1">
-                            <button onclick="updateOfferStatus('${o.id}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
-                            <button onclick="updateOfferStatus('${o.id}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                    div.innerHTML = `
+                        <div class="flex justify-between font-bold text-amber-900">
+                            <span>📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</span>
+                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
                         </div>
-                    </div>
-                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
-                    ${cleanPhone ? `
-                        <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
-                            <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>Teklif Veren İle WhatsApp'tan Yazış</span>
-                        </a>
-                    ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
-                `;
-                container.appendChild(div);
-            });
+                        <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                            <div class="space-x-1">
+                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
+                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                            </div>
+                        </div>
+                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                        ${cleanPhone ? `
+                            <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>Teklif Veren İle WhatsApp'tan Yazış</span>
+                            </a>
+                        ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
+                    `;
+                    container.appendChild(div);
+                });
+            } catch(err) {
+                container.innerHTML = `<p class="text-xs text-red-400">Teklifler yüklenirken hata oluştu.</p>`;
+            }
         };
 
         window.updateOfferStatus = async function(offerId, status) {
@@ -1436,8 +1365,6 @@
             }[ch]));
         };
 
-        // DÜZELTME: İlan Hatay dışındaysa, listelerde ve kartlarda "Hatay Dışı"
-        // sentinel değeri yerine gerçek şehir/ilçe adı gösterilir.
         window.getListingLocationText = function(item) {
             if (item.outsideHatay) {
                 if (item.realProvince && item.realDistrict) return `${item.realProvince} / ${item.realDistrict}`;
@@ -1517,11 +1444,6 @@
             if (window.formMapInstance) {
                 window.formMapInstance.remove();
             }
-            // DÜZELTME: Eski haritaya bağlı marker referansı burada temizleniyor.
-            // Aksi halde form her yeniden açıldığında, yeni haritada tıklanınca
-            // kod hâlâ eski (artık var olmayan) haritaya bağlı marker'ı
-            // güncellemeye çalışıyor ve kullanıcı ekranda hiç işaretçi göremiyordu
-            // (konum arka planda doğru kaydediliyordu ama görünmüyordu).
             window.formMarker = null;
 
             window.formMapInstance = L.map('form-map').setView(coords, 12);
@@ -1546,10 +1468,6 @@
                     window.formMarker = L.marker([clickedLat, clickedLng]).addTo(window.formMapInstance);
                 }
 
-                // DÜZELTME: Konum tek bir fonksiyonda çözümleniyor — kara/deniz
-                // kontrolü, Hatay içi/dışı tespiti ve ilçe ataması artık aynı
-                // reverse-geocode sonucuna dayanıyor (önceden ikisi ayrı ayrı
-                // ve tutarsız çalışıyordu).
                 window.resolveLocation(clickedLat, clickedLng);
             });
 
@@ -1558,13 +1476,6 @@
             }, 250);
         }
 
-        // DÜZELTME: Tek, birleşik konum çözümleme fonksiyonu.
-        // 1) Nokta denizde/açık suda mı? -> reddedilir, işaretçi kaldırılır.
-        // 2) Nokta Hatay sınırları içinde mi? -> içindeyse en yakın Hatay
-        //    ilçesi otomatik seçilir. Dışındaysa ilçe kutusuna gerçek
-        //    şehir/ilçe ADI YAZILMAZ (liste sadece Hatay ilçelerini içeriyor);
-        //    bunun yerine "Hatay Dışı" seçilir ve gerçek konum ayrıca
-        //    (realProvince/realDistrict) saklanıp ilanda gösterilir.
         window.locationOutsideHatay = null;
         window.resolveLocation = async function(lat, lng) {
             const banner = document.getElementById('outside-hatay-warning');
@@ -1582,7 +1493,6 @@
                     waterTypes.includes(data.type) || waterTypes.includes(data.category);
 
                 if (isSea) {
-                    // DÜZELTME: Deniz/açık su üzerine tıklanamaz — işaretçi kaldırılır.
                     alert("Seçtiğiniz nokta kara üzerinde değil (deniz/açık su olabilir). Lütfen kara üzerinde bir nokta seçin.");
                     if (window.formMarker) {
                         window.formMapInstance.removeLayer(window.formMarker);
@@ -1602,7 +1512,6 @@
                 const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
 
                 if (isInsideHatay) {
-                    // Hatay içinde — en yakın Hatay ilçe merkezi otomatik seçilir.
                     let nearest = null, nearestDist = Infinity;
                     for (const [name, coords] of Object.entries(districtCoords)) {
                         const d = window.haversineKm(lat, lng, coords[0], coords[1]);
@@ -1610,23 +1519,16 @@
                     }
                     if (nearest) districtSelect.value = nearest;
                 } else {
-                    // Hatay dışında — ilçe kutusuna "Hatay Dışı" seçilir, gerçek
-                    // konum ayrıca saklanır ve alıcılara açıkça gösterilir.
                     districtSelect.value = 'Hatay Dışı';
                     window.locationOutsideHatay = { province, district: districtName };
                     banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${districtName ? ' / ' + districtName : ''}. İlanı yine de yayınlayabilirsiniz, ancak "Hatay Dışı" olarak işaretlenip alıcılara böyle gösterilecektir.`;
                     banner.classList.remove('hidden');
                 }
             } catch (err) {
-                // Servise ulaşılamazsa engelleyici olmuyoruz; kullanıcı elle
-                // ilçe seçebilir, sadece Hatay-dışı/deniz kontrolü atlanmış olur.
                 console.warn('Konum çözümlenemedi:', err);
             }
         };
 
-        // DÜZELTME: Haritadan tıklamak istemeyenler için adres yazıp
-        // konumu bulma özelliği. OpenStreetMap Nominatim (ücretsiz, API
-        // anahtarı gerektirmeyen) servisini kullanır.
         window.geocodeAddress = async function() {
             const addressInput = document.getElementById('form-address');
             const query = addressInput.value.trim();
@@ -1670,7 +1572,6 @@
             }
         };
 
-        // DÜZELTME: "Toptancı" seçilince minimum sipariş miktarı alanı açılıyor.
         window.toggleWholesaleFields = function() {
             const type = document.getElementById('form-business-type').value;
             const box = document.getElementById('wholesale-fields');
@@ -1788,12 +1689,6 @@
         }
 
         function openCategoryDetailModal(cat) {
-            // DÜZELTME: Bu bölüm artık ürünleri gruplayıp "ortalama fiyat"
-            // hesaplamıyor — çünkü farklı satıcılar farklı birimlerle (Ton/KG/Litre)
-            // ilan girince yanlış ortalamalar çıkıyordu (ör. 10.000 TL'lik toptan
-            // mısır ilanı "10 TL" gibi görünüyordu). Şimdi her ilan kendi girilen
-            // fiyatı ve birimiyle AYRI AYRI listeleniyor, tıklanınca doğrudan
-            // o ilan açılıyor.
             const items = (window.listings || [])
                 .filter(i => i.category === cat)
                 .sort((a, b) => b.date - a.date);
@@ -1973,7 +1868,17 @@
         }
 
         function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
-        function toggleAuthMode() { openAuthModal(document.getElementById('auth-mode').value === 'login' ? 'register' : 'login'); }
+        function toggleAuthMode() { 
+            const currentMode = document.getElementById('auth-mode').value;
+            const targetMode = currentMode === 'login' ? 'register' : 'login';
+            
+            document.getElementById('auth-username').value = '';
+            document.getElementById('auth-phone').value = '';
+            document.getElementById('auth-email').value = '';
+            document.getElementById('auth-password').value = '';
+            
+            openAuthModal(targetMode);
+        }
 
         function openTermsModal() { document.getElementById('terms-modal').classList.remove('hidden'); }
         function closeTermsModal() { document.getElementById('terms-modal').classList.add('hidden'); }
@@ -2112,9 +2017,6 @@
                 return matchesSearch && matchesCategory && matchesDistrict && matchesPrice;
             });
 
-            // DÜZELTME: "Yakınımdakiler" modu açıkken, konumu olan ilanlar
-            // kullanıcıya olan mesafeye göre sıralanır; önce diğer sıralama
-            // ölçütleri uygulanır, sonra mesafe önceliklidir.
             if (window.nearbyModeActive && window.userGeoLocation) {
                 window.filteredListings.forEach(item => {
                     item._distanceKm = (item.lat && item.lng)
@@ -2135,7 +2037,6 @@
             renderListings();
         }
 
-        // DÜZELTME: İki koordinat arası kuş uçuşu mesafe (km) — Haversine formülü.
         window.haversineKm = function(lat1, lng1, lat2, lng2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -2211,7 +2112,6 @@
             document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
             document.getElementById('detail-seller').innerText = item.seller;
 
-            // DÜZELTME: Toptancı / minimum sipariş kutusu
             const wholesaleBox = document.getElementById('detail-wholesale-box');
             if (item.businessType === 'Toptancı' && item.minOrderQty) {
                 document.getElementById('detail-min-order').innerText = item.minOrderQty;
@@ -2220,7 +2120,6 @@
                 wholesaleBox.classList.add('hidden');
             }
 
-            // DÜZELTME: Hatay dışı konum uyarısı
             const outsideBox = document.getElementById('detail-outside-hatay-box');
             if (item.outsideHatay) {
                 const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
@@ -2231,7 +2130,6 @@
                 outsideBox.classList.add('hidden');
             }
 
-            // DÜZELTME: Satıcı profili — üyelik tarihi, ilan sayısı, puan
             window.loadSellerProfileBox(item.uid);
 
             const deleteBtn = document.getElementById('delete-btn');
@@ -2255,7 +2153,6 @@
             setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
         }
 
-        // Global olarak erişilmesi gereken fonksiyonları window'a ata
         window.openFormModal = openFormModal;
         window.closeFormModal = closeFormModal;
         window.openAuthModal = openAuthModal;
