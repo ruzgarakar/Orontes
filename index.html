@@ -70,7 +70,7 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
             
             <div class="w-full sm:w-auto flex justify-between items-center">
-                <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
+                <div class="flex items-center cursor-pointer shrink-0" onclick="window.resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
                     <div class="bg-lux-dark px-3 py-1.5 rounded-xl flex items-center justify-center border border-lux-gold/40 shadow-sm hover:opacity-95 transition">
                         <div class="flex items-center space-x-2">
                             <i class="fa-solid fa-wheat-awn text-lux-gold text-lg"></i>
@@ -84,7 +84,7 @@
                         <i class="fa-solid fa-filter"></i>
                         <span>Filtre</span>
                     </button>
-                    <button onclick="openFormModal()" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-sm">
+                    <button onclick="window.openFormModal()" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-sm">
                         <i class="fa-solid fa-plus"></i>
                         <span>İlan Ver</span>
                     </button>
@@ -93,17 +93,17 @@
 
             <div class="flex items-center space-x-1.5 sm:space-x-2">
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
-                    <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
-                    <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
+                    <button onclick="window.openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
+                    <button onclick="window.openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
                 </div>
 
                 <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
-                    <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
+                    <button onclick="window.openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
                         <i class="fa-solid fa-user-gear"></i>
                         <span>Hesabım</span>
                     </button>
-                    <button onclick="handleLogout()" title="Çıkış Yap" class="text-gray-300 hover:text-red-400 text-xs px-1.5 py-1"><i class="fa-solid fa-right-from-bracket"></i></button>
-                    <button onclick="openFormModal()" class="hidden sm:flex bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition items-center space-x-1.5">
+                    <button onclick="window.handleLogout()" title="Çıkış Yap" class="text-gray-300 hover:text-red-400 text-xs px-1.5 py-1"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    <button onclick="window.openFormModal()" class="hidden sm:flex bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition items-center space-x-1.5">
                         <i class="fa-solid fa-plus text-xs"></i>
                         <span>İlan Ver</span>
                     </button>
@@ -130,11 +130,11 @@
             <div class="flex flex-col lg:flex-row gap-2.5 items-center">
                 <div class="w-full lg:flex-1 relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-gray-400 text-xs"></i>
-                    <input type="text" id="search-input" onkeyup="filterListings()" placeholder="Ürün adı, zeytinyağı, nar ekşisi, nakliye ara..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive text-xs text-gray-700 bg-lux-bg/30">
+                    <input type="text" id="search-input" onkeyup="window.filterListings()" placeholder="Ürün adı, zeytinyağı, nar ekşisi, nakliye ara..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive text-xs text-gray-700 bg-lux-bg/30">
                 </div>
 
                 <div class="w-full lg:w-auto flex flex-wrap sm:flex-nowrap gap-2">
-                    <select id="category-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
+                    <select id="category-filter" onchange="window.filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Kategoriler</option>
                         <option value="Zeytin & Yağ">🫒 Zeytin & Zeytinyağı</option>
                         <option value="Narenciye">🍊 Narenciye & Meyve</option>
@@ -147,7 +147,7 @@
                         <option value="Diğer">📦 Diğer Tarım Ürünleri</option>
                     </select>
 
-                    <select id="district-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
+                    <select id="district-filter" onchange="window.filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Hatay (İlçeler)</option>
                         <option value="Altınözü">Altınözü</option>
                         <option value="Antakya">Antakya</option>
@@ -167,7 +167,7 @@
                         <option value="Hatay Dışı">⚠️ Hatay Dışı</option>
                     </select>
 
-                    <select id="sort-filter" onchange="filterListings()" class="w-full sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs font-medium text-lux-dark">
+                    <select id="sort-filter" onchange="window.filterListings()" class="w-full sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs font-medium text-lux-dark">
                         <option value="newest">En Yeniler</option>
                         <option value="oldest">En Eskiler</option>
                         <option value="price-low">Fiyat: Artan</option>
@@ -177,7 +177,7 @@
                     <button id="nearby-btn" onclick="window.toggleNearbyMode()" title="Yakınımdaki İlanlar" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-location-crosshairs"></i>
                     </button>
-                    <button onclick="resetAllFilters()" title="Filtreleri Sıfırla" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
+                    <button onclick="window.resetAllFilters()" title="Filtreleri Sıfırla" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-rotate-right"></i>
                     </button>
                 </div>
@@ -186,9 +186,9 @@
             <div class="flex flex-wrap items-center justify-between border-t border-gray-100 pt-2 gap-2 text-xs">
                 <div class="flex items-center space-x-2">
                     <span class="text-gray-400 font-semibold text-[10px] uppercase">Fiyat (TL):</span>
-                    <input type="number" id="min-price-filter" onkeyup="filterListings()" placeholder="Min TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
+                    <input type="number" id="min-price-filter" onkeyup="window.filterListings()" placeholder="Min TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
                     <span class="text-gray-300">-</span>
-                    <input type="number" id="max-price-filter" onkeyup="filterListings()" placeholder="Maks TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
+                    <input type="number" id="max-price-filter" onkeyup="window.filterListings()" placeholder="Maks TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
                 </div>
             </div>
         </div>
@@ -203,8 +203,8 @@
             </h2>
 
             <div class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80">
-                <button id="view-grid-btn" onclick="setViewMode('grid')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
-                <button id="view-list-btn" onclick="setViewMode('list')" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
+                <button id="view-grid-btn" onclick="window.setViewMode('grid')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
+                <button id="view-list-btn" onclick="window.setViewMode('list')" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
             </div>
         </div>
 
@@ -247,7 +247,7 @@
                 </div>
                 <div class="border-t border-lux-olive/40 pt-3 mt-4 flex justify-between items-center text-[10px] text-lux-sage">
                     <span>© 2026 ORONTES Hatay Tarım & Ticaret Pazarı.</span>
-                    <button onclick="openTermsModal()" class="hover:underline text-lux-gold font-semibold">Yasal Uyarı ve Sorumluluk Reddi</button>
+                    <button onclick="window.openTermsModal()" class="hover:underline text-lux-gold font-semibold">Yasal Uyarı ve Sorumluluk Reddi</button>
                 </div>
             </div>
         </div>
@@ -256,7 +256,7 @@
     <!-- MODALLAR -->
     <div id="category-detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
-            <button onclick="closeCategoryDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeCategoryDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="cat-modal-title" class="text-base font-bold text-lux-dark mb-1">Kategori Analizi</h3>
             <p id="cat-modal-sub" class="text-xs text-gray-400 mb-4">Otomatik birim dönüşümü ile ortalama fiyatlar</p>
             <div id="cat-modal-content" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
@@ -266,7 +266,7 @@
     <!-- HESABIM MODAL -->
     <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
-            <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             
             <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
                 <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase" id="account-avatar">U</div>
@@ -279,10 +279,10 @@
             </div>
 
             <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500">
-                <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark">İlanlarım</button>
-                <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Favorilerim</button>
-                <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Gelen Teklifler</button>
-                <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Profil Ayarları</button>
+                <button id="tab-btn-listings" onclick="window.switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark">İlanlarım</button>
+                <button id="tab-btn-favorites" onclick="window.switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Favorilerim</button>
+                <button id="tab-btn-offers" onclick="window.switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Gelen Teklifler</button>
+                <button id="tab-btn-settings" onclick="window.switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Profil Ayarları</button>
             </div>
 
             <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
@@ -310,23 +310,23 @@
                             <input type="password" id="update-current-password" required placeholder="Mevcut şifrenizi girin" class="w-full border border-red-200 p-2 rounded-lg text-xs outline-none bg-white">
                         </div>
                     </div>
-                    <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
+                    <button onclick="window.updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
                 </div>
 
-                <!-- ÇIKIŞ YAP KUTUSU (YENİ EKLENDİ) -->
+                <!-- ÇIKIŞ YAP KUTUSU -->
                 <div class="bg-gray-100 border border-gray-200 p-3.5 rounded-xl flex justify-between items-center">
                     <div>
                         <span class="text-xs font-bold text-gray-700 block"><i class="fa-solid fa-right-from-bracket mr-1"></i> Oturumu Sonlandır</span>
                         <p class="text-[10px] text-gray-500 mt-0.5">Güvenli bir şekilde hesabınızdan çıkış yapın.</p>
                     </div>
-                    <button onclick="handleLogout()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-xs transition shadow-sm">Çıkış Yap</button>
+                    <button onclick="window.handleLogout()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold px-4 py-2 rounded-lg text-xs transition shadow-sm">Çıkış Yap</button>
                 </div>
 
                 <!-- HESABI SİL KUTUSU -->
                 <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2 mt-4">
                     <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
                     <p class="text-[10px] text-red-700">Hesabınızı kalıcı olarak kapatmak ve silmek istiyorsanız aşağıdaki butona basabilirsiniz.</p>
-                    <button onclick="deleteUserAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm">Hesabımı Kalıcı Olarak Kapat</button>
+                    <button onclick="window.deleteUserAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-xs transition shadow-sm">Hesabımı Kalıcı Olarak Kapat</button>
                 </div>
             </div>
         </div>
@@ -335,10 +335,10 @@
     <!-- İLAN DETAY MODAL -->
     <div id="detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeDetailModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
             <div class="relative h-60">
                 <img id="detail-img" src="" class="w-full h-full object-cover">
-                <button id="detail-fav-btn" onclick="toggleFavorite(window.activeListingId)" class="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition">
+                <button id="detail-fav-btn" onclick="window.toggleFavorite(window.activeListingId)" class="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition">
                     <i class="fa-solid fa-heart"></i>
                 </button>
             </div>
@@ -386,7 +386,7 @@
                         <input type="number" id="offer-price-input" placeholder="Teklif Birim Fiyatı (TL)" class="w-1/2 border border-amber-200 p-1.5 rounded-lg text-xs bg-white outline-none">
                         <input type="text" id="offer-note-input" placeholder="Miktar / Not (Örn: 10 Ton)" class="w-1/2 border border-amber-200 p-1.5 rounded-lg text-xs bg-white outline-none">
                     </div>
-                    <button onclick="submitPriceOffer()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm">Teklifi İlet</button>
+                    <button onclick="window.submitPriceOffer()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-xs transition shadow-sm">Teklifi İlet</button>
                 </div>
 
                 <div id="seller-profile-trigger" onclick="window.openSellerProfileModal(window.activeSellerUid)" class="bg-lux-bg/40 hover:bg-lux-sage/20 transition cursor-pointer p-3.5 rounded-xl border border-gray-200/60 mb-4">
@@ -409,10 +409,10 @@
                         <span id="detail-seller" class="font-bold text-lux-dark text-sm">İsim</span>
                     </div>
                     <div class="flex items-center space-x-1.5">
-                        <button onclick="openReportModal()" title="Şikayet Et" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition text-xs"><i class="fa-solid fa-flag"></i></button>
-                        <button id="edit-btn" onclick="openFormModalForEdit()" class="hidden bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Düzenle</button>
-                        <button id="delete-btn" onclick="deleteCurrentListing()" class="hidden bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Sil</button>
-                        <button onclick="shareOnWhatsApp()" title="WhatsApp'ta Paylaş" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
+                        <button onclick="window.openReportModal()" title="Şikayet Et" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition text-xs"><i class="fa-solid fa-flag"></i></button>
+                        <button id="edit-btn" onclick="window.openFormModalForEdit()" class="hidden bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Düzenle</button>
+                        <button id="delete-btn" onclick="window.deleteCurrentListing()" class="hidden bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Sil</button>
+                        <button onclick="window.shareOnWhatsApp()" title="WhatsApp'ta Paylaş" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                             <span>Paylaş</span>
                         </button>
@@ -426,7 +426,7 @@
     <!-- SATICI PROFİLİ İNCELEME MODAL -->
     <div id="seller-profile-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
             <div class="bg-lux-dark text-white p-5">
                 <div class="w-14 h-14 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-xl uppercase mb-3" id="seller-profile-avatar">U</div>
                 <h2 id="seller-profile-name" class="text-lg font-bold">Satıcı</h2>
@@ -446,11 +446,11 @@
     <!-- GİRİŞ / KAYIT MODAL -->
     <div id="auth-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative border border-gray-100">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="auth-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Giriş Yap</h3>
             <p class="text-xs text-gray-500 mb-4">İlan vermek ve teklif iletmek için hesabınıza girin.</p>
 
-            <form onsubmit="handleAuthSubmit(event)" class="space-y-3">
+            <form onsubmit="window.handleAuthSubmit(event)" class="space-y-3">
                 <input type="hidden" id="auth-mode" value="login">
                 <div id="register-fields-box" class="hidden space-y-3">
                     <input type="text" id="auth-username" placeholder="Kullanıcı Adı / Ad Soyad*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
@@ -461,8 +461,8 @@
                 <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
             </form>
             <div class="mt-4 flex flex-col items-center space-y-2">
-                <button type="button" id="forgot-password-btn" onclick="handleForgotPassword()" class="text-[11px] text-gray-500 hover:underline">Şifremi Unuttum?</button>
-                <button type="button" id="auth-switch-btn" onclick="toggleAuthMode()" class="text-xs text-lux-olive hover:underline font-semibold">Hesabın yok mu? Kayıt Ol</button>
+                <button type="button" id="forgot-password-btn" onclick="window.handleForgotPassword()" class="text-[11px] text-gray-500 hover:underline">Şifremi Unuttum?</button>
+                <button type="button" id="auth-switch-btn" onclick="window.toggleAuthMode()" class="text-xs text-lux-olive hover:underline font-semibold">Hesabın yok mu? Kayıt Ol</button>
             </div>
         </div>
     </div>
@@ -470,7 +470,7 @@
     <!-- İLAN EKLEME/DÜZENLEME FORMU -->
     <div id="form-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
-            <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Ücretsiz İlan Oluştur</h3>
              
             <div id="launch-vip-info" class="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs mb-3 flex items-center space-x-2">
@@ -478,7 +478,7 @@
                 <span><b>Lansman Fırsatı:</b> İlk 100 ilandan biriyseniz otomatik olarak <b>3 Aylık Ücretsiz VIP Vitrin</b> kazanacaktır!</span>
             </div>
 
-            <form id="add-listing-form" onsubmit="handleFormSubmit(event)" class="space-y-3.5">
+            <form id="add-listing-form" onsubmit="window.handleFormSubmit(event)" class="space-y-3.5">
                 <input type="hidden" id="edit-listing-id" value="">
                 <input type="hidden" id="form-lat" value="">
                 <input type="hidden" id="form-lng" value="">
@@ -580,18 +580,18 @@
     <!-- YASAL UYARI & ŞİKAYET MODAL -->
     <div id="terms-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
-            <button onclick="closeTermsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeTermsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="font-bold text-lux-dark text-base mb-3"><i class="fa-solid fa-scale-balanced text-lux-gold mr-1"></i> Yasal Uyarı ve Kullanım Koşulları</h3>
             <p class="text-xs text-gray-600 leading-relaxed font-light">ORONTES, Hatay bölgesindeki tarım üreticileri ve alıcıları bir araya getiren bağımsız bir ilan platformudur. İlan içeriklerinin ve gerçekleşen ticari anlaşmaların hukuki sorumluluğu kullanıcılara aittir.</p>
-            <button onclick="closeTermsModal()" class="w-full mt-4 bg-lux-dark text-white font-bold py-2 rounded-xl text-xs">Anladım</button>
+            <button onclick="window.closeTermsModal()" class="w-full mt-4 bg-lux-dark text-white font-bold py-2 rounded-xl text-xs">Anladım</button>
       </div>
     </div>
 
     <div id="report-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="closeReportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="window.closeReportModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="font-bold text-lux-dark text-sm mb-1"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> İlanı Bildir</h3>
-            <form onsubmit="handleReportSubmit(event)" class="space-y-3 mt-3">
+            <form onsubmit="window.handleReportSubmit(event)" class="space-y-3 mt-3">
                 <select id="report-reason" required class="w-full border border-gray-200 p-2 rounded-xl text-xs outline-none bg-white">
                     <option value="">Şikayet Nedeni Seçin*</option>
                     <option value="Hatalı Fiyat">Hatalı Fiyat</option>
@@ -733,14 +733,14 @@
                 loggedInBox.classList.add('hidden');
                 window.userExtraData = { favorites: {} };
             }
-            renderListings();
+            window.renderListings();
         });
 
         onValue(ref(db, 'listings'), (snapshot) => {
             const data = snapshot.val();
             window.listings = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
-            filterListings();
-            updateMarqueeData();
+            window.filterListings();
+            window.updateMarqueeData();
         });
 
         window.handleAuthSubmit = async function(e) {
@@ -800,11 +800,11 @@
                     try { await sendEmailVerification(res.user); } catch(e){}
                     
                     alert("Kayıt başarılı! Hesabınıza giriş yapıldı. (E-posta adresinize bir doğrulama bağlantısı gönderildi, vaktiniz olduğunda onaylayabilirsiniz).");
-                    closeAuthModal();
+                    window.closeAuthModal();
                     document.getElementById('add-listing-form').reset();
                     return;
                 }
-                closeAuthModal();
+                window.closeAuthModal();
             } catch (err) {
                 if (err.code === 'auth/email-already-in-use') {
                     alert("Bu e-posta adresi zaten daha önceden kayıtlı! Lütfen giriş yapın veya şifrenizi unuttuysanız sıfırlayın.");
@@ -847,7 +847,7 @@
         window.toggleFavorite = async function(id) {
             if (!window.currentUser) {
                 alert("Favorilere eklemek için giriş yapmalısınız.");
-                openAuthModal('login');
+                window.openAuthModal('login');
                 return;
             }
 
@@ -862,14 +862,14 @@
                 window.userExtraData.favorites[id] = true;
                 alert("İlan favorilerinize eklendi!");
             }
-            renderListings();
-            updateFavBtnStyle(id);
+            window.renderListings();
+            window.updateFavBtnStyle(id);
         };
 
         window.submitPriceOffer = async function() {
             if (!window.currentUser) {
                 alert("Teklif vermek için giriş yapmalısınız.");
-                openAuthModal('login');
+                window.openAuthModal('login');
                 return;
             }
             const price = document.getElementById('offer-price-input').value;
@@ -1008,8 +1008,8 @@
                         alert('İlan yayınlandı!');
                     }
                 }
-                closeFormModal();
-                closeDetailModal();
+                window.closeFormModal();
+                window.closeDetailModal();
             } catch (err) {
                 alert('Hata: ' + err.message);
             } finally {
@@ -1083,7 +1083,7 @@
                 window.userExtraData.phone = newPhone;
                 document.getElementById('update-current-password').value = '';
                 document.getElementById('update-new-password').value = '';
-                closeAccountModal();
+                window.closeAccountModal();
             } catch (err) {
                 alert("Hata: Mevcut şifrenizi yanlış girdiniz veya işlem başarısız oldu.");
             } finally {
@@ -1119,7 +1119,7 @@
                 await deleteUser(window.currentUser);
 
                 alert("Hesabınız ve ilanlarınız kalıcı olarak silindi.");
-                closeAccountModal();
+                window.closeAccountModal();
             } catch (err) {
                 alert("Hata: Şifre yanlış veya işlem gerçekleştirilemedi. " + err.message);
             }
@@ -1139,8 +1139,8 @@
                 try {
                     await remove(ref(db, 'listings/' + targetId));
                     alert("İlan başarıyla silindi.");
-                    closeDetailModal();
-                    closeAccountModal();
+                    window.closeDetailModal();
+                    window.closeAccountModal();
                 } catch (err) {
                     alert("Hata: " + err.message);
                 }
@@ -1201,7 +1201,7 @@
         window.submitRating = async function(sellerUid, score) {
             if (!window.currentUser) {
                 alert("Değerlendirme yapmak için giriş yapmalısınız.");
-                openAuthModal('login');
+                window.openAuthModal('login');
                 return;
             }
             if (window.currentUser.uid === sellerUid) {
@@ -1278,13 +1278,13 @@
                 sellerListings.forEach(item => {
                     const row = document.createElement('div');
                     row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
-                    row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
+                    row.onclick = () => { window.closeSellerProfileModal(); window.openDetailModal(item.id); };
                     row.innerHTML = `
                         <div class="flex items-center gap-2 min-w-0">
-                            <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
+                            <img src="${window.escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
                             <div class="min-w-0">
-                                <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                                <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
+                                <span class="font-bold text-lux-dark block line-clamp-1">${window.escapeHtml(item.title)}</span>
+                                <span class="text-[10px] text-gray-500">${item.price} TL · ${window.escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
                             </div>
                         </div>
                     `;
@@ -1292,10 +1292,6 @@
                 });
             }
         };
-
-        function closeSellerProfileModal() {
-            document.getElementById('seller-profile-modal').classList.add('hidden');
-        }
 
         window.loadIncomingOffers = async function() {
             const container = document.getElementById('tab-content-offers');
@@ -1339,8 +1335,8 @@
                         <div class="flex justify-between items-center">
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
                             <div class="space-x-1">
-                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
-                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                                <button onclick="window.updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
+                                <button onclick="window.updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
                             </div>
                         </div>
                         ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
@@ -1367,44 +1363,26 @@
                 alert("Hata: " + err.message);
             }
         };
-
-        window.escapeHtml = function(value) {
-            return String(value ?? '').replace(/[&<>"']/g, ch => ({
-                '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-            }[ch]));
-        };
-
-        window.getListingLocationText = function(item) {
-            if (item.outsideHatay) {
-                if (item.realProvince && item.realDistrict) return `${item.realProvince} / ${item.realDistrict}`;
-                if (item.realProvince) return item.realProvince;
-                return 'Hatay Dışı';
-            }
-            return item.district || '';
-        };
-
-        window.getDefaultImage = function(category) {
-            switch(category) {
-                case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
-                case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
-                case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
-                case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
-                case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
-                case 'Nakliye': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
-                default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
-            }
-        };
     </script>
 
     <script>
-        // GLOBALE AÇILAN KESİN ÇIKIŞ FONKSİYONU
-        function handleLogout() {
+        // MODAL KAPATMA FONKSİYONLARI DOĞRUDAN WINDOW OBJESİNE BAĞLANDI (TIKLANAMAMA SORUNU İÇİN KESİN ÇÖZÜM)
+        window.closeSellerProfileModal = function() { document.getElementById('seller-profile-modal').classList.add('hidden'); };
+        window.closeCategoryDetailModal = function() { document.getElementById('category-detail-modal').classList.add('hidden'); };
+        window.closeAccountModal = function() { document.getElementById('account-modal').classList.add('hidden'); };
+        window.closeFormModal = function() { document.getElementById('form-modal').classList.add('hidden'); };
+        window.closeTermsModal = function() { document.getElementById('terms-modal').classList.add('hidden'); };
+        window.closeReportModal = function() { document.getElementById('report-modal').classList.add('hidden'); };
+        window.closeAuthModal = function() { document.getElementById('auth-modal').classList.add('hidden'); };
+        window.closeDetailModal = function() { document.getElementById('detail-modal').classList.add('hidden'); window.activeListingId = null; };
+        
+        window.handleLogout = function() {
             if (window.firebaseLogout) {
                 window.firebaseLogout();
             } else {
                 console.error("Çıkış fonksiyonu henüz yüklenmedi.");
             }
-        }
+        };
 
         const categoryEmojis = {
             "Zeytin & Yağ": "🫒",
@@ -1436,7 +1414,34 @@
             'Yayladağı': [35.9033, 36.0594]
         };
 
-        function renderMap(lat, lng, district) {
+        window.escapeHtml = function(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+            }[ch]));
+        };
+
+        window.getListingLocationText = function(item) {
+            if (item.outsideHatay) {
+                if (item.realProvince && item.realDistrict) return `${item.realProvince} / ${item.realDistrict}`;
+                if (item.realProvince) return item.realProvince;
+                return 'Hatay Dışı';
+            }
+            return item.district || '';
+        };
+
+        window.getDefaultImage = function(category) {
+            switch(category) {
+                case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
+                case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
+                case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
+                case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
+                case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
+                case 'Nakliye': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
+                default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
+            }
+        };
+
+        window.renderMap = function(lat, lng, district) {
             const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
             if (window.mapInstance) {
                 window.mapInstance.remove();
@@ -1449,15 +1454,15 @@
             }).addTo(window.mapInstance);
 
             L.marker(coords).addTo(window.mapInstance)
-                .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${escapeHtml(district)}`)
+                .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${window.escapeHtml(district)}`)
                 .openPopup();
                 
             setTimeout(() => {
                 if(window.mapInstance) window.mapInstance.invalidateSize();
             }, 250);
-        }
+        };
 
-        function initFormMap(lat, lng, district) {
+        window.initFormMap = function(lat, lng, district) {
             const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
             if (window.formMapInstance) {
                 window.formMapInstance.remove();
@@ -1492,7 +1497,7 @@
             setTimeout(() => {
                 if(window.formMapInstance) window.formMapInstance.invalidateSize();
             }, 250);
-        }
+        };
 
         window.locationOutsideHatay = null;
         window.resolveLocation = async function(lat, lng) {
@@ -1596,21 +1601,14 @@
             box.classList.toggle('hidden', type !== 'Toptancı');
         };
 
-        function updateFormMapCenter(district) {
-            const coords = districtCoords[district] || [36.2023, 36.1613];
-            if (window.formMapInstance) {
-                window.formMapInstance.setView(coords, 12);
-            }
-        }
-
-        function shareOnWhatsApp() {
+        window.shareOnWhatsApp = function() {
             const item = (window.listings || []).find(l => l.id === window.activeListingId);
             if (!item) return;
-            const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+            const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${window.escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: ${item.outsideHatay ? window.escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + window.escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-        }
+        };
 
-        function updateFavBtnStyle(id) {
+        window.updateFavBtnStyle = function(id) {
             const btn = document.getElementById('detail-fav-btn');
             if(!btn) return;
             if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
@@ -1618,9 +1616,9 @@
             } else {
                 btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition";
             }
-        }
+        };
 
-        function switchAccountTab(tab) {
+        window.switchAccountTab = function(tab) {
             ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
                 document.getElementById(`tab-content-${t}`).classList.add('hidden');
                 document.getElementById(`tab-btn-${t}`).className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
@@ -1629,11 +1627,11 @@
             document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
             document.getElementById(`tab-btn-${tab}`).className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
 
-            if (tab === 'favorites') loadFavoriteListings();
+            if (tab === 'favorites') window.loadFavoriteListings();
             if (tab === 'offers') window.loadIncomingOffers();
-        }
+        };
 
-        function loadFavoriteListings() {
+        window.loadFavoriteListings = function() {
             const container = document.getElementById('tab-content-favorites');
             const favIds = Object.keys(window.userExtraData.favorites || {});
             const favItems = (window.listings || []).filter(l => favIds.includes(l.id));
@@ -1649,19 +1647,19 @@
                 div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
                 div.innerHTML = `
                     <div class="flex items-center space-x-2">
-                        <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
+                        <img src="${window.escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                         <div>
-                            <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                            <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
+                            <span class="font-bold text-lux-dark block line-clamp-1">${window.escapeHtml(item.title)}</span>
+                            <span class="text-[10px] text-gray-500">${item.price} TL • ${window.escapeHtml(window.getListingLocationText(item))}</span>
                         </div>
                     </div>
-                    <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
+                    <button onclick="window.openDetailModal('${window.escapeHtml(item.id)}'); window.closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded">İncele</button>
                 `;
                 container.appendChild(div);
             });
-        }
+        };
 
-        function getTimeAgo(timestamp) {
+        window.getTimeAgo = function(timestamp) {
             if (!timestamp || isNaN(timestamp)) return 'Yeni';
             const diff = Date.now() - Number(timestamp);
             const minutes = Math.floor(diff / 60000);
@@ -1672,9 +1670,9 @@
             if (hours < 24) return `${hours} saat önce`;
             if (days < 30) return `${days} gün önce`;
             return `${Math.floor(days / 30)} ay önce`;
-        }
+        };
 
-        function updateMarqueeData() {
+        window.updateMarqueeData = function() {
             const container = document.getElementById('marquee-container');
             const items = window.listings || [];
 
@@ -1695,18 +1693,18 @@
                 const catListings = items.filter(i => i.category === cat);
                 if (catListings.length > 0) {
                     const emoji = categoryEmojis[cat] || '🌾';
-                    contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+                    contentHTML += `<button onclick="window.openCategoryDetailModal('${window.escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
                         <span>${emoji}</span>
-                        <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan)</span>
+                        <span><b>${window.escapeHtml(cat)}</b> (${catListings.length} İlan)</span>
                     </button>`;
                 }
             });
 
             contentHTML += `</div>`;
             container.innerHTML = contentHTML + contentHTML;
-        }
+        };
 
-        function openCategoryDetailModal(cat) {
+        window.openCategoryDetailModal = function(cat) {
             const items = (window.listings || [])
                 .filter(i => i.category === cat)
                 .sort((a, b) => b.date - a.date);
@@ -1725,28 +1723,24 @@
             items.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
-                div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
+                div.onclick = () => { window.closeCategoryDetailModal(); window.openDetailModal(item.id); };
                 div.innerHTML = `
                     <div class="min-w-0 pr-2">
-                        <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)}</span>
-                        <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
+                        <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${window.escapeHtml(item.title)}</span>
+                        <span class="text-[10px] text-gray-500">${window.escapeHtml(item.seller || '')} · ${window.escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
                     </div>
                     <div class="text-right shrink-0">
                         <span class="font-extrabold text-emerald-700 text-sm">${item.price} TL</span>
-                        <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || '')}</span>
+                        <span class="text-[9px] text-gray-400 block">${window.escapeHtml(item.unit || '')}</span>
                     </div>
                 `;
                 content.appendChild(div);
             });
 
             document.getElementById('category-detail-modal').classList.remove('hidden');
-        }
+        };
 
-        function closeCategoryDetailModal() {
-            document.getElementById('category-detail-modal').classList.add('hidden');
-        }
-
-        function openAccountModal() {
+        window.openAccountModal = function() {
             if (!window.currentUser) return;
 
             const name = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
@@ -1759,7 +1753,7 @@
             document.getElementById('update-new-password').value = '';
             document.getElementById('update-current-password').value = '';
 
-            switchAccountTab('listings');
+            window.switchAccountTab('listings');
 
             const myListingsContainer = document.getElementById('tab-content-listings');
             const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
@@ -1773,15 +1767,15 @@
                     row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
                     row.innerHTML = `
                         <div class="flex items-center space-x-2">
-                            <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
+                            <img src="${window.escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                             <div>
-                                <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                                <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
+                                <span class="font-bold text-lux-dark block line-clamp-1">${window.escapeHtml(item.title)}</span>
+                                <span class="text-[10px] text-gray-500">${item.price} TL • ${window.escapeHtml(window.getListingLocationText(item))}</span>
                             </div>
                         </div>
                         <div class="flex space-x-1">
-                            <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
-                            <button onclick="deleteCurrentListing('${escapeHtml(item.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="window.openDetailModal('${window.escapeHtml(item.id)}'); window.closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
+                            <button onclick="window.deleteCurrentListing('${window.escapeHtml(item.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     `;
                     myListingsContainer.appendChild(row);
@@ -1789,14 +1783,12 @@
             }
 
             document.getElementById('account-modal').classList.remove('hidden');
-        }
+        };
 
-        function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
-
-        function openFormModal() { 
+        window.openFormModal = function() { 
             if (!window.currentUser) {
                 alert("İlan eklemek için önce giriş yapmalısınız.");
-                openAuthModal('login');
+                window.openAuthModal('login');
                 return;
             }
             document.getElementById('add-listing-form').reset();
@@ -1823,11 +1815,11 @@
             document.getElementById('form-modal').classList.remove('hidden'); 
             
             setTimeout(() => {
-                initFormMap(null, null, document.getElementById('form-district').value);
+                window.initFormMap(null, null, document.getElementById('form-district').value);
             }, 200);
-        }
+        };
 
-        function openFormModalForEdit() {
+        window.openFormModalForEdit = function() {
             const item = (window.listings || []).find(l => l.id === window.activeListingId);
             if (!item) return;
 
@@ -1860,15 +1852,15 @@
             document.getElementById('form-min-order').value = item.minOrderQty || '';
             window.toggleWholesaleFields();
 
-            document.getElementById('detail-modal').classList.add('hidden');
+            window.closeDetailModal();
             document.getElementById('form-modal').classList.remove('hidden');
 
             setTimeout(() => {
-                initFormMap(item.lat, item.lng, item.district);
+                window.initFormMap(item.lat, item.lng, item.district);
             }, 200);
-        }
+        };
 
-        function openAuthModal(mode) {
+        window.openAuthModal = function(mode) {
             document.getElementById('auth-mode').value = mode;
             const regFields = document.getElementById('register-fields-box');
             if (mode === 'login') {
@@ -1883,10 +1875,9 @@
                 regFields.classList.remove('hidden');
             }
             document.getElementById('auth-modal').classList.remove('hidden');
-        }
+        };
 
-        function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
-        function toggleAuthMode() { 
+        window.toggleAuthMode = function() { 
             const currentMode = document.getElementById('auth-mode').value;
             const targetMode = currentMode === 'login' ? 'register' : 'login';
             
@@ -1895,40 +1886,21 @@
             document.getElementById('auth-email').value = '';
             document.getElementById('auth-password').value = '';
             
-            openAuthModal(targetMode);
-        }
+            window.openAuthModal(targetMode);
+        };
 
-        function openTermsModal() { document.getElementById('terms-modal').classList.remove('hidden'); }
-        function closeTermsModal() { document.getElementById('terms-modal').classList.add('hidden'); }
-
-        function openReportModal() { 
+        window.openTermsModal = function() { document.getElementById('terms-modal').classList.remove('hidden'); };
+        
+        window.openReportModal = function() { 
             if(!window.currentUser) {
                 alert("Şikayet bildirimi için giriş yapmalısınız.");
-                openAuthModal('login');
+                window.openAuthModal('login');
                 return;
             }
             document.getElementById('report-modal').classList.remove('hidden'); 
-        }
-        function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
+        };
 
-        async function handleReportSubmit(e) {
-            e.preventDefault();
-            try {
-                await window.push(window.ref(window.db, 'reports'), {
-                    listingId: window.activeListingId,
-                    reporterUid: window.currentUser.uid,
-                    reason: document.getElementById('report-reason').value,
-                    note: document.getElementById('report-note').value,
-                    date: Date.now()
-                });
-                alert("Şikayetiniz iletildi.");
-                closeReportModal();
-            } catch(err) {
-                alert("Hata: " + err.message);
-            }
-        }
-
-        function renderListings() {
+        window.renderListings = function() {
             const grid = document.getElementById('listings-grid');
             const items = window.filteredListings || [];
             grid.classList.toggle('list-mode', window.currentViewMode === 'list');
@@ -1963,8 +1935,8 @@
                 card.innerHTML = `
                     <div>
                         <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
-                            <img src="${escapeHtml(item.image)}" class="w-full h-full object-cover">
-                            <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
+                            <img src="${window.escapeHtml(item.image)}" class="w-full h-full object-cover">
+                            <button onclick="window.toggleFavorite('${window.escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
                                 <i class="fa-solid fa-heart"></i>
                             </button>
                             <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
@@ -1976,50 +1948,50 @@
                         </div>
                         <div class="p-3.5">
                             <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
-                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
-                                <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
+                                <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${window.escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
+                                <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${window.getTimeAgo(item.date)}</span>
                             </div>
-                            <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
+                            <h3 onclick="window.openDetailModal('${window.escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${window.escapeHtml(item.title)}</h3>
                         </div>
                     </div>
                     <div class="px-3.5 pb-3.5">
                         <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
                             <div>
-                                <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Birim Fiyat')}</span>
+                                <span class="text-[9px] text-gray-400 block">${window.escapeHtml(item.unit || 'Birim Fiyat')}</span>
                                 <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
-                                ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${escapeHtml(item.minOrderQty)}</span>` : ''}
+                                ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${window.escapeHtml(item.minOrderQty)}</span>` : ''}
                             </div>
-                            <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
+                            <button onclick="window.openDetailModal('${window.escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
                         </div>
                     </div>
                 `;
                 grid.appendChild(card);
             });
 
-            renderPaginationControls(items.length);
-        }
+            window.renderPaginationControls(items.length);
+        };
 
-        function renderPaginationControls(totalItems) {
+        window.renderPaginationControls = function(totalItems) {
             const container = document.getElementById('pagination-container');
             const totalPages = Math.ceil(totalItems / window.itemsPerPage);
             if (totalPages <= 1) { container.innerHTML = ''; return; }
 
-            let html = `<button onclick="changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+            let html = `<button onclick="window.changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
             for (let i = 1; i <= totalPages; i++) {
-                html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+                html += `<button onclick="window.changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
             }
-            html += `<button onclick="changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+            html += `<button onclick="window.changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
             container.innerHTML = html;
-        }
+        };
 
-        function changePage(page) {
+        window.changePage = function(page) {
             const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
             window.currentPage = Math.min(Math.max(1, page), totalPages);
-            renderListings();
+            window.renderListings();
             window.scrollTo({ top: 400, behavior: 'smooth' });
-        }
+        };
 
-        function filterListings() {
+        window.filterListings = function() {
             const search = document.getElementById('search-input').value.toLowerCase();
             const category = document.getElementById('category-filter').value;
             const district = document.getElementById('district-filter').value;
@@ -2052,8 +2024,8 @@
             else window.filteredListings.sort((a, b) => b.date - a.date);
 
             window.currentPage = 1;
-            renderListings();
-        }
+            window.renderListings();
+        };
 
         window.haversineKm = function(lat1, lng1, lat2, lng2) {
             const R = 6371;
@@ -2071,7 +2043,7 @@
             if (window.nearbyModeActive) {
                 window.nearbyModeActive = false;
                 btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
-                filterListings();
+                window.filterListings();
                 return;
             }
             if (!navigator.geolocation) {
@@ -2085,7 +2057,7 @@
                     window.nearbyModeActive = true;
                     btn.disabled = false;
                     btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
-                    filterListings();
+                    window.filterListings();
                 },
                 (err) => {
                     btn.disabled = false;
@@ -2095,7 +2067,7 @@
             );
         };
 
-        function resetAllFilters() {
+        window.resetAllFilters = function() {
             document.getElementById('search-input').value = '';
             document.getElementById('category-filter').value = '';
             document.getElementById('district-filter').value = '';
@@ -2105,14 +2077,12 @@
             window.nearbyModeActive = false;
             const nearbyBtn = document.getElementById('nearby-btn');
             if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
-            filterListings();
-        }
+            window.filterListings();
+        };
 
-        function setViewMode(mode) { window.currentViewMode = mode; renderListings(); }
-        function closeFormModal() { document.getElementById('form-modal').classList.add('hidden'); }
-        function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); window.activeListingId = null; }
+        window.setViewMode = function(mode) { window.currentViewMode = mode; window.renderListings(); };
 
-        function openDetailModal(id) {
+        window.openDetailModal = function(id) {
             const item = (window.listings || []).find(l => l.id === id);
             if (!item) return;
 
@@ -2122,9 +2092,9 @@
             document.getElementById('detail-title').innerText = item.title;
             document.getElementById('detail-category').innerText = item.category;
             
-            document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
+            document.getElementById('detail-time-badge').innerText = window.getTimeAgo(item.date);
             const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
-            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
+            document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${window.escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${window.escapeHtml(item.address)}` : ''}`;
             document.getElementById('detail-price').innerText = `${item.price} TL`;
             document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
             document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
@@ -2162,48 +2132,14 @@
 
             let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
             if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-            const waMsg = `Merhaba ${item.seller}, ORONTES üzerindeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
+            const waMsg = `Merhaba ${item.seller}, ORONTES üzerindeki "${window.escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
             document.getElementById('detail-whatsapp').href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
 
-            updateFavBtnStyle(id);
+            window.updateFavBtnStyle(id);
             document.getElementById('detail-modal').classList.remove('hidden');
 
-            setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
-        }
-
-        window.openFormModal = openFormModal;
-        window.closeFormModal = closeFormModal;
-        window.openAuthModal = openAuthModal;
-        window.closeAuthModal = closeAuthModal;
-        window.toggleAuthMode = toggleAuthMode;
-        window.openAccountModal = openAccountModal;
-        window.closeAccountModal = closeAccountModal;
-        window.switchAccountTab = switchAccountTab;
-        window.openTermsModal = openTermsModal;
-        window.closeTermsModal = closeTermsModal;
-        window.openReportModal = openReportModal;
-        window.closeReportModal = closeReportModal;
-        window.handleReportSubmit = handleReportSubmit;
-        window.openFormModalForEdit = openFormModalForEdit;
-        window.setViewMode = setViewMode;
-        window.changePage = changePage;
-        window.shareOnWhatsApp = shareOnWhatsApp;
-        window.openDetailModal = openDetailModal;
-        window.closeDetailModal = closeDetailModal;
-        window.filterListings = filterListings;
-        window.renderListings = renderListings;
-        window.resetAllFilters = resetAllFilters;
-        window.updateFavBtnStyle = updateFavBtnStyle;
-        window.getTimeAgo = getTimeAgo;
-        window.closeSellerProfileModal = closeSellerProfileModal;
-        window.openCategoryDetailModal = openCategoryDetailModal;
-        window.closeCategoryDetailModal = closeCategoryDetailModal;
-        window.renderMap = renderMap;
-        window.initFormMap = initFormMap;
-        window.updateFormMapCenter = updateFormMapCenter;
-        window.updateMarqueeData = updateMarqueeData;
-        window.renderPaginationControls = renderPaginationControls;
-        window.loadFavoriteListings = loadFavoriteListings;
+            setTimeout(() => { window.renderMap(item.lat, item.lng, item.district); }, 200);
+        };
     </script>
 </body>
 </html>
