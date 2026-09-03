@@ -21,6 +21,7 @@ body { background-color: #ededed; }
     animation-play-state: paused;
 }
 
+/* Harita Stilleri */
 #map, #form-map { 
     height: 180px; 
     width: 100%; 
@@ -28,6 +29,7 @@ body { background-color: #ededed; }
     z-index: 10; 
 }
 
+/* Liste Görünümü Optimizasyonu */
 #listings-grid.list-mode { 
     display: flex !important; 
     flex-direction: column; 
@@ -42,6 +44,12 @@ body { background-color: #ededed; }
     width: 160px; 
     min-width: 160px; 
     height: 120px; 
+}
+
+/* Göz İkonu/Şifre Kutuları Form Hatalarını Engelleme */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
 }
 
 @media (max-width: 640px) {
