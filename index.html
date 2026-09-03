@@ -226,13 +226,17 @@
         </div>
     </section>
 
-    <!-- MODALLAR -->
+    <!-- KATEGORİ DETAY & SAYFALANDIRMA MODALI -->
     <div id="category-detail-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative border border-gray-100">
             <button onclick="closeCategoryDetailModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 id="cat-modal-title" class="text-base font-bold text-lux-dark mb-1">Kategori Analizi</h3>
             <p id="cat-modal-sub" class="text-xs text-gray-400 mb-4">Otomatik birim dönüşümü ile ortalama fiyatlar</p>
+            
             <div id="cat-modal-content" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            
+            <!-- JavaScript Sayfalandırmasının Basılacağı Alan -->
+            <div id="cat-modal-pagination" class="flex justify-center mt-4 gap-2"></div>
         </div>
     </div>
 
@@ -251,11 +255,11 @@
                 </div>
             </div>
 
-            <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500">
-                <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark">İlanlarım</button>
-                <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Favorilerim</button>
-                <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Gelen Teklifler</button>
-                <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark">Profil Ayarları</button>
+            <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500 overflow-x-auto whitespace-nowrap">
+                <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark shrink-0">İlanlarım</button>
+                <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Favorilerim</button>
+                <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Gelen Teklifler</button>
+                <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Profil Ayarları</button>
             </div>
 
             <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
@@ -275,15 +279,25 @@
                             <input type="tel" id="update-phone" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
                         </div>
                         <div class="pt-2 border-t border-gray-200">
-                            <label class="block text-[10px] text-gray-500 uppercase font-semibold">Yeni Şifre (İsteğe Bağlı)</label>
-                            <input type="password" id="update-new-password" placeholder="Boş bırakırsanız değişmez" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                            <label class="block text-[10px] text-gray-500 uppercase font-semibold mb-1">Yeni Şifre (İsteğe Bağlı)</label>
+                            <div class="relative">
+                                <input type="password" id="update-new-password" placeholder="Boş bırakırsanız değişmez" class="w-full border border-gray-200 p-2 pr-10 rounded-lg text-xs outline-none bg-white">
+                                <button type="button" onclick="togglePasswordVisibility('update-new-password', 'update-new-pwd-icon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-lux-olive transition">
+                                    <i id="update-new-pwd-icon" class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-red-600 uppercase">Mevcut Şifreniz* (Güvenlik İçin Şart)</label>
-                            <input type="password" id="update-current-password" required placeholder="Mevcut şifrenizi girin" class="w-full border border-red-200 p-2 rounded-lg text-xs outline-none bg-white">
+                        <div class="pt-2">
+                            <label class="block text-[10px] font-bold text-red-600 uppercase mb-1">Mevcut Şifreniz* (Güvenlik İçin Şart)</label>
+                            <div class="relative">
+                                <input type="password" id="update-current-password" required placeholder="Mevcut şifrenizi girin" class="w-full border border-red-200 p-2 pr-10 rounded-lg text-xs outline-none bg-white">
+                                <button type="button" onclick="togglePasswordVisibility('update-current-password', 'update-current-pwd-icon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition">
+                                    <i id="update-current-pwd-icon" class="fa-solid fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition">Değişiklikleri Kaydet</button>
+                    <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition mt-1">Değişiklikleri Kaydet</button>
                 </div>
 
                 <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
@@ -420,7 +434,14 @@
                     <input type="tel" id="auth-phone" placeholder="WhatsApp Tel (05XX...)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
                 <input type="email" id="auth-email" required placeholder="E-Posta Adresi*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
-                <input type="password" id="auth-password" required minlength="6" placeholder="Şifre*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                
+                <div class="relative">
+                    <input type="password" id="auth-password" required minlength="6" placeholder="Şifre*" class="w-full border border-gray-200 p-2 pr-10 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <button type="button" onclick="togglePasswordVisibility('auth-password', 'auth-pwd-icon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-lux-olive transition">
+                        <i id="auth-pwd-icon" class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+
                 <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
             </form>
             <div class="mt-4 flex flex-col items-center space-y-2">
