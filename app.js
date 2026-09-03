@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -28,7 +28,9 @@ window.query = query;
 window.orderByChild = orderByChild;
 window.equalTo = equalTo;
 window.limitToLast = limitToLast;
+window.off = off;
 window.reauthenticateWithCredential = reauthenticateWithCredential;
+
 window.currentUser = null;
 window.userExtraData = { favorites: {}, offers: {} };
 window.listings = [];
@@ -39,10 +41,11 @@ window.mapInstance = null;
 window.formMapInstance = null;
 window.formMarker = null;
 
+// Ana liste sayfalandırma
 window.currentPage = 1;
 window.itemsPerPage = 12;
 
-// Kategori modalı sayfalandırma için
+// Kategori modalı sayfalandırma
 window.catModalCurrentPage = 1;
 window.catModalItemsPerPage = 5;
 window.currentCategoryModalData = [];
@@ -128,25 +131,100 @@ onAuthStateChanged(auth, async (user) => {
         if (loggedInBox) loggedInBox.classList.add('hidden');
         window.userExtraData = { favorites: {} };
     }
-    renderListings();
+    window.filterListings();
 });
 
-const recentListingsQuery = query(
-    ref(db, 'listings'), 
-    orderByChild('date'), 
-    limitToLast(400)
-);
+// ==========================================
+// YENİ: VERİTABANINDAN DİNAMİK FİLTRELEME
+// (Artık başlangıçta tüm veriyi çekmiyoruz)
+// ==========================================
+window.activeDbListener = null;
+window.activeQuery = null;
+window.lastFetchedCategory = null;
 
-onValue(recentListingsQuery, (snapshot) => {
-    const items = [];
-    snapshot.forEach((childSnapshot) => {
-        items.push({ id: childSnapshot.key, ...childSnapshot.val() });
+window.triggerDatabaseFilter = function(category = '') {
+    let q;
+    if (category) {
+        // Kategori seçiliyse sadece o kategoriyi getir
+        q = query(ref(db, 'listings'), orderByChild('category'), equalTo(category), limitToLast(150));
+    } else {
+        // Varsayılan yüklemede veritabanından en son 60 ilanı getir
+        q = query(ref(db, 'listings'), orderByChild('date'), limitToLast(60));
+    }
+
+    // Eski dinleyiciyi temizle ki veriler çakışmasın
+    if (window.activeQuery && window.activeDbListener) {
+        off(window.activeQuery, 'value', window.activeDbListener);
+    }
+
+    window.activeQuery = q;
+    window.activeDbListener = onValue(q, (snapshot) => {
+        const items = [];
+        snapshot.forEach((childSnapshot) => {
+            items.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        });
+        window.listings = items;
+        window.executeLocalFilters();
+        window.updateMarqueeData(); 
     });
-    
-    window.listings = items;
-    filterListings();
-    updateMarqueeData();
-});
+};
+
+window.filterListings = function() {
+    const categoryFilter = document.getElementById('category-filter');
+    const currentCategory = categoryFilter ? categoryFilter.value : '';
+
+    // Kategori değiştiyse veritabanından o kategorinin verilerini çek
+    if (currentCategory !== window.lastFetchedCategory) {
+        window.lastFetchedCategory = currentCategory;
+        window.triggerDatabaseFilter(currentCategory);
+        return; // executeLocalFilters, veritabanı yanıt verince çağrılacak.
+    }
+    // Değişmediyse veya veri zaten geldiyse lokal filtrelemeye geç
+    window.executeLocalFilters();
+};
+
+window.executeLocalFilters = function() {
+    const searchInput = document.getElementById('search-input');
+    const districtFilter = document.getElementById('district-filter');
+    const sortFilter = document.getElementById('sort-filter');
+    const minPriceFilter = document.getElementById('min-price-filter');
+    const maxPriceFilter = document.getElementById('max-price-filter');
+
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const district = districtFilter ? districtFilter.value : '';
+    const sort = sortFilter ? sortFilter.value : 'newest';
+    const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
+    const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
+
+    window.filteredListings = (window.listings || []).filter(item => {
+        const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
+        const matchesDistrict = district === "" || item.district === district;
+        const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
+        return matchesSearch && matchesDistrict && matchesPrice;
+    });
+
+    if (window.nearbyModeActive && window.userGeoLocation) {
+        window.filteredListings.forEach(item => {
+            item._distanceKm = (item.lat && item.lng)
+                ? window.haversineKm(window.userGeoLocation.lat, window.userGeoLocation.lng, item.lat, item.lng)
+                : null;
+        });
+        window.filteredListings.sort((a, b) => {
+            if (a._distanceKm === null) return 1;
+            if (b._distanceKm === null) return -1;
+            return a._distanceKm - b._distanceKm;
+        });
+    } else if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
+    else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
+    else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
+    else window.filteredListings.sort((a, b) => b.date - a.date);
+
+    window.currentPage = 1;
+    renderListings();
+};
+
+// Sayfa yüklendiğinde varsayılan filtrelemeyi tetikle
+setTimeout(() => { window.filterListings(); }, 300);
 
 window.handleAuthSubmit = async function(e) {
     e.preventDefault();
@@ -167,7 +245,7 @@ window.handleAuthSubmit = async function(e) {
             const isPostMigrationAccount = profileSnap.exists() && !!profileSnap.val().joinedAt;
 
             if (isPostMigrationAccount && !loginResult.user.emailVerified) {
-                try { await sendEmailVerification(loginResult.user); } catch (resendErr) {}
+                try { await sendEmailVerification(loginResult.user); } catch (resendErr) { console.warn(resendErr); }
                 await signOut(auth);
                 alert("Hesabınız henüz doğrulanmamış. E-postanıza yeni bir doğrulama bağlantısı gönderdik — lütfen gelen kutunuzu (ve spam klasörünü) kontrol edip bağlantıya tıkladıktan sonra tekrar giriş yapın.");
                 btn.disabled = false;
@@ -187,9 +265,7 @@ window.handleAuthSubmit = async function(e) {
             try {
                 const usernameSnap = await get(ref(db, 'usernames/' + usernameKey));
                 isUsernameTaken = usernameSnap.exists();
-            } catch (checkErr) {
-                console.warn('Kullanıcı adı kontrolü yapılamadı:', checkErr);
-            }
+            } catch (checkErr) {}
 
             if (isUsernameTaken) {
                 alert("❌ Bu kullanıcı adı daha önceden alınmış! Lütfen başka bir kullanıcı adı belirleyin.");
@@ -212,7 +288,12 @@ window.handleAuthSubmit = async function(e) {
             });
             await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
 
-            await sendEmailVerification(res.user);
+            try {
+                await sendEmailVerification(res.user);
+            } catch (emailErr) {
+                console.warn("E-posta gönderimi yapılamadı, ancak kayıt tamamlandı: ", emailErr);
+            }
+            
             await signOut(auth);
             alert("Kayıt işlemi başarıyla gerçekleşti! Lütfen e-posta adresinize gelen doğrulama bağlantısına tıklayın (Spam klasörünü kontrol etmeyi unutmayın).");
             toggleAuthMode();
@@ -251,7 +332,6 @@ window.handleForgotPassword = async function() {
 
 window.handleLogout = function() { signOut(auth); };
 
-// Şifre Göster / Gizle Özelliği
 window.togglePasswordVisibility = function(inputId, iconId) {
     const input = document.getElementById(inputId);
     const icon = document.getElementById(iconId);
@@ -718,9 +798,7 @@ window.openSellerProfileModal = async function(sellerUid) {
     }
 };
 
-function closeSellerProfileModal() {
-    document.getElementById('seller-profile-modal').classList.add('hidden');
-}
+function closeSellerProfileModal() { document.getElementById('seller-profile-modal').classList.add('hidden'); }
 
 window.loadIncomingOffers = async function() {
     const container = document.getElementById('tab-content-offers');
@@ -910,7 +988,10 @@ function initFormMap(lat, lng, district) {
 
 window.locationOutsideHatay = null;
 
-// Geliştirilmiş Konum ve İlçe Sınır Çözümlemesi
+// ==========================================
+// YENİ: İÇİNDE BULUNDUĞU İLÇEYİ TESPİT ETME
+// (En yakın merkez yerine, gerçekten içinde olduğu sınır)
+// ==========================================
 window.resolveLocation = async function(lat, lng) {
     const banner = document.getElementById('outside-hatay-warning');
     const districtSelect = document.getElementById('form-district');
@@ -942,16 +1023,15 @@ window.resolveLocation = async function(lat, lng) {
 
         const addr = data.address;
         const province = addr.province || addr.state || '';
-        const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
         const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
 
         if (isInsideHatay) {
-            // Adres verisinde doğrudan Hatay ilçelerinden biri geçiyor mu kontrol et
             let matchedDistrict = null;
-            const cleanDetected = detectedTownOrDistrict.toLocaleLowerCase('tr-TR');
+            // Nominatim'in döndürdüğü tüm adres detayları taranıyor
+            const addressValues = Object.values(addr).map(v => String(v).toLocaleLowerCase('tr-TR'));
             
             for (const districtName of Object.keys(districtCoords)) {
-                if (cleanDetected.includes(districtName.toLocaleLowerCase('tr-TR'))) {
+                if (addressValues.some(val => val.includes(districtName.toLocaleLowerCase('tr-TR')))) {
                     matchedDistrict = districtName;
                     break;
                 }
@@ -960,15 +1040,11 @@ window.resolveLocation = async function(lat, lng) {
             if (matchedDistrict) {
                 districtSelect.value = matchedDistrict;
             } else {
-                // Eğer doğrudan ilçe adı dönmediyse, harita koordinatlarına göre en yakın ilçe merkezini seç
-                let nearest = null, nearestDist = Infinity;
-                for (const [name, coords] of Object.entries(districtCoords)) {
-                    const d = window.haversineKm(lat, lng, coords[0], coords[1]);
-                    if (d < nearestDist) { nearestDist = d; nearest = name; }
-                }
-                if (nearest) districtSelect.value = nearest;
+                // Eğer Hatay'da olup ilçe sınırını tam saptayamazsa, en yakınına atmak yerine kullanıcıdan istiyoruz.
+                alert("Seçtiğiniz konum Hatay sınırlarında algılandı ancak hangi ilçede olduğu otomatik olarak tespit edilemedi. Lütfen listeden ilçenizi kendiniz seçin.");
             }
         } else {
+            const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
             districtSelect.value = 'Hatay Dışı';
             window.locationOutsideHatay = { province, district: detectedTownOrDistrict };
             banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. İlanı yine de yayınlayabilirsiniz, ancak "Hatay Dışı" olarak işaretlenip alıcılara böyle gösterilecektir.`;
@@ -1114,7 +1190,7 @@ function getTimeAgo(timestamp) {
 function updateMarqueeData() {
     const container = document.getElementById('marquee-container');
     if (!container) return;
-    const items = window.listings || [];
+    const items = window.listings || []; // Not: Artık yalnızca yüklenen verilerin istatistiğini tutar
 
     if (items.length === 0) {
         container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Hatay Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
@@ -1144,11 +1220,14 @@ function updateMarqueeData() {
     container.innerHTML = contentHTML + contentHTML;
 }
 
-// Kategori Detay Modal & Sayfalandırma Mantığı
+// ==========================================
+// YENİ: KATEGORİ MODAL SAYFALANDIRMASI
+// ==========================================
 function openCategoryDetailModal(cat) {
     window.currentCategoryModalData = (window.listings || [])
         .filter(i => i.category === cat)
         .sort((a, b) => b.date - a.date);
+    
     window.catModalCurrentPage = 1;
     
     const emoji = categoryEmojis[cat] || '🌾';
@@ -1198,8 +1277,10 @@ function renderCategoryModalContent() {
 }
 
 function renderCategoryModalPaginationControls() {
+    // HTML'de id="cat-modal-pagination" adında bir div oluşturmalısınız.
     const container = document.getElementById('cat-modal-pagination');
     if (!container) return;
+    
     const totalPages = Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage);
     if (totalPages <= 1) { container.innerHTML = ''; return; }
 
@@ -1415,7 +1496,7 @@ function renderListings() {
         : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
     
     const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} İlan`;
+    if (countEl) countEl.innerText = `${items.length} İlan Bulundu`;
     grid.innerHTML = '';
 
     if (items.length === 0) {
@@ -1501,49 +1582,6 @@ function changePage(page) {
     window.scrollTo({ top: 400, behavior: 'smooth' });
 }
 
-function filterListings() {
-    const searchInput = document.getElementById('search-input');
-    const categoryFilter = document.getElementById('category-filter');
-    const districtFilter = document.getElementById('district-filter');
-    const sortFilter = document.getElementById('sort-filter');
-    const minPriceFilter = document.getElementById('min-price-filter');
-    const maxPriceFilter = document.getElementById('max-price-filter');
-
-    const search = searchInput ? searchInput.value.toLowerCase() : '';
-    const category = categoryFilter ? categoryFilter.value : '';
-    const district = districtFilter ? districtFilter.value : '';
-    const sort = sortFilter ? sortFilter.value : 'newest';
-    const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
-    const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
-
-    window.filteredListings = (window.listings || []).filter(item => {
-        const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
-        const matchesCategory = category === "" || item.category === category;
-        const matchesDistrict = district === "" || item.district === district;
-        const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
-        return matchesSearch && matchesCategory && matchesDistrict && matchesPrice;
-    });
-
-    if (window.nearbyModeActive && window.userGeoLocation) {
-        window.filteredListings.forEach(item => {
-            item._distanceKm = (item.lat && item.lng)
-                ? window.haversineKm(window.userGeoLocation.lat, window.userGeoLocation.lng, item.lat, item.lng)
-                : null;
-        });
-        window.filteredListings.sort((a, b) => {
-            if (a._distanceKm === null) return 1;
-            if (b._distanceKm === null) return -1;
-            return a._distanceKm - b._distanceKm;
-        });
-    } else if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
-    else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
-    else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
-    else window.filteredListings.sort((a, b) => b.date - a.date);
-
-    window.currentPage = 1;
-    renderListings();
-}
-
 window.haversineKm = function(lat1, lng1, lat2, lng2) {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -1560,7 +1598,7 @@ window.toggleNearbyMode = function() {
     if (window.nearbyModeActive) {
         window.nearbyModeActive = false;
         if (btn) btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
-        filterListings();
+        window.filterListings();
         return;
     }
     if (!navigator.geolocation) {
@@ -1576,7 +1614,7 @@ window.toggleNearbyMode = function() {
                 btn.disabled = false;
                 btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
             }
-            filterListings();
+            window.filterListings();
         },
         (err) => {
             if (btn) btn.disabled = false;
@@ -1604,7 +1642,7 @@ function resetAllFilters() {
     window.nearbyModeActive = false;
     const nearbyBtn = document.getElementById('nearby-btn');
     if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
-    filterListings();
+    window.filterListings();
 }
 
 function setViewMode(mode) { window.currentViewMode = mode; renderListings(); }
@@ -1689,7 +1727,8 @@ window.changePage = changePage;
 window.shareOnWhatsApp = shareOnWhatsApp;
 window.openDetailModal = openDetailModal;
 window.closeDetailModal = closeDetailModal;
-window.filterListings = filterListings;
+window.filterListings = filterListings; // Doğrudan dışarıya açtık
+window.executeLocalFilters = executeLocalFilters; // Lokal kısmı
 window.renderListings = renderListings;
 window.resetAllFilters = resetAllFilters;
 window.updateFavBtnStyle = updateFavBtnStyle;
