@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, update, get, runTransaction, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -27,6 +27,7 @@ window.runTransaction = runTransaction;
 window.query = query;
 window.orderByChild = orderByChild;
 window.equalTo = equalTo;
+window.limitToLast = limitToLast;
 window.reauthenticateWithCredential = reauthenticateWithCredential;
 window.currentUser = null;
 window.userExtraData = { favorites: {}, offers: {} };
@@ -125,9 +126,19 @@ onAuthStateChanged(auth, async (user) => {
     renderListings();
 });
 
-onValue(ref(db, 'listings'), (snapshot) => {
-    const data = snapshot.val();
-    window.listings = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+const recentListingsQuery = query(
+    ref(db, 'listings'), 
+    orderByChild('date'), 
+    limitToLast(300)
+);
+
+onValue(recentListingsQuery, (snapshot) => {
+    const items = [];
+    snapshot.forEach((childSnapshot) => {
+        items.push({ id: childSnapshot.key, ...childSnapshot.val() });
+    });
+    
+    window.listings = items;
     filterListings();
     updateMarqueeData();
 });
