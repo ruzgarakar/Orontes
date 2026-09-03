@@ -42,6 +42,11 @@ window.formMarker = null;
 window.currentPage = 1;
 window.itemsPerPage = 12;
 
+// Kategori modalı sayfalandırma için
+window.catModalCurrentPage = 1;
+window.catModalItemsPerPage = 5;
+window.currentCategoryModalData = [];
+
 window.sanitizeUsernameKey = function(name) {
     return String(name || '').trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_');
 };
@@ -107,8 +112,8 @@ onAuthStateChanged(auth, async (user) => {
     const loggedInBox = document.getElementById('auth-logged-in');
 
     if (user) {
-        loggedOutBox.classList.add('hidden');
-        loggedInBox.classList.remove('hidden');
+        if (loggedOutBox) loggedOutBox.classList.add('hidden');
+        if (loggedInBox) loggedInBox.classList.remove('hidden');
         
         const userRef = ref(db, 'users/' + user.uid);
         const snap = await get(userRef);
@@ -119,8 +124,8 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {} };
         }
     } else {
-        loggedOutBox.classList.remove('hidden');
-        loggedInBox.classList.add('hidden');
+        if (loggedOutBox) loggedOutBox.classList.remove('hidden');
+        if (loggedInBox) loggedInBox.classList.add('hidden');
         window.userExtraData = { favorites: {} };
     }
     renderListings();
@@ -129,7 +134,7 @@ onAuthStateChanged(auth, async (user) => {
 const recentListingsQuery = query(
     ref(db, 'listings'), 
     orderByChild('date'), 
-    limitToLast(300)
+    limitToLast(400)
 );
 
 onValue(recentListingsQuery, (snapshot) => {
@@ -209,14 +214,15 @@ window.handleAuthSubmit = async function(e) {
 
             await sendEmailVerification(res.user);
             await signOut(auth);
-            alert("Kayıt işlemi alındı! Devam edebilmeniz için " + email + " adresine bir doğrulama bağlantısı gönderdik. Bağlantıya tıkladıktan sonra buradan giriş yapabilirsiniz.");
+            alert("Kayıt işlemi başarıyla gerçekleşti! Lütfen e-posta adresinize gelen doğrulama bağlantısına tıklayın (Spam klasörünü kontrol etmeyi unutmayın).");
             toggleAuthMode();
             btn.disabled = false;
             btn.innerText = "Giriş Yap";
             return;
         }
         closeAuthModal();
-        document.getElementById('add-listing-form').reset();
+        const addForm = document.getElementById('add-listing-form');
+        if (addForm) addForm.reset();
     } catch (err) {
         if (err.code === 'auth/email-already-in-use') {
             alert("Bu e-posta adresi zaten daha önceden kayıtlı! Lütfen giriş yapın veya şifrenizi unuttuysanız sıfırlayın.");
@@ -244,6 +250,22 @@ window.handleForgotPassword = async function() {
 };
 
 window.handleLogout = function() { signOut(auth); };
+
+// Şifre Göster / Gizle Özelliği
+window.togglePasswordVisibility = function(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!input || !icon) return;
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
+};
 
 window.toggleFavorite = async function(id) {
     if (!window.currentUser) {
@@ -553,10 +575,12 @@ window.loadSellerProfileBox = async function(sellerUid) {
     const rateBox = document.getElementById('rate-seller-box');
     const starsEl = document.getElementById('rate-seller-stars');
 
+    if (!joinedEl || !ratingEl) return;
+
     joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
     ratingEl.innerText = "☆☆☆☆☆";
-    rateBox.classList.add('hidden');
-    starsEl.innerHTML = '';
+    if (rateBox) rateBox.classList.add('hidden');
+    if (starsEl) starsEl.innerHTML = '';
 
     const listingCount = (window.listings || []).filter(l => l.uid === sellerUid).length;
 
@@ -582,7 +606,7 @@ window.loadSellerProfileBox = async function(sellerUid) {
             ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
             : 'Henüz değerlendirme yok';
 
-        if (window.currentUser && window.currentUser.uid !== sellerUid) {
+        if (window.currentUser && window.currentUser.uid !== sellerUid && rateBox) {
             rateBox.classList.remove('hidden');
             const myRating = ratingsData[window.currentUser.uid] ? ratingsData[window.currentUser.uid].score : 0;
             for (let i = 1; i <= 5; i++) {
@@ -614,7 +638,8 @@ window.submitRating = async function(sellerUid, score) {
             date: Date.now()
         });
         window.loadSellerProfileBox(sellerUid);
-        if (!document.getElementById('seller-profile-modal').classList.contains('hidden')) {
+        const sellerModal = document.getElementById('seller-profile-modal');
+        if (sellerModal && !sellerModal.classList.contains('hidden')) {
             window.openSellerProfileModal(sellerUid);
         }
     } catch (err) {
@@ -884,6 +909,8 @@ function initFormMap(lat, lng, district) {
 }
 
 window.locationOutsideHatay = null;
+
+// Geliştirilmiş Konum ve İlçe Sınır Çözümlemesi
 window.resolveLocation = async function(lat, lng) {
     const banner = document.getElementById('outside-hatay-warning');
     const districtSelect = document.getElementById('form-district');
@@ -891,7 +918,7 @@ window.resolveLocation = async function(lat, lng) {
     banner.classList.add('hidden');
 
     try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`;
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
         const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
         const data = await res.json();
 
@@ -915,20 +942,36 @@ window.resolveLocation = async function(lat, lng) {
 
         const addr = data.address;
         const province = addr.province || addr.state || '';
-        const districtName = addr.county || addr.district || addr.town || addr.city_district || '';
+        const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
         const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
 
         if (isInsideHatay) {
-            let nearest = null, nearestDist = Infinity;
-            for (const [name, coords] of Object.entries(districtCoords)) {
-                const d = window.haversineKm(lat, lng, coords[0], coords[1]);
-                if (d < nearestDist) { nearestDist = d; nearest = name; }
+            // Adres verisinde doğrudan Hatay ilçelerinden biri geçiyor mu kontrol et
+            let matchedDistrict = null;
+            const cleanDetected = detectedTownOrDistrict.toLocaleLowerCase('tr-TR');
+            
+            for (const districtName of Object.keys(districtCoords)) {
+                if (cleanDetected.includes(districtName.toLocaleLowerCase('tr-TR'))) {
+                    matchedDistrict = districtName;
+                    break;
+                }
             }
-            if (nearest) districtSelect.value = nearest;
+
+            if (matchedDistrict) {
+                districtSelect.value = matchedDistrict;
+            } else {
+                // Eğer doğrudan ilçe adı dönmediyse, harita koordinatlarına göre en yakın ilçe merkezini seç
+                let nearest = null, nearestDist = Infinity;
+                for (const [name, coords] of Object.entries(districtCoords)) {
+                    const d = window.haversineKm(lat, lng, coords[0], coords[1]);
+                    if (d < nearestDist) { nearestDist = d; nearest = name; }
+                }
+                if (nearest) districtSelect.value = nearest;
+            }
         } else {
             districtSelect.value = 'Hatay Dışı';
-            window.locationOutsideHatay = { province, district: districtName };
-            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${districtName ? ' / ' + districtName : ''}. İlanı yine de yayınlayabilirsiniz, ancak "Hatay Dışı" olarak işaretlenip alıcılara böyle gösterilecektir.`;
+            window.locationOutsideHatay = { province, district: detectedTownOrDistrict };
+            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. İlanı yine de yayınlayabilirsiniz, ancak "Hatay Dışı" olarak işaretlenip alıcılara böyle gösterilecektir.`;
             banner.classList.remove('hidden');
         }
     } catch (err) {
@@ -938,8 +981,8 @@ window.resolveLocation = async function(lat, lng) {
 
 window.geocodeAddress = async function() {
     const addressInput = document.getElementById('form-address');
-    const query = addressInput.value.trim();
-    if (!query) {
+    const queryStr = addressInput.value.trim();
+    if (!queryStr) {
         alert("Lütfen önce bir adres yazın.");
         return;
     }
@@ -948,7 +991,7 @@ window.geocodeAddress = async function() {
     btn.innerText = "Aranıyor...";
 
     try {
-        const searchQuery = `${query}, Hatay, Türkiye`;
+        const searchQuery = `${queryStr}, Hatay, Türkiye`;
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
         const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
         const results = await res.json();
@@ -982,7 +1025,7 @@ window.geocodeAddress = async function() {
 window.toggleWholesaleFields = function() {
     const type = document.getElementById('form-business-type').value;
     const box = document.getElementById('wholesale-fields');
-    box.classList.toggle('hidden', type !== 'Toptancı');
+    if (box) box.classList.toggle('hidden', type !== 'Toptancı');
 };
 
 function updateFormMapCenter(district) {
@@ -1011,12 +1054,16 @@ function updateFavBtnStyle(id) {
 
 function switchAccountTab(tab) {
     ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
-        document.getElementById(`tab-content-${t}`).classList.add('hidden');
-        document.getElementById(`tab-btn-${t}`).className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
+        const el = document.getElementById(`tab-content-${t}`);
+        const btnEl = document.getElementById(`tab-btn-${t}`);
+        if (el) el.classList.add('hidden');
+        if (btnEl) btnEl.className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
     });
 
-    document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
-    document.getElementById(`tab-btn-${tab}`).className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
+    const activeEl = document.getElementById(`tab-content-${tab}`);
+    const activeBtnEl = document.getElementById(`tab-btn-${tab}`);
+    if (activeEl) activeEl.classList.remove('hidden');
+    if (activeBtnEl) activeBtnEl.className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
 
     if (tab === 'favorites') loadFavoriteListings();
     if (tab === 'offers') window.loadIncomingOffers();
@@ -1024,6 +1071,7 @@ function switchAccountTab(tab) {
 
 function loadFavoriteListings() {
     const container = document.getElementById('tab-content-favorites');
+    if (!container) return;
     const favIds = Object.keys(window.userExtraData.favorites || {});
     const favItems = (window.listings || []).filter(l => favIds.includes(l.id));
 
@@ -1065,6 +1113,7 @@ function getTimeAgo(timestamp) {
 
 function updateMarqueeData() {
     const container = document.getElementById('marquee-container');
+    if (!container) return;
     const items = window.listings || [];
 
     if (items.length === 0) {
@@ -1095,25 +1144,42 @@ function updateMarqueeData() {
     container.innerHTML = contentHTML + contentHTML;
 }
 
+// Kategori Detay Modal & Sayfalandırma Mantığı
 function openCategoryDetailModal(cat) {
-    const items = (window.listings || [])
+    window.currentCategoryModalData = (window.listings || [])
         .filter(i => i.category === cat)
         .sort((a, b) => b.date - a.date);
+    window.catModalCurrentPage = 1;
+    
     const emoji = categoryEmojis[cat] || '🌾';
-
     document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
-    document.getElementById('cat-modal-sub').innerText = `${items.length} aktif ilan`;
+    document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif ilan`;
 
+    renderCategoryModalContent();
+    document.getElementById('category-detail-modal').classList.remove('hidden');
+}
+
+function renderCategoryModalContent() {
     const content = document.getElementById('cat-modal-content');
+    const paginationContainer = document.getElementById('cat-modal-pagination');
+    if (!content) return;
+
     content.innerHTML = '';
+    const items = window.currentCategoryModalData;
 
     if (items.length === 0) {
         content.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Bu kategoride henüz ilan yok.</p>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
     }
 
-    items.forEach(item => {
+    const startIndex = (window.catModalCurrentPage - 1) * window.catModalItemsPerPage;
+    const paginatedItems = items.slice(startIndex, startIndex + window.catModalItemsPerPage);
+
+    paginatedItems.forEach(item => {
+        const emoji = categoryEmojis[item.category] || '🌾';
         const div = document.createElement('div');
-        div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
+        div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs cursor-pointer hover:bg-lux-sage/20 transition mb-2";
         div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
         div.innerHTML = `
             <div class="min-w-0 pr-2">
@@ -1128,11 +1194,32 @@ function openCategoryDetailModal(cat) {
         content.appendChild(div);
     });
 
-    document.getElementById('category-detail-modal').classList.remove('hidden');
+    renderCategoryModalPaginationControls();
 }
 
+function renderCategoryModalPaginationControls() {
+    const container = document.getElementById('cat-modal-pagination');
+    if (!container) return;
+    const totalPages = Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage);
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    let html = `<button onclick="changeCategoryModalPage(${window.catModalCurrentPage - 1})" ${window.catModalCurrentPage === 1 ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="changeCategoryModalPage(${i})" class="px-2.5 py-1 rounded-lg text-xs font-bold ${i === window.catModalCurrentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+    }
+    html += `<button onclick="changeCategoryModalPage(${window.catModalCurrentPage + 1})" ${window.catModalCurrentPage === totalPages ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+    container.innerHTML = html;
+}
+
+window.changeCategoryModalPage = function(page) {
+    const totalPages = Math.max(1, Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage));
+    window.catModalCurrentPage = Math.min(Math.max(1, page), totalPages);
+    renderCategoryModalContent();
+};
+
 function closeCategoryDetailModal() {
-    document.getElementById('category-detail-modal').classList.add('hidden');
+    const modal = document.getElementById('category-detail-modal');
+    if (modal) modal.classList.add('hidden');
 }
 
 function openAccountModal() {
@@ -1188,7 +1275,8 @@ function openFormModal() {
         openAuthModal('login');
         return;
     }
-    document.getElementById('add-listing-form').reset();
+    const addForm = document.getElementById('add-listing-form');
+    if (addForm) addForm.reset();
     document.getElementById('edit-listing-id').value = '';
     document.getElementById('form-lat').value = '';
     document.getElementById('form-lng').value = '';
@@ -1204,8 +1292,8 @@ function openFormModal() {
     const latestName = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
     const latestPhone = window.userExtraData.phone || '';
 
-    sellerInput.value = latestName;
-    phoneInput.value = latestPhone;
+    if (sellerInput) sellerInput.value = latestName;
+    if (phoneInput) phoneInput.value = latestPhone;
     document.getElementById('form-business-type').value = 'Üretici';
     document.getElementById('form-min-order').value = '';
     window.toggleWholesaleFields();
@@ -1264,12 +1352,12 @@ function openAuthModal(mode) {
         document.getElementById('auth-modal-title').innerText = "Giriş Yap";
         document.getElementById('auth-submit-btn').innerText = "Giriş Yap";
         document.getElementById('auth-switch-btn').innerText = "Hesabın yok mu? Kayıt Ol";
-        regFields.classList.add('hidden');
+        if (regFields) regFields.classList.add('hidden');
     } else {
         document.getElementById('auth-modal-title').innerText = "Kayıt Ol";
         document.getElementById('auth-submit-btn').innerText = "Kayıt Ol";
         document.getElementById('auth-switch-btn').innerText = "Zaten hesabın var mı? Giriş Yap";
-        regFields.classList.remove('hidden');
+        if (regFields) regFields.classList.remove('hidden');
     }
     document.getElementById('auth-modal').classList.remove('hidden');
 }
@@ -1319,17 +1407,21 @@ async function handleReportSubmit(e) {
 
 function renderListings() {
     const grid = document.getElementById('listings-grid');
+    if (!grid) return;
     const items = window.filteredListings || [];
     grid.classList.toggle('list-mode', window.currentViewMode === 'list');
     grid.className = window.currentViewMode === 'list'
         ? 'list-mode'
         : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
-    document.getElementById('total-count').innerText = `${items.length} İlan`;
+    
+    const countEl = document.getElementById('total-count');
+    if (countEl) countEl.innerText = `${items.length} İlan`;
     grid.innerHTML = '';
 
     if (items.length === 0) {
         grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun ilan bulunamadı.</div>`;
-        document.getElementById('pagination-container').innerHTML = '';
+        const pagContainer = document.getElementById('pagination-container');
+        if (pagContainer) pagContainer.innerHTML = '';
         return;
     }
 
@@ -1390,6 +1482,7 @@ function renderListings() {
 
 function renderPaginationControls(totalItems) {
     const container = document.getElementById('pagination-container');
+    if (!container) return;
     const totalPages = Math.ceil(totalItems / window.itemsPerPage);
     if (totalPages <= 1) { container.innerHTML = ''; return; }
 
@@ -1409,12 +1502,19 @@ function changePage(page) {
 }
 
 function filterListings() {
-    const search = document.getElementById('search-input').value.toLowerCase();
-    const category = document.getElementById('category-filter').value;
-    const district = document.getElementById('district-filter').value;
-    const sort = document.getElementById('sort-filter').value;
-    const minPrice = Number(document.getElementById('min-price-filter').value) || 0;
-    const maxPrice = Number(document.getElementById('max-price-filter').value) || Infinity;
+    const searchInput = document.getElementById('search-input');
+    const categoryFilter = document.getElementById('category-filter');
+    const districtFilter = document.getElementById('district-filter');
+    const sortFilter = document.getElementById('sort-filter');
+    const minPriceFilter = document.getElementById('min-price-filter');
+    const maxPriceFilter = document.getElementById('max-price-filter');
+
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const category = categoryFilter ? categoryFilter.value : '';
+    const district = districtFilter ? districtFilter.value : '';
+    const sort = sortFilter ? sortFilter.value : 'newest';
+    const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
+    const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
 
     window.filteredListings = (window.listings || []).filter(item => {
         const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
@@ -1459,7 +1559,7 @@ window.toggleNearbyMode = function() {
     const btn = document.getElementById('nearby-btn');
     if (window.nearbyModeActive) {
         window.nearbyModeActive = false;
-        btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+        if (btn) btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
         filterListings();
         return;
     }
@@ -1467,17 +1567,19 @@ window.toggleNearbyMode = function() {
         alert("Tarayıcınız konum özelliğini desteklemiyor.");
         return;
     }
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
     navigator.geolocation.getCurrentPosition(
         (pos) => {
             window.userGeoLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             window.nearbyModeActive = true;
-            btn.disabled = false;
-            btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
+            }
             filterListings();
         },
         (err) => {
-            btn.disabled = false;
+            if (btn) btn.disabled = false;
             alert("Konumunuza erişilemedi. Lütfen tarayıcı ayarlarından konum iznini kontrol edin.");
         },
         { enableHighAccuracy: false, timeout: 8000 }
@@ -1485,12 +1587,20 @@ window.toggleNearbyMode = function() {
 };
 
 function resetAllFilters() {
-    document.getElementById('search-input').value = '';
-    document.getElementById('category-filter').value = '';
-    document.getElementById('district-filter').value = '';
-    document.getElementById('sort-filter').value = 'newest';
-    document.getElementById('min-price-filter').value = '';
-    document.getElementById('max-price-filter').value = '';
+    const searchEl = document.getElementById('search-input');
+    const catEl = document.getElementById('category-filter');
+    const distEl = document.getElementById('district-filter');
+    const sortEl = document.getElementById('sort-filter');
+    const minEl = document.getElementById('min-price-filter');
+    const maxEl = document.getElementById('max-price-filter');
+
+    if (searchEl) searchEl.value = '';
+    if (catEl) catEl.value = '';
+    if (distEl) distEl.value = '';
+    if (sortEl) sortEl.value = 'newest';
+    if (minEl) minEl.value = '';
+    if (maxEl) maxEl.value = '';
+
     window.nearbyModeActive = false;
     const nearbyBtn = document.getElementById('nearby-btn');
     if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
