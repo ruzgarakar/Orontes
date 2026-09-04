@@ -265,7 +265,9 @@ window.handleAuthSubmit = async function(e) {
             try {
                 const usernameSnap = await get(ref(db, 'usernames/' + usernameKey));
                 isUsernameTaken = usernameSnap.exists();
-            } catch (checkErr) {}
+            } catch (checkErr) {
+                console.warn("Kullanıcı adı kontrolü yapılamadı (Veritabanı kurallarınızı kontrol edin).");
+            }
 
             if (isUsernameTaken) {
                 alert("❌ Bu kullanıcı adı daha önceden alınmış! Lütfen başka bir kullanıcı adı belirleyin.");
@@ -274,26 +276,37 @@ window.handleAuthSubmit = async function(e) {
                 return;
             }
 
+            // 1. Kullanıcıyı Oluştur
             const res = await createUserWithEmailAndPassword(auth, email, password);
-            if (username) await updateProfile(res.user, { displayName: username });
-            await update(ref(db, 'users/' + res.user.uid), {
-                username: username,
-                phone: phone,
-                email: email,
-                joinedAt: Date.now()
-            });
-            await update(ref(db, 'publicProfiles/' + res.user.uid), {
-                username: username,
-                joinedAt: Date.now()
-            });
-            await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
-
+            
+            // 2. ÖNCE E-POSTA DOĞRULAMASINI GÖNDER (DB işlemi çökse bile e-posta gitsin)
             try {
                 await sendEmailVerification(res.user);
+                console.log("Doğrulama e-postası gönderildi.");
             } catch (emailErr) {
-                console.warn("E-posta gönderimi yapılamadı, ancak kayıt tamamlandı: ", emailErr);
+                console.warn("E-posta gönderimi yapılamadı: ", emailErr);
             }
+
+            // 3. Profil Güncellemesi
+            if (username) await updateProfile(res.user, { displayName: username });
             
+            // 4. Veritabanı Kayıtları (Özel Try-Catch içinde)
+            try {
+                await update(ref(db, 'users/' + res.user.uid), {
+                    username: username,
+                    phone: phone,
+                    email: email,
+                    joinedAt: Date.now()
+                });
+                await update(ref(db, 'publicProfiles/' + res.user.uid), {
+                    username: username,
+                    joinedAt: Date.now()
+                });
+                await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
+            } catch (dbErr) {
+                console.error("Veritabanına kayıt başarısız oldu (Kurallarınızı kontrol edin):", dbErr.message);
+            }
+
             await signOut(auth);
             alert("Kayıt işlemi başarıyla gerçekleşti! Lütfen e-posta adresinize gelen doğrulama bağlantısına tıklayın (Spam klasörünü kontrol etmeyi unutmayın).");
             toggleAuthMode();
@@ -1277,7 +1290,6 @@ function renderCategoryModalContent() {
 }
 
 function renderCategoryModalPaginationControls() {
-    // HTML'de id="cat-modal-pagination" adında bir div oluşturmalısınız.
     const container = document.getElementById('cat-modal-pagination');
     if (!container) return;
     
@@ -1727,8 +1739,8 @@ window.changePage = changePage;
 window.shareOnWhatsApp = shareOnWhatsApp;
 window.openDetailModal = openDetailModal;
 window.closeDetailModal = closeDetailModal;
-window.filterListings = filterListings; // Doğrudan dışarıya açtık
-window.executeLocalFilters = executeLocalFilters; // Lokal kısmı
+window.filterListings = filterListings;
+window.executeLocalFilters = executeLocalFilters;
 window.renderListings = renderListings;
 window.resetAllFilters = resetAllFilters;
 window.updateFavBtnStyle = updateFavBtnStyle;
