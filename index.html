@@ -43,12 +43,10 @@
         <div class="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-col sm:flex-row justify-between items-center gap-2">
             
             <div class="w-full sm:w-auto flex justify-between items-center">
+                <!-- GÜNCELLENEN LOGO KISMI -->
                 <div class="flex items-center cursor-pointer shrink-0" onclick="resetAllFilters(); window.scrollTo({top:0, behavior:'smooth'});">
-                    <div class="bg-lux-dark px-3 py-1.5 rounded-xl flex items-center justify-center border border-lux-gold/40 shadow-sm hover:opacity-95 transition">
-                        <div class="flex items-center space-x-2">
-                            <i class="fa-solid fa-wheat-awn text-lux-gold text-lg"></i>
-                            <span class="font-extrabold tracking-widest text-white text-base sm:text-lg">ORONTES</span>
-                        </div>
+                    <div class="bg-lux-gold px-3 py-1.5 rounded-xl flex items-center justify-center border border-lux-olive shadow-sm hover:opacity-95 transition">
+                        <div class="font-black text-2xl sm:text-3xl tracking-widest text-lux-dark uppercase">ORONTES</div>
                     </div>
                 </div>
 
@@ -64,16 +62,25 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-1.5 sm:space-x-2">
+            <div class="flex items-center space-x-1.5 sm:space-x-2 mt-2 sm:mt-0">
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
                     <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
                 </div>
 
                 <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
+                    
+                    <!-- YENİ: BİLDİRİM ZİLİ (GELEN KUTUSU ROZETİ) -->
+                    <div class="relative cursor-pointer" onclick="openInboxTab()" title="Gelen Teklifler">
+                        <button class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold px-3 py-1.5 rounded-xl border border-lux-gold/30 transition flex items-center justify-center">
+                            <i class="fa-solid fa-bell"></i>
+                        </button>
+                        <span id="notification-badge" class="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-lux-dark hidden shadow-md">0</span>
+                    </div>
+
                     <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
                         <i class="fa-solid fa-user-gear"></i>
-                        <span>Hesabım</span>
+                        <span class="hidden sm:inline">Hesabım</span>
                     </button>
                     <button onclick="handleLogout()" title="Çıkış Yap" class="text-gray-300 hover:text-red-400 text-xs px-1.5 py-1"><i class="fa-solid fa-right-from-bracket"></i></button>
                     <button onclick="openFormModal()" class="hidden sm:flex bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition items-center space-x-1.5">
@@ -331,7 +338,7 @@
                         <p id="detail-location" class="text-xs text-gray-400 mt-0.5"><i class="fa-solid fa-location-dot text-lux-gold"></i> Hatay</p>
                     </div>
                     <div class="text-right">
-                        <span id="detail-price" class="text-xl font-bold text-lux-dark block">0 TL</span>
+                        <span id="detail-price" class="text-xl font-bold text-lux-dark block flex flex-col items-end">0 TL</span>
                         <span id="detail-unit" class="text-[10px] text-gray-400">Birim</span>
                     </div>
                 </div>
