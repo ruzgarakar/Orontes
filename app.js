@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -17,7 +17,22 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// YENİ: PRO MOD - Özel Bildirim (Toast) Sistemi
+// --- YENİ: 400 HATA SAYFASI ---
+window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad Request)") {
+    document.body.innerHTML = `
+        <div style="height:100vh; width:100vw; display:flex; flex-direction:column; justify-content:center; align-items:center; background-color:#f8f9fa; color:#1a1a1a; font-family:sans-serif; text-align:center; padding:20px; z-index:999999; position:fixed; top:0; left:0;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 60px; color:#dc2626; margin-bottom: 20px;"></i>
+            <h1 style="font-size: 80px; margin:0; color:#dc2626; font-weight: 900; line-height: 1;">${statusCode}</h1>
+            <h2 style="font-size: 24px; margin-top:10px; font-weight: bold;">${message}</h2>
+            <p style="color:#666; margin-top:15px; max-width:400px; font-size: 15px;">Sistem isteğinizi işleyemedi veya geçersiz bir veri gönderildi. Lütfen sayfayı yenileyerek tekrar deneyin.</p>
+            <button onclick="window.location.reload()" style="margin-top:25px; padding:12px 24px; background:#10b981; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); transition: transform 0.2s;">
+                <i class="fa-solid fa-rotate-right" style="margin-right: 8px;"></i> Sayfayı Yenile
+            </button>
+        </div>
+    `;
+};
+
+// --- YENİ: PRO MOD - Özel Bildirim (Toast) Sistemi ---
 window.showToast = function(message, type = 'success') {
     const toast = document.createElement('div');
     toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
@@ -41,9 +56,9 @@ window.showToast = function(message, type = 'success') {
     toast.style.maxWidth = '350px';
     toast.style.lineHeight = '1.4';
     
-    if (type === 'error') toast.style.backgroundColor = '#ef4444'; // Kırmızı
-    else if (type === 'warning') toast.style.backgroundColor = '#f59e0b'; // Turuncu
-    else toast.style.backgroundColor = '#10b981'; // Yeşil
+    if (type === 'error') toast.style.backgroundColor = '#ef4444';
+    else if (type === 'warning') toast.style.backgroundColor = '#f59e0b';
+    else toast.style.backgroundColor = '#10b981';
 
     document.body.appendChild(toast);
     
@@ -71,6 +86,7 @@ window.orderByChild = orderByChild;
 window.equalTo = equalTo;
 window.limitToLast = limitToLast;
 window.off = off;
+window.onChildAdded = onChildAdded;
 window.reauthenticateWithCredential = reauthenticateWithCredential;
 
 window.currentUser = null;
@@ -82,6 +98,8 @@ window.activeListingId = null;
 window.mapInstance = null;
 window.formMapInstance = null;
 window.formMarker = null;
+window.activeOffersListener = null;
+window.activeOffersQuery = null;
 
 window.currentPage = 1;
 window.itemsPerPage = 12;
@@ -154,9 +172,16 @@ onAuthStateChanged(auth, async (user) => {
     const loggedOutBox = document.getElementById('auth-logged-out');
     const loggedInBox = document.getElementById('auth-logged-in');
 
+    if (window.activeOffersListener && window.activeOffersQuery) {
+        off(window.activeOffersQuery, 'child_added', window.activeOffersListener);
+        window.activeOffersListener = null;
+    }
+
     if (user) {
         if (loggedOutBox) loggedOutBox.classList.add('hidden');
         if (loggedInBox) loggedInBox.classList.remove('hidden');
+        
+        window.loginSessionTime = Date.now();
         
         const userRef = ref(db, 'users/' + user.uid);
         try {
@@ -171,6 +196,21 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Kullanıcı verisi çekilemedi:", err);
             window.userExtraData = { favorites: {} };
         }
+
+        // --- YENİ: GERÇEK ZAMANLI TEKLİF BİLDİRİMİ ---
+        window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
+        window.activeOffersListener = onChildAdded(window.activeOffersQuery, (snapshot) => {
+            const offer = snapshot.val();
+            if (offer && offer.date > window.loginSessionTime && offer.status === 'Beklemede') {
+                window.showToast(`🔔 Yeni bir teklif aldınız: ${offer.offeredPrice} TL ("${offer.listingTitle}")`, "success");
+                
+                const offersTabContent = document.getElementById('tab-content-offers');
+                if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
+                    window.loadIncomingOffers();
+                }
+            }
+        });
+
     } else {
         if (loggedOutBox) loggedOutBox.classList.remove('hidden');
         if (loggedInBox) loggedInBox.classList.add('hidden');
@@ -261,7 +301,6 @@ window.executeLocalFilters = function() {
 
 setTimeout(() => { window.filterListings(); }, 300);
 
-// PRO MOD: Kapsamlı ve Hata Teşhisi Yapan Kayıt/Giriş Sistemi
 window.handleAuthSubmit = async function(e) {
     e.preventDefault();
     const mode = document.getElementById('auth-mode').value;
@@ -280,7 +319,6 @@ window.handleAuthSubmit = async function(e) {
             window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
             closeAuthModal();
         } else {
-            // İleri Düzey Form Doğrulama
             if (!username) {
                 window.showToast("Lütfen bir kullanıcı adı belirleyin.", "error");
                 throw new Error("UI_VALIDATION");
@@ -311,22 +349,18 @@ window.handleAuthSubmit = async function(e) {
                 throw new Error("UI_VALIDATION");
             }
 
-            // 1. Kullanıcıyı Yarat
             const res = await createUserWithEmailAndPassword(auth, email, password);
             
-            // 2. E-posta Gönder (Hata verse de süreci kesme)
             try {
                 await sendEmailVerification(res.user);
             } catch (emailErr) {
                 console.warn("E-posta gönderimi başarısız:", emailErr);
             }
 
-            // 3. Profili Güncelle
             try {
                 await updateProfile(res.user, { displayName: username });
             } catch(e) {}
             
-            // 4. Veritabanına Yaz (En çok hata alınan yer)
             try {
                 await update(ref(db, 'users/' + res.user.uid), {
                     username: username,
@@ -341,7 +375,7 @@ window.handleAuthSubmit = async function(e) {
                 await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
             } catch (dbErr) {
                 console.error("Veritabanı Yazma Hatası:", dbErr);
-                window.showToast("Kayıt başarılı ancak Firebase veritabanı kuralları (Rules) veri kaydını engelledi. Panelden rules kısmını kontrol edin.", "warning");
+                window.showToast("Kayıt başarılı ancak Firebase veritabanı kuralları veri kaydını engelledi.", "warning");
             }
 
             await signOut(auth);
@@ -350,7 +384,6 @@ window.handleAuthSubmit = async function(e) {
         }
     } catch (err) {
         if (err.message === "UI_VALIDATION") {
-            // UI hatası zaten toast ile gösterildi, işlem yapma.
         } else if (err.code === 'auth/email-already-in-use') {
             window.showToast("Bu e-posta adresi zaten kayıtlı! Şifrenizi unuttuysanız sıfırlama talebi gönderin.", "error");
         } else if (err.code === 'auth/invalid-email') {
@@ -361,6 +394,7 @@ window.handleAuthSubmit = async function(e) {
             window.showToast("DİKKAT: Firebase Console'da 'Email/Password' ile giriş yöntemi kapalı! Lütfen aktif edin.", "error");
         } else {
             window.showToast("Bir hata oluştu: " + err.message, "error");
+            console.error(err);
         }
     } finally {
         btn.disabled = false;
@@ -498,8 +532,15 @@ window.handleFormSubmit = async function(e) {
         }
 
         const category = document.getElementById('form-category').value;
-        let isFirst100 = false;
+        const newPrice = Number(document.getElementById('form-price').value);
 
+        // --- YENİ: FİYAT ZAMAN GEÇMİŞİ KAYDI ---
+        let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
+        if (existingItem && existingItem.price !== newPrice) {
+            priceHistory.push({ price: existingItem.price, date: Date.now() });
+        }
+
+        let isFirst100 = false;
         if (!editId) {
             const counterRef = ref(db, 'listingCounter');
             const result = await runTransaction(counterRef, (currentData) => {
@@ -537,7 +578,8 @@ window.handleFormSubmit = async function(e) {
             realDistrict: isOutside ? window.locationOutsideHatay.district : null,
             lat: Number(document.getElementById('form-lat').value) || null,
             lng: Number(document.getElementById('form-lng').value) || null,
-            price: Number(document.getElementById('form-price').value),
+            price: newPrice,
+            priceHistory: priceHistory,
             unit: document.getElementById('form-unit').value || 'KG',
             seller: document.getElementById('form-seller').value,
             phone: document.getElementById('form-phone').value,
@@ -568,7 +610,8 @@ window.handleFormSubmit = async function(e) {
         closeFormModal();
         closeDetailModal();
     } catch (err) {
-        window.showToast('Hata: ' + err.message, "error");
+        window.showToast('İlan kaydedilemedi. Geçersiz veri girilmiş olabilir.', "error");
+        window.showErrorPage(400, "Form Gönderim Hatası");
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = "İlanı Kaydet";
@@ -1052,6 +1095,7 @@ window.resolveLocation = async function(lat, lng) {
     try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
         const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+        if(!res.ok) throw new Error("Ağ hatası");
         const data = await res.json();
 
         const waterTypes = ['water', 'sea', 'bay', 'strait', 'ocean', 'reef'];
@@ -1119,6 +1163,7 @@ window.geocodeAddress = async function() {
         const searchQuery = `${queryStr}, Hatay, Türkiye`;
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
         const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+        if(!res.ok) { window.showErrorPage(400, "API Bağlantı Hatası"); return; }
         const results = await res.json();
 
         if (!results || results.length === 0) {
@@ -1236,6 +1281,7 @@ function getTimeAgo(timestamp) {
     return `${Math.floor(days / 30)} ay önce`;
 }
 
+// --- YENİ: CANLI PİYASA ENDEKSİNDE TREND GRAFİĞİ ---
 function updateMarqueeData() {
     const container = document.getElementById('marquee-container');
     if (!container) return;
@@ -1252,15 +1298,29 @@ function updateMarqueeData() {
     ];
 
     let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
-        <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Hatay Canlı Piyasa Endeksi:</span></span>`;
+        <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Canlı Piyasa Endeksi:</span></span>`;
 
     categories.forEach(cat => {
         const catListings = items.filter(i => i.category === cat);
         if (catListings.length > 0) {
+            // Trend analizi: Kategori içindeki ilanlarda fiyat düşüşü mü çok artışı mı?
+            let drops = 0; let rises = 0;
+            catListings.forEach(i => {
+                if (i.priceHistory && i.priceHistory.length > 0) {
+                    const oldPrice = i.priceHistory[i.priceHistory.length - 1].price;
+                    if (i.price < oldPrice) drops++;
+                    if (i.price > oldPrice) rises++;
+                }
+            });
+            
+            let trendIcon = '';
+            if (drops > rises) trendIcon = '<i class="fa-solid fa-arrow-trend-down text-emerald-400 ml-1.5" title="Fiyatlar Düşüşte"></i>';
+            else if (rises > drops) trendIcon = '<i class="fa-solid fa-arrow-trend-up text-red-400 ml-1.5" title="Fiyatlar Yükselişte"></i>';
+
             const emoji = categoryEmojis[cat] || '🌾';
             contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
                 <span>${emoji}</span>
-                <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan)</span>
+                <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan) ${trendIcon}</span>
             </button>`;
         }
     });
@@ -1303,6 +1363,17 @@ function renderCategoryModalContent() {
 
     paginatedItems.forEach(item => {
         const emoji = categoryEmojis[item.category] || '🌾';
+        
+        // Modal içi fiyat mini grafiği (varsa)
+        let priceHistoryBadge = '';
+        if (item.priceHistory && item.priceHistory.length > 0) {
+            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+            const isDrop = item.price < oldPrice;
+            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-600 bg-emerald-100' : 'text-red-600 bg-red-100'} px-1.5 rounded mt-0.5 inline-block font-bold">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i> Eski: ${oldPrice}
+            </div>`;
+        }
+
         const div = document.createElement('div');
         div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs cursor-pointer hover:bg-lux-sage/20 transition mb-2";
         div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
@@ -1314,6 +1385,7 @@ function renderCategoryModalContent() {
             <div class="text-right shrink-0">
                 <span class="font-extrabold text-emerald-700 text-sm">${item.price} TL</span>
                 <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || '')}</span>
+                ${priceHistoryBadge}
             </div>
         `;
         content.appendChild(div);
@@ -1528,6 +1600,7 @@ async function handleReportSubmit(e) {
         closeReportModal();
     } catch(err) {
         window.showToast("Hata: " + err.message, "error");
+        window.showErrorPage(400, "Şikayet Gönderilemedi");
     }
 }
 
@@ -1566,6 +1639,16 @@ function renderListings() {
         const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
         const emoji = categoryEmojis[item.category] || '🌾';
 
+        // --- YENİ: İLAN KARTI FİYAT GEÇMİŞİ (VİTRİN) ---
+        let priceHistoryBadge = '';
+        if (item.priceHistory && item.priceHistory.length > 0) {
+            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+            const isDrop = item.price < oldPrice;
+            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-500' : 'text-red-500'} font-bold flex items-center mt-1">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'} mr-1"></i> Eski Fiyat: ${oldPrice} TL
+            </div>`;
+        }
+
         card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
         card.innerHTML = `
             <div>
@@ -1594,6 +1677,7 @@ function renderListings() {
                     <div>
                         <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Birim Fiyat')}</span>
                         <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
+                        ${priceHistoryBadge}
                         ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${escapeHtml(item.minOrderQty)}</span>` : ''}
                     </div>
                     <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
@@ -1707,7 +1791,20 @@ function openDetailModal(id) {
     document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
     const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
     document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
-    document.getElementById('detail-price').innerText = `${item.price} TL`;
+    
+    // --- YENİ: İLAN DETAY SAYFASI FİYAT GEÇMİŞİ GRAFİĞİ ---
+    let priceHTML = `${item.price} TL`;
+    if (item.priceHistory && item.priceHistory.length > 0) {
+        const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+        const isDrop = item.price < oldPrice;
+        priceHTML += `
+            <div class="text-[11px] font-bold ${isDrop ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'} inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ml-3 shadow-sm border border-gray-100">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i>
+                <span>Eski: ${oldPrice} TL</span>
+            </div>
+        `;
+    }
+    document.getElementById('detail-price').innerHTML = priceHTML;
     document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
     document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
     document.getElementById('detail-seller').innerText = item.seller;
