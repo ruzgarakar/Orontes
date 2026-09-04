@@ -17,6 +17,48 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
+// YENİ: PRO MOD - Özel Bildirim (Toast) Sistemi
+window.showToast = function(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
+        <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : (type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-check')}"></i>
+        <span>${message}</span>
+    </div>`;
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.right = '20px';
+    toast.style.padding = '14px 24px';
+    toast.style.borderRadius = '12px';
+    toast.style.color = '#fff';
+    toast.style.fontWeight = '500';
+    toast.style.fontFamily = 'inherit';
+    toast.style.fontSize = '14px';
+    toast.style.zIndex = '99999';
+    toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+    toast.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+    toast.style.transform = 'translateY(100px)';
+    toast.style.opacity = '0';
+    toast.style.maxWidth = '350px';
+    toast.style.lineHeight = '1.4';
+    
+    if (type === 'error') toast.style.backgroundColor = '#ef4444'; // Kırmızı
+    else if (type === 'warning') toast.style.backgroundColor = '#f59e0b'; // Turuncu
+    else toast.style.backgroundColor = '#10b981'; // Yeşil
+
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+    }, 10);
+
+    setTimeout(() => {
+        toast.style.transform = 'translateY(20px)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, 5000);
+};
+
 window.db = db;
 window.ref = ref;
 window.push = push;
@@ -41,11 +83,9 @@ window.mapInstance = null;
 window.formMapInstance = null;
 window.formMarker = null;
 
-// Ana liste sayfalandırma
 window.currentPage = 1;
 window.itemsPerPage = 12;
 
-// Kategori modalı sayfalandırma
 window.catModalCurrentPage = 1;
 window.catModalItemsPerPage = 5;
 window.currentCategoryModalData = [];
@@ -61,7 +101,7 @@ window.checkFileSize = function(inputEl) {
     if (!file) return;
     const sizeMb = file.size / (1024 * 1024);
     if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
-        alert(`Seçtiğiniz görsel ${sizeMb.toFixed(1)}MB — izin verilen en fazla ${window.MAX_IMAGE_SIZE_MB}MB. Lütfen daha küçük bir dosya seçin.`);
+        window.showToast(`Seçtiğiniz görsel ${sizeMb.toFixed(1)}MB — izin verilen en fazla ${window.MAX_IMAGE_SIZE_MB}MB.`, 'error');
         inputEl.value = '';
     }
 };
@@ -74,7 +114,7 @@ window.compressImage = function(file) {
         }
         const sizeMb = file.size / (1024 * 1024);
         if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
-            reject(new Error(`Görsel çok büyük (${sizeMb.toFixed(1)}MB). Lütfen ${window.MAX_IMAGE_SIZE_MB}MB'dan küçük bir dosya seçin.`));
+            reject(new Error(`Görsel çok büyük (${sizeMb.toFixed(1)}MB). Maksimum ${window.MAX_IMAGE_SIZE_MB}MB olmalıdır.`));
             return;
         }
         const reader = new FileReader();
@@ -119,11 +159,16 @@ onAuthStateChanged(auth, async (user) => {
         if (loggedInBox) loggedInBox.classList.remove('hidden');
         
         const userRef = ref(db, 'users/' + user.uid);
-        const snap = await get(userRef);
-        if (snap.exists()) {
-            window.userExtraData = snap.val();
-            if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
-        } else {
+        try {
+            const snap = await get(userRef);
+            if (snap.exists()) {
+                window.userExtraData = snap.val();
+                if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
+            } else {
+                window.userExtraData = { favorites: {} };
+            }
+        } catch(err) {
+            console.error("Kullanıcı verisi çekilemedi:", err);
             window.userExtraData = { favorites: {} };
         }
     } else {
@@ -134,10 +179,6 @@ onAuthStateChanged(auth, async (user) => {
     window.filterListings();
 });
 
-// ==========================================
-// YENİ: VERİTABANINDAN DİNAMİK FİLTRELEME
-// (Artık başlangıçta tüm veriyi çekmiyoruz)
-// ==========================================
 window.activeDbListener = null;
 window.activeQuery = null;
 window.lastFetchedCategory = null;
@@ -145,14 +186,11 @@ window.lastFetchedCategory = null;
 window.triggerDatabaseFilter = function(category = '') {
     let q;
     if (category) {
-        // Kategori seçiliyse sadece o kategoriyi getir
         q = query(ref(db, 'listings'), orderByChild('category'), equalTo(category), limitToLast(150));
     } else {
-        // Varsayılan yüklemede veritabanından en son 60 ilanı getir
         q = query(ref(db, 'listings'), orderByChild('date'), limitToLast(60));
     }
 
-    // Eski dinleyiciyi temizle ki veriler çakışmasın
     if (window.activeQuery && window.activeDbListener) {
         off(window.activeQuery, 'value', window.activeDbListener);
     }
@@ -173,13 +211,11 @@ window.filterListings = function() {
     const categoryFilter = document.getElementById('category-filter');
     const currentCategory = categoryFilter ? categoryFilter.value : '';
 
-    // Kategori değiştiyse veritabanından o kategorinin verilerini çek
     if (currentCategory !== window.lastFetchedCategory) {
         window.lastFetchedCategory = currentCategory;
         window.triggerDatabaseFilter(currentCategory);
-        return; // executeLocalFilters, veritabanı yanıt verince çağrılacak.
+        return;
     }
-    // Değişmediyse veya veri zaten geldiyse lokal filtrelemeye geç
     window.executeLocalFilters();
 };
 
@@ -223,16 +259,16 @@ window.executeLocalFilters = function() {
     renderListings();
 };
 
-// Sayfa yüklendiğinde varsayılan filtrelemeyi tetikle
 setTimeout(() => { window.filterListings(); }, 300);
 
+// PRO MOD: Kapsamlı ve Hata Teşhisi Yapan Kayıt/Giriş Sistemi
 window.handleAuthSubmit = async function(e) {
     e.preventDefault();
     const mode = document.getElementById('auth-mode').value;
-    const email = document.getElementById('auth-email').value;
+    const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
-    const username = document.getElementById('auth-username').value;
-    const phone = document.getElementById('auth-phone').value;
+    const username = document.getElementById('auth-username').value.trim();
+    const phone = document.getElementById('auth-phone').value.trim();
     const btn = document.getElementById('auth-submit-btn');
 
     btn.disabled = true;
@@ -241,56 +277,56 @@ window.handleAuthSubmit = async function(e) {
     try {
         if (mode === 'login') {
             const loginResult = await signInWithEmailAndPassword(auth, email, password);
-            const profileSnap = await get(ref(db, 'users/' + loginResult.user.uid));
-            const isPostMigrationAccount = profileSnap.exists() && !!profileSnap.val().joinedAt;
-
-            if (isPostMigrationAccount && !loginResult.user.emailVerified) {
-                try { await sendEmailVerification(loginResult.user); } catch (resendErr) { console.warn(resendErr); }
-                await signOut(auth);
-                alert("Hesabınız henüz doğrulanmamış. E-postanıza yeni bir doğrulama bağlantısı gönderdik — lütfen gelen kutunuzu (ve spam klasörünü) kontrol edip bağlantıya tıkladıktan sonra tekrar giriş yapın.");
-                btn.disabled = false;
-                btn.innerText = "Giriş Yap";
-                return;
-            }
+            window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
+            closeAuthModal();
         } else {
-            if (!username || !username.trim()) {
-                alert("Lütfen bir kullanıcı adı girin.");
-                btn.disabled = false;
-                btn.innerText = "Kayıt Ol";
-                return;
+            // İleri Düzey Form Doğrulama
+            if (!username) {
+                window.showToast("Lütfen bir kullanıcı adı belirleyin.", "error");
+                throw new Error("UI_VALIDATION");
+            }
+            if (password.length < 6) {
+                window.showToast("Şifreniz en az 6 karakter olmalıdır.", "error");
+                throw new Error("UI_VALIDATION");
+            }
+            
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (!cleanPhone || cleanPhone.length < 10) {
+                window.showToast("Lütfen geçerli bir telefon numarası girin (Örn: 5554443322).", "error");
+                throw new Error("UI_VALIDATION");
             }
 
             const usernameKey = window.sanitizeUsernameKey(username);
             let isUsernameTaken = false;
+            
             try {
                 const usernameSnap = await get(ref(db, 'usernames/' + usernameKey));
                 isUsernameTaken = usernameSnap.exists();
             } catch (checkErr) {
-                console.warn("Kullanıcı adı kontrolü yapılamadı (Veritabanı kurallarınızı kontrol edin).");
+                console.warn("Veritabanı Okuma Kuralları kısıtlı olabilir, kullanıcı adı kontrolü atlandı.");
             }
 
             if (isUsernameTaken) {
-                alert("❌ Bu kullanıcı adı daha önceden alınmış! Lütfen başka bir kullanıcı adı belirleyin.");
-                btn.disabled = false;
-                btn.innerText = "Kayıt Ol";
-                return;
+                window.showToast("❌ Bu kullanıcı adı başkası tarafından alınmış!", "error");
+                throw new Error("UI_VALIDATION");
             }
 
-            // 1. Kullanıcıyı Oluştur
+            // 1. Kullanıcıyı Yarat
             const res = await createUserWithEmailAndPassword(auth, email, password);
             
-            // 2. ÖNCE E-POSTA DOĞRULAMASINI GÖNDER (DB işlemi çökse bile e-posta gitsin)
+            // 2. E-posta Gönder (Hata verse de süreci kesme)
             try {
                 await sendEmailVerification(res.user);
-                console.log("Doğrulama e-postası gönderildi.");
             } catch (emailErr) {
-                console.warn("E-posta gönderimi yapılamadı: ", emailErr);
+                console.warn("E-posta gönderimi başarısız:", emailErr);
             }
 
-            // 3. Profil Güncellemesi
-            if (username) await updateProfile(res.user, { displayName: username });
+            // 3. Profili Güncelle
+            try {
+                await updateProfile(res.user, { displayName: username });
+            } catch(e) {}
             
-            // 4. Veritabanı Kayıtları (Özel Try-Catch içinde)
+            // 4. Veritabanına Yaz (En çok hata alınan yer)
             try {
                 await update(ref(db, 'users/' + res.user.uid), {
                     username: username,
@@ -304,24 +340,27 @@ window.handleAuthSubmit = async function(e) {
                 });
                 await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
             } catch (dbErr) {
-                console.error("Veritabanına kayıt başarısız oldu (Kurallarınızı kontrol edin):", dbErr.message);
+                console.error("Veritabanı Yazma Hatası:", dbErr);
+                window.showToast("Kayıt başarılı ancak Firebase veritabanı kuralları (Rules) veri kaydını engelledi. Panelden rules kısmını kontrol edin.", "warning");
             }
 
             await signOut(auth);
-            alert("Kayıt işlemi başarıyla gerçekleşti! Lütfen e-posta adresinize gelen doğrulama bağlantısına tıklayın (Spam klasörünü kontrol etmeyi unutmayın).");
+            window.showToast("Kayıt tamamlandı! Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "success");
             toggleAuthMode();
-            btn.disabled = false;
-            btn.innerText = "Giriş Yap";
-            return;
         }
-        closeAuthModal();
-        const addForm = document.getElementById('add-listing-form');
-        if (addForm) addForm.reset();
     } catch (err) {
-        if (err.code === 'auth/email-already-in-use') {
-            alert("Bu e-posta adresi zaten daha önceden kayıtlı! Lütfen giriş yapın veya şifrenizi unuttuysanız sıfırlayın.");
+        if (err.message === "UI_VALIDATION") {
+            // UI hatası zaten toast ile gösterildi, işlem yapma.
+        } else if (err.code === 'auth/email-already-in-use') {
+            window.showToast("Bu e-posta adresi zaten kayıtlı! Şifrenizi unuttuysanız sıfırlama talebi gönderin.", "error");
+        } else if (err.code === 'auth/invalid-email') {
+            window.showToast("Lütfen geçerli bir e-posta adresi yazın.", "error");
+        } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            window.showToast("E-posta adresiniz veya şifreniz hatalı.", "error");
+        } else if (err.code === 'auth/operation-not-allowed') {
+            window.showToast("DİKKAT: Firebase Console'da 'Email/Password' ile giriş yöntemi kapalı! Lütfen aktif edin.", "error");
         } else {
-            alert("Hata: " + err.message);
+            window.showToast("Bir hata oluştu: " + err.message, "error");
         }
     } finally {
         btn.disabled = false;
@@ -332,18 +371,21 @@ window.handleAuthSubmit = async function(e) {
 window.handleForgotPassword = async function() {
     const email = document.getElementById('auth-email').value;
     if (!email) {
-        alert("Lütfen önce üstteki e-posta alanına hesabınıza ait e-posta adresinizi yazın.");
+        window.showToast("Önce üstteki e-posta alanına adresinizi yazın.", "warning");
         return;
     }
     try {
         await sendPasswordResetEmail(auth, email);
-        alert("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.");
+        window.showToast("Şifre sıfırlama bağlantısı e-postanıza gönderildi.", "success");
     } catch(err) {
-        alert("Hata: " + err.message);
+        window.showToast("Hata: " + err.message, "error");
     }
 };
 
-window.handleLogout = function() { signOut(auth); };
+window.handleLogout = function() { 
+    signOut(auth); 
+    window.showToast("Çıkış yapıldı.", "success");
+};
 
 window.togglePasswordVisibility = function(inputId, iconId) {
     const input = document.getElementById(inputId);
@@ -362,7 +404,7 @@ window.togglePasswordVisibility = function(inputId, iconId) {
 
 window.toggleFavorite = async function(id) {
     if (!window.currentUser) {
-        alert("Favorilere eklemek için giriş yapmalısınız.");
+        window.showToast("Favorilere eklemek için giriş yapmalısınız.", "warning");
         openAuthModal('login');
         return;
     }
@@ -371,12 +413,12 @@ window.toggleFavorite = async function(id) {
     if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
         await remove(favRef);
         delete window.userExtraData.favorites[id];
-        alert("İlan favorilerinizden çıkarıldı.");
+        window.showToast("İlan favorilerinizden çıkarıldı.", "success");
     } else {
         await update(ref(db, `users/${window.currentUser.uid}/favorites`), { [id]: true });
         if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
         window.userExtraData.favorites[id] = true;
-        alert("İlan favorilerinize eklendi!");
+        window.showToast("İlan favorilerinize eklendi!", "success");
     }
     renderListings();
     updateFavBtnStyle(id);
@@ -384,7 +426,7 @@ window.toggleFavorite = async function(id) {
 
 window.submitPriceOffer = async function() {
     if (!window.currentUser) {
-        alert("Teklif vermek için giriş yapmalısınız.");
+        window.showToast("Teklif vermek için giriş yapmalısınız.", "warning");
         openAuthModal('login');
         return;
     }
@@ -392,7 +434,7 @@ window.submitPriceOffer = async function() {
     const note = document.getElementById('offer-note-input').value;
 
     if (!price) {
-        alert("Lütfen teklif ettiğiniz birim fiyatı girin.");
+        window.showToast("Lütfen teklif ettiğiniz fiyatı girin.", "warning");
         return;
     }
 
@@ -400,7 +442,7 @@ window.submitPriceOffer = async function() {
     if (!item) return;
 
     if (item.uid === window.currentUser.uid) {
-        alert("Kendi ilanınıza teklif gönderemezsiniz.");
+        window.showToast("Kendi ilanınıza teklif gönderemezsiniz.", "error");
         return;
     }
 
@@ -417,18 +459,18 @@ window.submitPriceOffer = async function() {
             status: 'Beklemede',
             date: Date.now()
         });
-        alert("Teklifiniz ilan sahibine başarıyla iletildi!");
+        window.showToast("Teklifiniz satıcıya başarıyla iletildi!", "success");
         document.getElementById('offer-price-input').value = '';
         document.getElementById('offer-note-input').value = '';
     } catch (err) {
-        alert("Hata: " + err.message);
+        window.showToast("Teklif iletilemedi: " + err.message, "error");
     }
 };
 
 window.handleFormSubmit = async function(e) {
     e.preventDefault();
     if (!window.currentUser) {
-        alert("İlan vermek için giriş yapmalısınız.");
+        window.showToast("İlan vermek için giriş yapmalısınız.", "warning");
         return;
     }
 
@@ -437,7 +479,7 @@ window.handleFormSubmit = async function(e) {
     if (editId) {
         existingItem = (window.listings || []).find(l => l.id === editId);
         if (!existingItem || existingItem.uid !== window.currentUser.uid) {
-            alert("Bu ilanı düzenleme yetkiniz yok.");
+            window.showToast("Bu ilanı düzenleme yetkiniz yok.", "error");
             return;
         }
     }
@@ -514,19 +556,19 @@ window.handleFormSubmit = async function(e) {
 
         if (editId) {
             await update(ref(db, 'listings/' + editId), listingData);
-            alert('İlan başarıyla güncellendi!');
+            window.showToast('İlan başarıyla güncellendi!', "success");
         } else {
             await push(ref(db, 'listings'), listingData);
             if (isFirst100) {
-                alert('🚀 İlanınız yayınlandı! İlk 100 ilan kapsamında 3 AYLIK ÜCRETSİZ VIP VİTRİN rozeti eklendi.');
+                window.showToast('🚀 İlan yayınlandı! İlk 100 ilana özel 3 AYLIK ÜCRETSİZ VIP tanımlandı.', "success");
             } else {
-                alert('İlan yayınlandı!');
+                window.showToast('İlanınız yayına alındı!', "success");
             }
         }
         closeFormModal();
         closeDetailModal();
     } catch (err) {
-        alert('Hata: ' + err.message);
+        window.showToast('Hata: ' + err.message, "error");
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerText = "İlanı Kaydet";
@@ -535,14 +577,14 @@ window.handleFormSubmit = async function(e) {
 
 window.updateAccountDetails = async function() {
     if (!window.currentUser) return;
-    const newUsername = document.getElementById('update-username').value;
-    const newPhone = document.getElementById('update-phone').value;
+    const newUsername = document.getElementById('update-username').value.trim();
+    const newPhone = document.getElementById('update-phone').value.trim();
     const newPass = document.getElementById('update-new-password').value;
     const currentPass = document.getElementById('update-current-password').value;
     const btn = document.getElementById('update-acc-btn');
 
     if (!currentPass) {
-        alert("Bilgilerinizi güncelleyebilmek için lütfen mevcut şifrenizi girin.");
+        window.showToast("Lütfen mevcut şifrenizi girin.", "warning");
         return;
     }
 
@@ -559,7 +601,7 @@ window.updateAccountDetails = async function() {
             
             const usernameSnap = await get(ref(db, 'usernames/' + newUsernameKey));
             if (usernameSnap.exists()) {
-                alert("❌ Bu kullanıcı adı başkası tarafından alınmış!");
+                window.showToast("❌ Bu kullanıcı adı başkası tarafından alınmış!", "error");
                 btn.disabled = false;
                 btn.innerText = "Değişiklikleri Kaydet";
                 return;
@@ -583,15 +625,15 @@ window.updateAccountDetails = async function() {
 
         if (newPass.trim() !== "") {
             if (newPass.length < 6) {
-                alert("Yeni şifre en az 6 karakter olmalıdır.");
+                window.showToast("Yeni şifre en az 6 karakter olmalıdır.", "error");
                 btn.disabled = false;
                 btn.innerText = "Değişiklikleri Kaydet";
                 return;
             }
             await updatePassword(window.currentUser, newPass);
-            alert("Şifreniz ve profil bilgileriniz başarıyla güncellendi!");
+            window.showToast("Şifreniz ve profiliniz güncellendi!", "success");
         } else {
-            alert("Profil bilgileriniz başarıyla güncellendi!");
+            window.showToast("Profil bilgileriniz başarıyla güncellendi!", "success");
         }
 
         window.userExtraData.username = newUsername;
@@ -600,7 +642,7 @@ window.updateAccountDetails = async function() {
         document.getElementById('update-new-password').value = '';
         closeAccountModal();
     } catch (err) {
-        alert("Hata: Mevcut şifrenizi yanlış girdiniz veya işlem başarısız oldu.");
+        window.showToast("Hata: Mevcut şifreniz yanlış veya işlem başarısız.", "error");
     } finally {
         btn.disabled = false;
         btn.innerText = "Değişiklikleri Kaydet";
@@ -633,10 +675,10 @@ window.deleteUserAccount = async function() {
         await remove(ref(db, 'users/' + window.currentUser.uid));
         await deleteUser(window.currentUser);
 
-        alert("Hesabınız ve ilanlarınız kalıcı olarak silindi.");
+        window.showToast("Hesabınız kalıcı olarak silindi.", "success");
         closeAccountModal();
     } catch (err) {
-        alert("Hata: Şifre yanlış veya işlem gerçekleştirilemedi. " + err.message);
+        window.showToast("Şifre yanlış veya işlem gerçekleştirilemedi.", "error");
     }
 };
 
@@ -646,18 +688,18 @@ window.deleteCurrentListing = async function(id) {
 
     const target = (window.listings || []).find(l => l.id === targetId);
     if (!target || target.uid !== window.currentUser.uid) {
-        alert("Bu ilanı silme yetkiniz yok.");
+        window.showToast("Bu ilanı silme yetkiniz yok.", "error");
         return;
     }
 
     if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
         try {
             await remove(ref(db, 'listings/' + targetId));
-            alert("İlan başarıyla silindi.");
+            window.showToast("İlan silindi.", "success");
             closeDetailModal();
             closeAccountModal();
         } catch (err) {
-            alert("Hata: " + err.message);
+            window.showToast("Silinemedi: " + err.message, "error");
         }
     }
 };
@@ -717,12 +759,12 @@ window.loadSellerProfileBox = async function(sellerUid) {
 
 window.submitRating = async function(sellerUid, score) {
     if (!window.currentUser) {
-        alert("Değerlendirme yapmak için giriş yapmalısınız.");
+        window.showToast("Değerlendirme yapmak için giriş yapmalısınız.", "warning");
         openAuthModal('login');
         return;
     }
     if (window.currentUser.uid === sellerUid) {
-        alert("Kendi ilanınıza puan veremezsiniz.");
+        window.showToast("Kendi ilanınıza puan veremezsiniz.", "error");
         return;
     }
     try {
@@ -736,7 +778,7 @@ window.submitRating = async function(sellerUid, score) {
             window.openSellerProfileModal(sellerUid);
         }
     } catch (err) {
-        alert("Değerlendirme kaydedilemedi: " + err.message);
+        window.showToast("Değerlendirme kaydedilemedi.", "error");
     }
 };
 
@@ -877,10 +919,10 @@ window.loadIncomingOffers = async function() {
 window.updateOfferStatus = async function(offerId, status) {
     try {
         await update(ref(db, `offers/${offerId}`), { status: status });
-        alert(`Teklif durumu "${status}" olarak güncellendi.`);
+        window.showToast(`Teklif durumu "${status}" olarak güncellendi.`, "success");
         window.loadIncomingOffers();
     } catch(err) {
-        alert("Hata: " + err.message);
+        window.showToast("Hata: " + err.message, "error");
     }
 };
 
@@ -1001,10 +1043,6 @@ function initFormMap(lat, lng, district) {
 
 window.locationOutsideHatay = null;
 
-// ==========================================
-// YENİ: İÇİNDE BULUNDUĞU İLÇEYİ TESPİT ETME
-// (En yakın merkez yerine, gerçekten içinde olduğu sınır)
-// ==========================================
 window.resolveLocation = async function(lat, lng) {
     const banner = document.getElementById('outside-hatay-warning');
     const districtSelect = document.getElementById('form-district');
@@ -1021,7 +1059,7 @@ window.resolveLocation = async function(lat, lng) {
             waterTypes.includes(data.type) || waterTypes.includes(data.category);
 
         if (isSea) {
-            alert("Seçtiğiniz nokta kara üzerinde değil (deniz/açık su olabilir). Lütfen kara üzerinde bir nokta seçin.");
+            window.showToast("Seçtiğiniz nokta kara üzerinde değil. Lütfen karayı işaretleyin.", "error");
             if (window.formMarker) {
                 window.formMapInstance.removeLayer(window.formMarker);
                 window.formMarker = null;
@@ -1040,7 +1078,6 @@ window.resolveLocation = async function(lat, lng) {
 
         if (isInsideHatay) {
             let matchedDistrict = null;
-            // Nominatim'in döndürdüğü tüm adres detayları taranıyor
             const addressValues = Object.values(addr).map(v => String(v).toLocaleLowerCase('tr-TR'));
             
             for (const districtName of Object.keys(districtCoords)) {
@@ -1053,14 +1090,13 @@ window.resolveLocation = async function(lat, lng) {
             if (matchedDistrict) {
                 districtSelect.value = matchedDistrict;
             } else {
-                // Eğer Hatay'da olup ilçe sınırını tam saptayamazsa, en yakınına atmak yerine kullanıcıdan istiyoruz.
-                alert("Seçtiğiniz konum Hatay sınırlarında algılandı ancak hangi ilçede olduğu otomatik olarak tespit edilemedi. Lütfen listeden ilçenizi kendiniz seçin.");
+                window.showToast("Konum Hatay sınırlarında ancak ilçe tam tespit edilemedi. Lütfen listeden seçin.", "warning");
             }
         } else {
             const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
             districtSelect.value = 'Hatay Dışı';
             window.locationOutsideHatay = { province, district: detectedTownOrDistrict };
-            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. İlanı yine de yayınlayabilirsiniz, ancak "Hatay Dışı" olarak işaretlenip alıcılara böyle gösterilecektir.`;
+            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. İlan "Hatay Dışı" olarak işaretlenecek.`;
             banner.classList.remove('hidden');
         }
     } catch (err) {
@@ -1072,7 +1108,7 @@ window.geocodeAddress = async function() {
     const addressInput = document.getElementById('form-address');
     const queryStr = addressInput.value.trim();
     if (!queryStr) {
-        alert("Lütfen önce bir adres yazın.");
+        window.showToast("Lütfen önce bir adres yazın.", "warning");
         return;
     }
     const btn = document.getElementById('geocode-btn');
@@ -1086,7 +1122,7 @@ window.geocodeAddress = async function() {
         const results = await res.json();
 
         if (!results || results.length === 0) {
-            alert("Adres bulunamadı. Lütfen haritadan tıklayarak konumu elle işaretleyin.");
+            window.showToast("Adres bulunamadı. Lütfen haritadan elle işaretleyin.", "error");
             return;
         }
 
@@ -1104,7 +1140,7 @@ window.geocodeAddress = async function() {
 
         await window.resolveLocation(foundLat, foundLng);
     } catch (err) {
-        alert("Adres aranırken bir sorun oluştu. Lütfen haritadan tıklayarak konumu elle işaretleyin.");
+        window.showToast("Adres aranırken hata oluştu.", "error");
     } finally {
         btn.disabled = false;
         btn.innerText = "Bul";
@@ -1203,7 +1239,7 @@ function getTimeAgo(timestamp) {
 function updateMarqueeData() {
     const container = document.getElementById('marquee-container');
     if (!container) return;
-    const items = window.listings || []; // Not: Artık yalnızca yüklenen verilerin istatistiğini tutar
+    const items = window.listings || [];
 
     if (items.length === 0) {
         container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Hatay Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
@@ -1233,9 +1269,6 @@ function updateMarqueeData() {
     container.innerHTML = contentHTML + contentHTML;
 }
 
-// ==========================================
-// YENİ: KATEGORİ MODAL SAYFALANDIRMASI
-// ==========================================
 function openCategoryDetailModal(cat) {
     window.currentCategoryModalData = (window.listings || [])
         .filter(i => i.category === cat)
@@ -1364,7 +1397,7 @@ function closeAccountModal() { document.getElementById('account-modal').classLis
 
 function openFormModal() { 
     if (!window.currentUser) {
-        alert("İlan eklemek için önce giriş yapmalısınız.");
+        window.showToast("İlan eklemek için önce giriş yapmalısınız.", "warning");
         openAuthModal('login');
         return;
     }
@@ -1473,7 +1506,7 @@ function closeTermsModal() { document.getElementById('terms-modal').classList.ad
 
 function openReportModal() { 
     if(!window.currentUser) {
-        alert("Şikayet bildirimi için giriş yapmalısınız.");
+        window.showToast("Şikayet bildirimi için giriş yapmalısınız.", "warning");
         openAuthModal('login');
         return;
     }
@@ -1491,10 +1524,10 @@ async function handleReportSubmit(e) {
             note: document.getElementById('report-note').value,
             date: Date.now()
         });
-        alert("Şikayetiniz iletildi.");
+        window.showToast("Şikayetiniz iletildi.", "success");
         closeReportModal();
     } catch(err) {
-        alert("Hata: " + err.message);
+        window.showToast("Hata: " + err.message, "error");
     }
 }
 
@@ -1614,7 +1647,7 @@ window.toggleNearbyMode = function() {
         return;
     }
     if (!navigator.geolocation) {
-        alert("Tarayıcınız konum özelliğini desteklemiyor.");
+        window.showToast("Tarayıcınız konum özelliğini desteklemiyor.", "error");
         return;
     }
     if (btn) btn.disabled = true;
@@ -1630,7 +1663,7 @@ window.toggleNearbyMode = function() {
         },
         (err) => {
             if (btn) btn.disabled = false;
-            alert("Konumunuza erişilemedi. Lütfen tarayıcı ayarlarından konum iznini kontrol edin.");
+            window.showToast("Konumunuza erişilemedi. Tarayıcı izinlerini kontrol edin.", "error");
         },
         { enableHighAccuracy: false, timeout: 8000 }
     );
