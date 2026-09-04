@@ -101,6 +101,9 @@ window.formMarker = null;
 window.activeOffersListener = null;
 window.activeOffersQuery = null;
 
+// Gelen Kutusu İçin Değişken
+window.pendingOffersCount = 0;
+
 window.currentPage = 1;
 window.itemsPerPage = 12;
 
@@ -173,7 +176,7 @@ onAuthStateChanged(auth, async (user) => {
     const loggedInBox = document.getElementById('auth-logged-in');
 
     if (window.activeOffersListener && window.activeOffersQuery) {
-        off(window.activeOffersQuery, 'child_added', window.activeOffersListener);
+        off(window.activeOffersQuery, 'value', window.activeOffersListener); // DÜZELTME: onValue kullandığımız için value olarak temizliyoruz
         window.activeOffersListener = null;
     }
 
@@ -197,17 +200,32 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {} };
         }
 
-        // --- YENİ: GERÇEK ZAMANLI TEKLİF BİLDİRİMİ ---
+        // --- DÜZELTME: BİLDİRİM SAYACI İÇİN GERÇEK ZAMANLI İZLEYİCİ ---
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
-        window.activeOffersListener = onChildAdded(window.activeOffersQuery, (snapshot) => {
-            const offer = snapshot.val();
-            if (offer && offer.date > window.loginSessionTime && offer.status === 'Beklemede') {
-                window.showToast(`🔔 Yeni bir teklif aldınız: ${offer.offeredPrice} TL ("${offer.listingTitle}")`, "success");
-                
-                const offersTabContent = document.getElementById('tab-content-offers');
-                if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
-                    window.loadIncomingOffers();
+        window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
+            let count = 0;
+            let newlyAdded = false;
+            
+            snapshot.forEach(child => {
+                const offer = child.val();
+                if(offer.status === 'Beklemede') {
+                    count++;
+                    if (offer.date > window.loginSessionTime && (Date.now() - offer.date) < 10000) {
+                        newlyAdded = true;
+                    }
                 }
+            });
+
+            window.pendingOffersCount = count;
+            window.updateNotificationBadge();
+
+            if (newlyAdded) {
+                window.showToast("🔔 Yeni bir teklif aldınız! Gelen kutunuzu kontrol edin.", "success");
+            }
+
+            const offersTabContent = document.getElementById('tab-content-offers');
+            if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
+                window.loadIncomingOffers();
             }
         });
 
@@ -215,9 +233,26 @@ onAuthStateChanged(auth, async (user) => {
         if (loggedOutBox) loggedOutBox.classList.remove('hidden');
         if (loggedInBox) loggedInBox.classList.add('hidden');
         window.userExtraData = { favorites: {} };
+        window.pendingOffersCount = 0;
+        window.updateNotificationBadge();
     }
     window.filterListings();
 });
+
+// YENİ: Bildirim Rozetini Güncelleme Fonksiyonu
+window.updateNotificationBadge = function() {
+    const badge = document.getElementById('notification-badge');
+    if (badge) {
+        if (window.pendingOffersCount > 0) {
+            badge.innerText = window.pendingOffersCount > 99 ? '99+' : window.pendingOffersCount;
+            badge.classList.remove('hidden');
+            badge.style.display = 'flex';
+        } else {
+            badge.classList.add('hidden');
+            badge.style.display = 'none';
+        }
+    }
+};
 
 window.activeDbListener = null;
 window.activeQuery = null;
@@ -402,7 +437,9 @@ window.handleAuthSubmit = async function(e) {
     }
 };
 
-window.handleForgotPassword = async function() {
+// --- DÜZELTME: ŞİFRE SIFIRLAMA FORMU ENGELLENDİ ---
+window.handleForgotPassword = async function(e) {
+    if (e) e.preventDefault(); // Sayfanın yenilenmesini kesin engeller
     const email = document.getElementById('auth-email').value;
     if (!email) {
         window.showToast("Önce üstteki e-posta alanına adresinizi yazın.", "warning");
@@ -410,7 +447,7 @@ window.handleForgotPassword = async function() {
     }
     try {
         await sendPasswordResetEmail(auth, email);
-        window.showToast("Şifre sıfırlama bağlantısı e-postanıza gönderildi.", "success");
+        window.showToast("Şifre sıfırlama bağlantısı e-postanıza gönderildi. Gereksiz (Spam) kutusuna bakmayı unutmayın.", "success");
     } catch(err) {
         window.showToast("Hata: " + err.message, "error");
     }
@@ -920,7 +957,7 @@ window.loadIncomingOffers = async function() {
             return;
         }
 
-        myOffers.forEach(o => {
+        myOffers.sort((a,b) => b.date - a.date).forEach(o => {
             const div = document.createElement('div');
             div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
             
@@ -1238,6 +1275,16 @@ function switchAccountTab(tab) {
     if (tab === 'favorites') loadFavoriteListings();
     if (tab === 'offers') window.loadIncomingOffers();
 }
+
+// YENİ: Gelen Kutusuna Hızlı Geçiş Fonksiyonu
+window.openInboxTab = function() {
+    if (!window.currentUser) {
+        window.openAuthModal('login');
+        return;
+    }
+    openAccountModal();
+    switchAccountTab('offers');
+};
 
 function loadFavoriteListings() {
     const container = document.getElementById('tab-content-favorites');
@@ -1884,3 +1931,4 @@ window.updateFormMapCenter = updateFormMapCenter;
 window.updateMarqueeData = updateMarqueeData;
 window.renderPaginationControls = renderPaginationControls;
 window.loadFavoriteListings = loadFavoriteListings;
+window.openInboxTab = openInboxTab; // Yeni Gelen Kutusu Fonksiyonunu Dışa Aktarıyoruz
