@@ -248,19 +248,75 @@
     </div>
 
     <!-- HESABIM MODAL -->
-    <div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
-            <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            
-            <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
-                <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase" id="account-avatar">U</div>
-                <div>
-                    <h3 class="font-bold text-lux-dark text-base flex items-center space-x-2">
-                        <span id="account-username">Kullanıcı Adı</span>
-                    </h3>
-                    <p class="text-xs text-gray-400" id="account-email">email@domain.com</p>
-                </div>
+<div id="account-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
+        <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+        
+        <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
+            <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase" id="account-avatar">U</div>
+            <div>
+                <h3 class="font-bold text-lux-dark text-base flex items-center space-x-2">
+                    <span id="account-username">Kullanıcı Adı</span>
+                </h3>
+                <p class="text-xs text-gray-400" id="account-email">email@domain.com</p>
             </div>
+        </div>
+
+        <!-- SEKME BUTONLARI -->
+        <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500 overflow-x-auto whitespace-nowrap">
+            <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark shrink-0">İlanlarım</button>
+            <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Favorilerim</button>
+            <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Gelen / Gönderilen Teklifler</button>
+            <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Profil Ayarları</button>
+        </div>
+
+        <!-- SEKME İÇERİKLERİ -->
+        <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+        <div id="tab-content-favorites" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+        <div id="tab-content-offers" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+
+        <div id="tab-content-settings" class="hidden space-y-4">
+            <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
+                <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
+                <div class="space-y-2">
+                    <div>
+                        <label class="block text-[10px] text-gray-500 uppercase font-semibold">Kullanıcı Adı / Ad Soyad</label>
+                        <input type="text" id="update-username" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 uppercase font-semibold">WhatsApp Tel</label>
+                        <input type="tel" id="update-phone" class="w-full border border-gray-200 p-2 rounded-lg text-xs outline-none bg-white">
+                    </div>
+                    <div class="pt-2 border-t border-gray-200">
+                        <label class="block text-[10px] text-gray-500 uppercase font-semibold mb-1">Yeni Şifre (İsteğe Bağlı)</label>
+                        <div class="relative">
+                            <input type="password" id="update-new-password" placeholder="Boş bırakırsanız değişmez" class="w-full border border-gray-200 p-2 pr-10 rounded-lg text-xs outline-none bg-white">
+                            <button type="button" onclick="togglePasswordVisibility('update-new-password', 'update-new-pwd-icon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-lux-olive transition">
+                                <i id="update-new-pwd-icon" class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pt-2">
+                        <label class="block text-[10px] font-bold text-red-600 uppercase mb-1">Mevcut Şifreniz* (Güvenlik İçin Şart)</label>
+                        <div class="relative">
+                            <input type="password" id="update-current-password" required placeholder="Mevcut şifrenizi girin" class="w-full border border-red-200 p-2 pr-10 rounded-lg text-xs outline-none bg-white">
+                            <button type="button" onclick="togglePasswordVisibility('update-current-password', 'update-current-pwd-icon')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition">
+                                <i id="update-current-pwd-icon" class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="updateAccountDetails()" id="update-acc-btn" class="w-full bg-lux-dark text-white font-bold py-2 rounded-lg text-xs hover:bg-lux-olive transition mt-1">Değişiklikleri Kaydet</button>
+            </div>
+
+            <div class="bg-red-50 border border-red-200 p-3.5 rounded-xl space-y-2">
+                <span class="text-xs font-bold text-red-900 block"><i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i> Tehlikeli Bölge: Hesabı Kapat</span>
+                <p class="text-[10px] text-red-700">Hesabınızı kalıcı olarak kapatmak ve silmek istiyorsanız aşağıdaki butona basabilirsiniz.</p>
+                <button onclick="deleteUserAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg text-xs transition">Hesabımı Kalıcı Olarak Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
 
             <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500 overflow-x-auto whitespace-nowrap">
                 <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark shrink-0">İlanlarım</button>
