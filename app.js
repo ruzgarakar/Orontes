@@ -204,7 +204,6 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {} };
         }
 
-        // Bize gelen teklifleri (Satıcıysak) dinleyen yapı
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
         window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
             let count = 0;
@@ -229,7 +228,6 @@ onAuthStateChanged(auth, async (user) => {
             if (offersTabContent && !offersTabContent.classList.contains('hidden')) window.loadIncomingOffers();
         });
 
-        // Bizim gönderdiğimiz teklifleri (Alıcıysak) dinleyen yapı
         window.activeOutgoingOffersQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(user.uid));
         window.activeOutgoingOffersListener = onValue(window.activeOutgoingOffersQuery, (snapshot) => {
             const offersTabContent = document.getElementById('tab-content-offers');
@@ -344,7 +342,6 @@ window.executeLocalFilters = function() {
 
 setTimeout(() => { window.filterListings(); }, 300);
 
-// --- ÇIKIŞ YAP FONKSİYONU EKLENDİ ---
 window.handleLogout = async function() {
     try {
         await signOut(auth);
@@ -356,7 +353,6 @@ window.handleLogout = async function() {
         window.showToast("Çıkış yapılamadı: " + err.message, "error");
     }
 };
-// ------------------------------------
 
 window.handleAuthSubmit = async function(e) {
     e.preventDefault();
@@ -374,13 +370,12 @@ window.handleAuthSubmit = async function(e) {
        if (mode === 'login') {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             
-            // E-posta doğrulanmış mı kontrolü eklendi
             if (!userCredential.user.emailVerified) {
-                await signOut(auth); // Doğrulanmamışsa hemen çıkış yaptır
+                await signOut(auth);
                 window.showToast("Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "warning");
                 btn.disabled = false;
                 btn.innerText = "Giriş Yap";
-                return; // İşlemi durdur
+                return; 
             }
 
             window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
@@ -462,12 +457,10 @@ window.handleAuthSubmit = async function(e) {
 };
 
 window.handleForgotPassword = async function(e) {
-    // 1. Sayfanın yenilenmesini kesin olarak engelle
     if (e && typeof e.preventDefault === 'function') {
         e.preventDefault();
     }
     
-    // 2. Boşlukları (trim) temizleyerek al
     const emailInput = document.getElementById('auth-email');
     const email = emailInput ? emailInput.value.trim() : '';
     
@@ -482,7 +475,6 @@ window.handleForgotPassword = async function(e) {
         window.showToast("Şifre sıfırlama bağlantısı gönderildi! (Gereksiz/Spam kutusunu da kontrol edin)", "success");
     } catch(err) {
         console.error("Sıfırlama Hatası Detayı:", err);
-        // Hata durumunda Firebase'in gerçek hata kodunu ekrana basalım ki sorunu görelim
         if (err.code === 'auth/user-not-found') {
             window.showToast("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.", "error");
         } else if (err.code === 'auth/invalid-email') {
@@ -532,7 +524,7 @@ window.toggleFavorite = async function(id) {
 
 window.submitPriceOffer = async function() {
     if (!window.currentUser) {
-        window.showToast("Teklif vermek için giriş yapmalısınız.", "warning");
+        window.showToast("Teklif vermek/İletişime geçmek için giriş yapmalısınız.", "warning");
         openAuthModal('login');
         return;
     }
@@ -540,7 +532,7 @@ window.submitPriceOffer = async function() {
     const note = document.getElementById('offer-note-input').value;
 
     if (!price) {
-        window.showToast("Lütfen teklif ettiğiniz fiyatı girin.", "warning");
+        window.showToast("Lütfen bir teklif veya bütçe tutarı girin.", "warning");
         return;
     }
 
@@ -565,11 +557,11 @@ window.submitPriceOffer = async function() {
             status: 'Beklemede',
             date: Date.now()
         });
-        window.showToast("Teklifiniz satıcıya başarıyla iletildi!", "success");
+        window.showToast("İletişim/Teklif talebiniz başarıyla iletildi!", "success");
         document.getElementById('offer-price-input').value = '';
         document.getElementById('offer-note-input').value = '';
     } catch (err) {
-        window.showToast("Teklif iletilemedi: " + err.message, "error");
+        window.showToast("Talep iletilemedi: " + err.message, "error");
     }
 };
 
@@ -605,6 +597,13 @@ window.handleFormSubmit = async function(e) {
 
         const category = document.getElementById('form-category').value;
         const newPrice = Number(document.getElementById('form-price').value);
+        
+        // YENİ ALANLAR (Güvenli Okuma)
+        const lTypeEl = document.getElementById('form-listing-type');
+        const listingType = lTypeEl ? lTypeEl.value : 'tarim';
+        
+        const customEl = document.getElementById('form-customizable');
+        const isCustomizable = customEl ? customEl.checked : false;
 
         let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
         if (existingItem && existingItem.price !== newPrice) {
@@ -642,6 +641,8 @@ window.handleFormSubmit = async function(e) {
             userEmail: window.currentUser.email,
             title: document.getElementById('form-title').value,
             category: category,
+            listingType: listingType,          // YENİ
+            isCustomizable: isCustomizable,    // YENİ
             district: document.getElementById('form-district').value,
             address: document.getElementById('form-address').value || null,
             outsideHatay: isOutside,
@@ -907,7 +908,7 @@ window.openSellerProfileModal = async function(sellerUid) {
     const listingsEl = document.getElementById('seller-profile-listings');
 
     const sellerListings = (window.listings || []).filter(l => l.uid === sellerUid).sort((a,b) => b.date - a.date);
-    const displayName = sellerListings.length ? sellerListings[0].seller : 'Satıcı';
+    const displayName = sellerListings.length ? sellerListings[0].seller : 'Satıcı/Hizmet Veren';
 
     nameEl.innerText = displayName;
     avatarEl.innerText = (displayName || 'U').charAt(0).toUpperCase();
@@ -947,7 +948,7 @@ window.openSellerProfileModal = async function(sellerUid) {
     }
 
     if (sellerListings.length === 0) {
-        listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Bu satıcının aktif ilanı yok.</p>`;
+        listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Kullanıcının aktif ilanı yok.</p>`;
     } else {
         sellerListings.forEach(item => {
             const row = document.createElement('div');
@@ -990,7 +991,7 @@ window.loadIncomingOffers = async function() {
         container.innerHTML = '';
 
         if (allOffers.length === 0) {
-            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız veya gönderdiğiniz bir teklif bulunmuyor.</p>`;
+            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız veya gönderdiğiniz bir teklif/mesaj bulunmuyor.</p>`;
             return;
         }
 
@@ -1007,16 +1008,16 @@ window.loadIncomingOffers = async function() {
             if (isIncoming) {
                 let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
                 if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
+                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
                 const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
                 div.innerHTML = `
                     <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
-                        <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TEKLİF</span>
-                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
+                        <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>
+                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
                     </div>
                     <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
-                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                    <p class="text-[10px] text-gray-600">Gönderen: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
                     <div class="flex justify-between items-center mt-2">
                         <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
                         <div class="space-x-1">
@@ -1028,20 +1029,20 @@ window.loadIncomingOffers = async function() {
                     ${cleanPhone ? `
                         <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm mt-1">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>Alıcı İle WhatsApp'tan Yazış</span>
+                            <span>Kişiyle WhatsApp'tan Yazış</span>
                         </a>
                     ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
                 `;
             } else {
                 div.innerHTML = `
                     <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
-                        <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TEKLİF</span>
-                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklifim</span>
+                        <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>
+                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
                     </div>
                     <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
                     <div class="flex justify-between items-center mt-2">
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Satıcı Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
-                        ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Satıcı onayladı, iletişime geçecektir.</span>` : ''}
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Karşı Taraf Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                        ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
                     </div>
                     ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
                 `;
@@ -1049,14 +1050,14 @@ window.loadIncomingOffers = async function() {
             container.appendChild(div);
         });
     } catch(err) {
-        container.innerHTML = `<p class="text-xs text-red-400">Teklifler yüklenirken hata oluştu.</p>`;
+        container.innerHTML = `<p class="text-xs text-red-400">Talepler yüklenirken hata oluştu.</p>`;
     }
 };
 
 window.updateOfferStatus = async function(offerId, status) {
     try {
         await update(ref(db, `offers/${offerId}`), { status: status });
-        window.showToast(`Teklif durumu "${status}" olarak güncellendi.`, "success");
+        window.showToast(`Talep durumu "${status}" olarak güncellendi.`, "success");
         window.loadIncomingOffers();
     } catch(err) {
         window.showToast("Hata: " + err.message, "error");
@@ -1078,19 +1079,9 @@ window.getListingLocationText = function(item) {
     return item.district || '';
 };
 
-window.getDefaultImage = function(category) {
-    switch(category) {
-        case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
-        case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
-        case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
-        case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
-        case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
-        case 'Nakliye': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
-        default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
-    }
-};
-
+// KATEGORİ VE EMOJİLER ÇOĞALTILDI (Tarım + El Yapımı + Hizmetler)
 const categoryEmojis = {
+    // Tarım & Yöresel
     "Zeytin & Yağ": "🫒",
     "Narenciye": "🍊",
     "Salça & Sos": "🌶️",
@@ -1098,8 +1089,38 @@ const categoryEmojis = {
     "Sebze & Sera": "🥬",
     "Canlı Hayvan & Süt": "🐄",
     "Fide & Tohum": "🌱",
-    "Nakliye": "🚛",
+    // El Sanatları ve Girişimler
+    "El Sanatları": "🎨",
+    "Giyim & Aksesuar": "🧶",
+    "Ev Yapımı Ürünler": "🍯",
+    // Hizmetler
+    "Tadilat & Tamirat": "🛠️",
+    "Özel Ders": "📚",
+    "Temizlik": "🧹",
+    "Tarım İşçiliği": "🧑‍🌾",
+    "Nakliye & Lojistik": "🚛",
     "Diğer": "📦"
+};
+
+window.getDefaultImage = function(category) {
+    switch(category) {
+        // Eski Tarım Kategorileri
+        case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
+        case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
+        case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
+        case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
+        case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
+        case 'Nakliye & Lojistik': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
+        // Yeni Kategoriler
+        case 'El Sanatları': return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80';
+        case 'Giyim & Aksesuar': return 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?auto=format&fit=crop&w=600&q=80';
+        case 'Ev Yapımı Ürünler': return 'https://images.unsplash.com/photo-1589301773727-2c9388147d34?auto=format&fit=crop&w=600&q=80';
+        case 'Tadilat & Tamirat': return 'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?auto=format&fit=crop&w=600&q=80';
+        case 'Özel Ders': return 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=600&q=80';
+        case 'Temizlik': return 'https://images.unsplash.com/photo-1584820927498-cafe8c1c5a98?auto=format&fit=crop&w=600&q=80';
+        case 'Tarım İşçiliği': return 'https://images.unsplash.com/photo-1592982537447-6f2b6a066c0d?auto=format&fit=crop&w=600&q=80';
+        default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
+    }
 };
 
 const districtCoords = {
@@ -1286,11 +1307,37 @@ window.geocodeAddress = async function() {
     }
 };
 
-window.toggleWholesaleFields = function() {
-    const type = document.getElementById('form-business-type').value;
-    const box = document.getElementById('wholesale-fields');
-    if (box) box.classList.toggle('hidden', type !== 'Toptancı');
+// DİNAMİK FORM ALANLARI FONKSİYONU - (Eski Toptancı fonksiyonunu kapsayacak şekilde yenilendi)
+window.toggleDynamicFields = function() {
+    // 1. Toptancı alanı mantığı (Eski Yapı Korundu)
+    const bType = document.getElementById('form-business-type');
+    const wholesaleBox = document.getElementById('wholesale-fields');
+    if (wholesaleBox && bType) {
+        wholesaleBox.classList.toggle('hidden', bType.value !== 'Toptancı');
+    }
+
+    // 2. Yeni İlan Türü (Hizmet/Ürün/El Yapımı) mantığı
+    const lTypeEl = document.getElementById('form-listing-type');
+    if (!lTypeEl) return; // Henüz HTML'e eklenmediyse sorunsuz çalışmaya devam eder
+    const lType = lTypeEl.value;
+
+    const bTypeContainer = document.getElementById('business-type-container'); // "Üretici/Toptancı" seçimi
+    const customOrderBox = document.getElementById('custom-order-fields'); // "Siparişe Göre Yapılır" check kutusu
+    
+    if (lType === 'hizmet') {
+        if (bTypeContainer) bTypeContainer.classList.add('hidden'); // Hizmette toptancı olmaz
+        if (customOrderBox) customOrderBox.classList.add('hidden'); 
+    } else if (lType === 'el_yapimi') {
+        if (bTypeContainer) bTypeContainer.classList.remove('hidden');
+        if (customOrderBox) customOrderBox.classList.remove('hidden'); 
+    } else { // tarim
+        if (bTypeContainer) bTypeContainer.classList.remove('hidden');
+        if (customOrderBox) customOrderBox.classList.add('hidden');
+    }
 };
+// Eski HTML bağlantıları kopmasın diye yönlendirme yapıyoruz
+window.toggleWholesaleFields = window.toggleDynamicFields;
+
 
 function updateFormMapCenter(district) {
     const coords = districtCoords[district] || [36.2023, 36.1613];
@@ -1302,7 +1349,7 @@ function updateFormMapCenter(district) {
 function shareOnWhatsApp() {
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
-    const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+    const text = `📌 YEREL PAZAR & HİZMET AĞI\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -1390,13 +1437,16 @@ function updateMarqueeData() {
     const items = window.listings || [];
 
     if (items.length === 0) {
-        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Hatay Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
+        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
         return;
     }
 
+    // YENİ KATEGORİLER MARQUEE ALANINA EKLENDİ
     const categories = [
         "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
-        "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye", "Diğer"
+        "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye & Lojistik",
+        "El Sanatları", "Giyim & Aksesuar", "Ev Yapımı Ürünler", 
+        "Tadilat & Tamirat", "Özel Ders", "Temizlik", "Tarım İşçiliği", "Diğer"
     ];
 
     let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
@@ -1418,7 +1468,7 @@ function updateMarqueeData() {
             if (drops > rises) trendIcon = '<i class="fa-solid fa-arrow-trend-down text-emerald-400 ml-1.5" title="Fiyatlar Düşüşte"></i>';
             else if (rises > drops) trendIcon = '<i class="fa-solid fa-arrow-trend-up text-red-400 ml-1.5" title="Fiyatlar Yükselişte"></i>';
 
-            const emoji = categoryEmojis[cat] || '🌾';
+            const emoji = categoryEmojis[cat] || '📦';
             contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
                 <span>${emoji}</span>
                 <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan) ${trendIcon}</span>
@@ -1437,7 +1487,7 @@ function openCategoryDetailModal(cat) {
     
     window.catModalCurrentPage = 1;
     
-    const emoji = categoryEmojis[cat] || '🌾';
+    const emoji = categoryEmojis[cat] || '📦';
     document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
     document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif ilan`;
 
@@ -1463,7 +1513,7 @@ function renderCategoryModalContent() {
     const paginatedItems = items.slice(startIndex, startIndex + window.catModalItemsPerPage);
 
     paginatedItems.forEach(item => {
-        const emoji = categoryEmojis[item.category] || '🌾';
+        const emoji = categoryEmojis[item.category] || '📦';
         
         let priceHistoryBadge = '';
         if (item.priceHistory && item.priceHistory.length > 0) {
@@ -1579,6 +1629,13 @@ function openFormModal() {
     document.getElementById('form-lat').value = '';
     document.getElementById('form-lng').value = '';
     document.getElementById('form-address').value = '';
+    
+    // YENİ ALANLAR RESET
+    const lTypeEl = document.getElementById('form-listing-type');
+    if(lTypeEl) lTypeEl.value = 'tarim';
+    const customEl = document.getElementById('form-customizable');
+    if(customEl) customEl.checked = false;
+
     window.locationOutsideHatay = null;
     const owBanner = document.getElementById('outside-hatay-warning');
     if (owBanner) owBanner.classList.add('hidden');
@@ -1592,9 +1649,13 @@ function openFormModal() {
 
     if (sellerInput) sellerInput.value = latestName;
     if (phoneInput) phoneInput.value = latestPhone;
-    document.getElementById('form-business-type').value = 'Üretici';
-    document.getElementById('form-min-order').value = '';
-    window.toggleWholesaleFields();
+    
+    const bType = document.getElementById('form-business-type');
+    if (bType) bType.value = 'Üretici';
+    const minOrd = document.getElementById('form-min-order');
+    if (minOrd) minOrd.value = '';
+    
+    window.toggleDynamicFields(); // Yeni Dinamik Alan Fonksiyonu çağırılıyor
     document.getElementById('form-modal').classList.remove('hidden'); 
     
     setTimeout(() => {
@@ -1610,6 +1671,13 @@ function openFormModalForEdit() {
     document.getElementById('form-modal-title').innerText = "İlanı Düzenle";
     document.getElementById('form-title').value = item.title;
     document.getElementById('form-category').value = item.category;
+    
+    // YENİ ALANLAR DOLDURULUYOR
+    const lTypeEl = document.getElementById('form-listing-type');
+    if(lTypeEl) lTypeEl.value = item.listingType || 'tarim';
+    const customEl = document.getElementById('form-customizable');
+    if(customEl) customEl.checked = item.isCustomizable || false;
+
     document.getElementById('form-district').value = item.district;
     document.getElementById('form-address').value = item.address || '';
     window.locationOutsideHatay = item.outsideHatay ? { province: item.realProvince, district: item.realDistrict } : null;
@@ -1631,9 +1699,14 @@ function openFormModalForEdit() {
     document.getElementById('form-vip').checked = item.isVip || false;
     document.getElementById('form-urgent').checked = item.isUrgent || false;
     document.getElementById('form-discount').checked = item.isDiscount || false;
-    document.getElementById('form-business-type').value = item.businessType || 'Üretici';
-    document.getElementById('form-min-order').value = item.minOrderQty || '';
-    window.toggleWholesaleFields();
+    
+    const bType = document.getElementById('form-business-type');
+    if (bType) bType.value = item.businessType || 'Üretici';
+    
+    const minOrd = document.getElementById('form-min-order');
+    if (minOrd) minOrd.value = item.minOrderQty || '';
+    
+    window.toggleDynamicFields(); // Yeni Dinamik Alan Fonksiyonu çağırılıyor
 
     document.getElementById('detail-modal').classList.add('hidden');
     document.getElementById('form-modal').classList.remove('hidden');
@@ -1714,11 +1787,11 @@ function renderListings() {
         : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
     
     const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} İlan Bulundu`;
+    if (countEl) countEl.innerText = `${items.length} İlan/Hizmet Bulundu`;
     grid.innerHTML = '';
 
     if (items.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun ilan bulunamadı.</div>`;
+        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun sonuç bulunamadı.</div>`;
         const pagContainer = document.getElementById('pagination-container');
         if (pagContainer) pagContainer.innerHTML = '';
         return;
@@ -1737,17 +1810,18 @@ function renderListings() {
         else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
 
         const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
-        const emoji = categoryEmojis[item.category] || '🌾';
+        const emoji = categoryEmojis[item.category] || '📦';
 
         let priceHistoryBadge = '';
         if (item.priceHistory && item.priceHistory.length > 0) {
             const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
             const isDrop = item.price < oldPrice;
             priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-500' : 'text-red-500'} font-bold flex items-center mt-1">
-                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'} mr-1"></i> Eski Fiyat: ${oldPrice} TL
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'} mr-1"></i> Eski: ${oldPrice}
             </div>`;
         }
 
+        // YENİ BADGE SİSTEMİ EKLENDİ
         card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
         card.innerHTML = `
             <div>
@@ -1757,10 +1831,15 @@ function renderListings() {
                         <i class="fa-solid fa-heart"></i>
                     </button>
                     <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
-                        ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded">VIP</span>' : ''}
-                        ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">ACİL</span>' : ''}
-                        ${item.businessType === 'Toptancı' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🏢 TOPTANCI</span>' : ''}
-                        ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">⚠️ HATAY DIŞI</span>' : ''}
+                        ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded shadow">VIP</span>' : ''}
+                        ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse shadow">ACİL</span>' : ''}
+                        
+                        ${item.listingType === 'hizmet' ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🛠️ HİZMET</span>' : ''}
+                        ${item.listingType === 'el_yapimi' ? '<span class="bg-purple-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎨 EL YAPIMI</span>' : ''}
+                        ${item.isCustomizable ? '<span class="bg-pink-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">SİPARİŞ ÜZERİNE</span>' : ''}
+
+                        ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
+                        ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
                     </div>
                 </div>
                 <div class="p-3.5">
@@ -1774,7 +1853,7 @@ function renderListings() {
             <div class="px-3.5 pb-3.5">
                 <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
                     <div>
-                        <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Birim Fiyat')}</span>
+                        <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Fiyat')}</span>
                         <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
                         ${priceHistoryBadge}
                         ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${escapeHtml(item.minOrderQty)}</span>` : ''}
@@ -1915,11 +1994,21 @@ function openDetailModal(id) {
         wholesaleBox.classList.add('hidden');
     }
 
+    // YENİ ALAN (El Yapımı / Sipariş Üzerine Üretim)
+    const customBox = document.getElementById('detail-custom-box');
+    if (customBox) {
+        if (item.isCustomizable) {
+            customBox.classList.remove('hidden');
+        } else {
+            customBox.classList.add('hidden');
+        }
+    }
+
     const outsideBox = document.getElementById('detail-outside-hatay-box');
     if (item.outsideHatay) {
         const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
         const districtPart = item.realDistrict ? `, ${item.realDistrict} ilçesinde` : '';
-        document.getElementById('detail-outside-hatay-text').innerText = `Bu ilan Hatay dışında — ${cityPart}${districtPart} bulunuyor.`;
+        document.getElementById('detail-outside-hatay-text').innerText = `Bu kayıt Hatay dışında — ${cityPart}${districtPart} bulunuyor.`;
         outsideBox.classList.remove('hidden');
     } else {
         outsideBox.classList.add('hidden');
@@ -1939,7 +2028,7 @@ function openDetailModal(id) {
 
     let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
     if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-    const waMsg = `Merhaba ${item.seller}, ORONTES üzerindeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
+    const waMsg = `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız/hizmetiniz hakkında görüşmek istiyorum.`;
     document.getElementById('detail-whatsapp').href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
 
     updateFavBtnStyle(id);
