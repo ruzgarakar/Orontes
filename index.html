@@ -266,7 +266,11 @@
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             
             <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
-                <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase" id="account-avatar">U</div>
+                <!-- GÜNCELLENEN: Dinamik Avatar Alanı (Kişisel Resim Desteği) -->
+                <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase overflow-hidden relative" id="account-avatar-container">
+                    <span id="account-avatar-text">U</span>
+                    <img id="account-avatar-img" src="" class="hidden w-full h-full object-cover">
+                </div>
                 <div>
                     <h3 class="font-bold text-lux-dark text-base flex items-center space-x-2">
                         <span id="account-username">Kullanıcı Adı</span>
@@ -291,6 +295,22 @@
             <div id="tab-content-settings" class="hidden space-y-4">
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
                     <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
+                    
+                    <!-- YENİ EKLENEN: Profil Fotoğrafı (Avatar) Seçici -->
+                    <div class="flex items-center space-x-4 mb-3 pb-3 border-b border-gray-200/60">
+                        <div class="w-12 h-12 rounded-full bg-white overflow-hidden relative border border-gray-300">
+                            <img id="settings-avatar-preview" src="" class="w-full h-full object-cover hidden">
+                            <div id="settings-avatar-placeholder" class="w-full h-full flex items-center justify-center text-gray-400 text-lg font-bold">👤</div>
+                        </div>
+                        <div>
+                            <label for="update-avatar-file" class="bg-lux-olive text-white px-3 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer hover:bg-opacity-80 transition shadow-sm">Fotoğraf Seç</label>
+                            <input type="file" id="update-avatar-file" accept="image/*" class="hidden" onchange="previewAvatar(this)">
+                            <p class="text-[9px] text-gray-400 mt-1">Maksimum 2MB</p>
+                            <!-- Seçilen fotoğrafı base64 olarak tutacak gizli input -->
+                            <input type="hidden" id="update-avatar-base64">
+                        </div>
+                    </div>
+
                     <div class="space-y-2">
                         <div>
                             <label class="block text-[10px] text-gray-500 uppercase font-semibold">Kullanıcı Adı / Ad Soyad</label>
@@ -434,7 +454,11 @@
         <div class="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
             <div class="bg-lux-dark text-white p-5">
-                <div class="w-14 h-14 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-xl uppercase mb-3" id="seller-profile-avatar">U</div>
+                <!-- GÜNCELLENEN: Dinamik Avatar Alanı -->
+                <div class="w-14 h-14 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-xl uppercase mb-3 overflow-hidden relative" id="seller-profile-avatar-container">
+                    <span id="seller-profile-avatar-text">U</span>
+                    <img id="seller-profile-avatar-img" src="" class="hidden w-full h-full object-cover">
+                </div>
                 <h2 id="seller-profile-name" class="text-lg font-bold">Satıcı</h2>
                 <p id="seller-profile-joined" class="text-xs text-lux-sage mt-0.5">Üyelik bilgisi yükleniyor...</p>
                 <div class="flex items-center gap-4 mt-3 text-xs">
@@ -496,34 +520,39 @@
                 <input type="hidden" id="form-lat" value="">
                 <input type="hidden" id="form-lng" value="">
 
-                <!-- YENİ EKLENEN: İlan Türü ve Kategori Grubu -->
+                <!-- GÜNCELLENEN: Kategoriler artık JS fonksiyonuna bağlı data-type'lara sahip -->
                 <div class="grid grid-cols-2 gap-3">
-                    <select id="form-listing-type" onchange="window.toggleDynamicFields()" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none font-semibold text-lux-dark">
+                    <select id="form-listing-type" onchange="window.toggleDynamicFields(); filterCategoryOptions();" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none font-semibold text-lux-dark">
                         <option value="tarim">🌾 Tarım / Ürün</option>
                         <option value="el_yapimi">🎨 El Sanatları / Girişim</option>
                         <option value="hizmet">🛠️ Yerel Hizmet / Usta</option>
                     </select>
 
                     <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
-                        <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
-                        <option value="Narenciye">🍊 Narenciye</option>
-                        <option value="Salça & Sos">🌶️ Salça & Sos</option>
-                        <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
-                        <option value="Sebze & Sera">🥬 Sebze & Sera</option>
-                        <option value="Canlı Hayvan & Süt">🐄 Hayvan & Süt</option>
-                        <option value="Fide & Tohum">🌱 Fide & Tohum</option>
+                        <option value="" disabled selected>Kategori Seçin*</option>
+                        <!-- Tarım İçerikleri -->
+                        <option value="Zeytin & Yağ" data-type="tarim">🫒 Zeytin & Yağ</option>
+                        <option value="Narenciye" data-type="tarim">🍊 Narenciye</option>
+                        <option value="Salça & Sos" data-type="tarim">🌶️ Salça & Sos</option>
+                        <option value="Bakliyat & Hububat" data-type="tarim">🌾 Bakliyat & Hububat</option>
+                        <option value="Sebze & Sera" data-type="tarim">🥬 Sebze & Sera</option>
+                        <option value="Canlı Hayvan & Süt" data-type="tarim">🐄 Hayvan & Süt</option>
+                        <option value="Fide & Tohum" data-type="tarim">🌱 Fide & Tohum</option>
                         
-                        <option value="El Sanatları">🎨 El Sanatları</option>
-                        <option value="Giyim & Aksesuar">🧶 Giyim & Aksesuar</option>
-                        <option value="Ev Yapımı Ürünler">🍯 Ev Yapımı Ürünler</option>
+                        <!-- El Sanatları İçerikleri -->
+                        <option value="El Sanatları" data-type="el_yapimi">🎨 El Sanatları</option>
+                        <option value="Giyim & Aksesuar" data-type="el_yapimi">🧶 Giyim & Aksesuar</option>
+                        <option value="Ev Yapımı Ürünler" data-type="el_yapimi">🍯 Ev Yapımı Ürünler</option>
                         
-                        <option value="Tadilat & Tamirat">🛠️ Tadilat & Tamirat</option>
-                        <option value="Özel Ders">📚 Özel Ders</option>
-                        <option value="Temizlik">🧹 Temizlik</option>
-                        <option value="Tarım İşçiliği">🧑‍🌾 Tarım İşçiliği</option>
-                        <option value="Nakliye & Lojistik">🚛 Nakliye & Lojistik</option>
+                        <!-- Hizmet İçerikleri -->
+                        <option value="Tadilat & Tamirat" data-type="hizmet">🛠️ Tadilat & Tamirat</option>
+                        <option value="Özel Ders" data-type="hizmet">📚 Özel Ders</option>
+                        <option value="Temizlik" data-type="hizmet">🧹 Temizlik</option>
+                        <option value="Tarım İşçiliği" data-type="hizmet">🧑‍🌾 Tarım İşçiliği</option>
+                        <option value="Nakliye & Lojistik" data-type="hizmet">🚛 Nakliye & Lojistik</option>
                         
-                        <option value="Diğer">📦 Diğer</option>
+                        <!-- Herkese Açık Kategori -->
+                        <option value="Diğer" data-type="all">📦 Diğer</option>
                     </select>
                 </div>
 
@@ -570,7 +599,6 @@
                     <input type="tel" id="form-phone" required placeholder="WhatsApp Tel*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
 
-                <!-- YENİ EKLENEN: Dinamik İşletme Tipi ve Özelleştirme Alanları -->
                 <div id="business-type-container" class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2.5">
                     <label class="block text-[11px] font-semibold uppercase text-gray-500">Kapasite / İşletme Tipi</label>
                     <select id="form-business-type" onchange="window.toggleDynamicFields()" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
@@ -643,6 +671,50 @@
          </form>
       </div>
     </div>
+
+    <!-- İhtiyaç Duyulan JS Komutları -->
+    <script>
+        // Form Açıldığında veya Tür Değiştiğinde Alt Kategorileri Filtreler
+        function filterCategoryOptions() {
+            const typeSelect = document.getElementById('form-listing-type');
+            if(!typeSelect) return;
+            const type = typeSelect.value;
+            const categorySelect = document.getElementById('form-category');
+            const options = categorySelect.querySelectorAll('option[data-type]');
+            
+            let firstVisible = null;
+            options.forEach(opt => {
+                if (opt.getAttribute('data-type') === type || opt.getAttribute('data-type') === 'all') {
+                    opt.style.display = '';
+                    if (!firstVisible) firstVisible = opt;
+                } else {
+                    opt.style.display = 'none';
+                }
+            });
+            
+            // Kullanıcı alakasız bir kategori seçili bıraktıysa ilk görünür olanı seçtiririz
+            if (firstVisible) {
+                categorySelect.value = firstVisible.value;
+            }
+        }
+
+        // Profil Sayfasında Yüklenen Fotoğrafın Önizlemesini Gösterir ve Base64 Yapar
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Str = e.target.result;
+                    document.getElementById('settings-avatar-preview').src = base64Str;
+                    document.getElementById('settings-avatar-preview').classList.remove('hidden');
+                    document.getElementById('settings-avatar-placeholder').classList.add('hidden');
+                    
+                    // Firebase'e kaydetmek üzere değeri gizli inputa atarız (app.js bu id'den okuyabilir)
+                    document.getElementById('update-avatar-base64').value = base64Str;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
 
     <!-- Kütüphaneler ve Harici JavaScript Dosyası -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
