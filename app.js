@@ -204,7 +204,6 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {} };
         }
 
-        // Bize gelen teklifleri (Satıcıysak) dinleyen yapı
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
         window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
             let count = 0;
@@ -229,7 +228,6 @@ onAuthStateChanged(auth, async (user) => {
             if (offersTabContent && !offersTabContent.classList.contains('hidden')) window.loadIncomingOffers();
         });
 
-        // Bizim gönderdiğimiz teklifleri (Alıcıysak) dinleyen yapı
         window.activeOutgoingOffersQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(user.uid));
         window.activeOutgoingOffersListener = onValue(window.activeOutgoingOffersQuery, (snapshot) => {
             const offersTabContent = document.getElementById('tab-content-offers');
@@ -315,6 +313,7 @@ window.executeLocalFilters = function() {
     const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
     const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
 
+    // 1. Temel Filtreleme (Arama, Kategori, Fiyat vb.)
     window.filteredListings = (window.listings || []).filter(item => {
         const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
         const matchesDistrict = district === "" || item.district === district;
@@ -322,21 +321,40 @@ window.executeLocalFilters = function() {
         return matchesSearch && matchesDistrict && matchesPrice;
     });
 
+    // 2. Mesafe Hesaplama (Eğer Yakınımda modu açıksa)
     if (window.nearbyModeActive && window.userGeoLocation) {
         window.filteredListings.forEach(item => {
             item._distanceKm = (item.lat && item.lng)
                 ? window.haversineKm(window.userGeoLocation.lat, window.userGeoLocation.lng, item.lat, item.lng)
                 : null;
         });
-        window.filteredListings.sort((a, b) => {
+    }
+
+    // 3. GELİŞMİŞ VIP SIRALAMA (Önce VIP, sonra Seçili Filtre)
+    window.filteredListings.sort((a, b) => {
+        const aIsVip = a.isVip && (!a.vipExpireDate || Date.now() < a.vipExpireDate) ? 1 : 0;
+        const bIsVip = b.isVip && (!b.vipExpireDate || Date.now() < b.vipExpireDate) ? 1 : 0;
+
+        // VIP olanlar kendi aralarında üstte yer alır
+        if (aIsVip !== bIsVip) {
+            return bIsVip - aIsVip; 
+        }
+
+        // İkisi de VIP veya ikisi de normal ilansa kullanıcının seçtiği filtreyi uygula
+        if (window.nearbyModeActive && window.userGeoLocation) {
             if (a._distanceKm === null) return 1;
             if (b._distanceKm === null) return -1;
             return a._distanceKm - b._distanceKm;
-        });
-    } else if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
-    else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
-    else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
-    else window.filteredListings.sort((a, b) => b.date - a.date);
+        } else if (sort === 'price-low') {
+            return a.price - b.price;
+        } else if (sort === 'price-high') {
+            return b.price - a.price;
+        } else if (sort === 'oldest') {
+            return a.date - b.date;
+        } else {
+            return b.date - a.date; // Varsayılan (En Yeni)
+        }
+    });
 
     window.currentPage = 1;
     renderListings();
@@ -344,7 +362,6 @@ window.executeLocalFilters = function() {
 
 setTimeout(() => { window.filterListings(); }, 300);
 
-// --- ÇIKIŞ YAP FONKSİYONU EKLENDİ ---
 window.handleLogout = async function() {
     try {
         await signOut(auth);
@@ -356,7 +373,6 @@ window.handleLogout = async function() {
         window.showToast("Çıkış yapılamadı: " + err.message, "error");
     }
 };
-// ------------------------------------
 
 window.handleAuthSubmit = async function(e) {
     e.preventDefault();
@@ -374,13 +390,12 @@ window.handleAuthSubmit = async function(e) {
         if (mode === 'login') {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             
-            // E-posta doğrulanmış mı kontrolü eklendi
             if (!userCredential.user.emailVerified) {
-                await signOut(auth); // Doğrulanmamışsa hemen çıkış yaptır
+                await signOut(auth);
                 window.showToast("Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "warning");
                 btn.disabled = false;
                 btn.innerText = "Giriş Yap";
-                return; // İşlemi durdur
+                return;
             }
 
             window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
@@ -462,12 +477,10 @@ window.handleAuthSubmit = async function(e) {
 };
 
 window.handleForgotPassword = async function(e) {
-    // 1. Sayfanın yenilenmesini kesin olarak engelle
     if (e && typeof e.preventDefault === 'function') {
         e.preventDefault();
     }
     
-    // 2. Boşlukları (trim) temizleyerek al
     const emailInput = document.getElementById('auth-email');
     const email = emailInput ? emailInput.value.trim() : '';
     
@@ -482,7 +495,6 @@ window.handleForgotPassword = async function(e) {
         window.showToast("Şifre sıfırlama bağlantısı gönderildi! (Gereksiz/Spam kutusunu da kontrol edin)", "success");
     } catch(err) {
         console.error("Sıfırlama Hatası Detayı:", err);
-        // Hata durumunda Firebase'in gerçek hata kodunu ekrana basalım ki sorunu görelim
         if (err.code === 'auth/user-not-found') {
             window.showToast("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.", "error");
         } else if (err.code === 'auth/invalid-email') {
@@ -651,7 +663,7 @@ window.handleFormSubmit = async function(e) {
             lng: Number(document.getElementById('form-lng').value) || null,
             price: newPrice,
             priceHistory: priceHistory,
-            unit: document.getElementById('form-unit').value || 'KG',
+            unit: document.getElementById('form-unit').value || 'Adet',
             seller: document.getElementById('form-seller').value,
             phone: document.getElementById('form-phone').value,
             desc: document.getElementById('form-desc').value,
@@ -1080,25 +1092,23 @@ window.getListingLocationText = function(item) {
 
 window.getDefaultImage = function(category) {
     switch(category) {
-        case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
-        case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
-        case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
-        case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
-        case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
-        case 'Nakliye': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
+        case 'Yöresel Gıda & Mutfak': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
+        case 'El Yapımı & Atölye': return 'https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?auto=format&fit=crop&w=600&q=80';
+        case 'Giyim & Ayakkabı': return 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=600&q=80';
+        case 'Ev Dekorasyonu': return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80';
+        case 'Yerel Hizmetler & Ustalar': return 'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?auto=format&fit=crop&w=600&q=80';
+        case 'Tarım & Doğal Ürünler': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
         default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
     }
 };
 
 const categoryEmojis = {
-    "Zeytin & Yağ": "🫒",
-    "Narenciye": "🍊",
-    "Salça & Sos": "🌶️",
-    "Bakliyat & Hububat": "🌾",
-    "Sebze & Sera": "🥬",
-    "Canlı Hayvan & Süt": "🐄",
-    "Fide & Tohum": "🌱",
-    "Nakliye": "🚛",
+    "Yöresel Gıda & Mutfak": "🫒",
+    "El Yapımı & Atölye": "🧶",
+    "Giyim & Ayakkabı": "👠",
+    "Ev Dekorasyonu": "🏡",
+    "Yerel Hizmetler & Ustalar": "🛠️",
+    "Tarım & Doğal Ürünler": "🌾",
     "Diğer": "📦"
 };
 
@@ -1302,7 +1312,7 @@ function updateFormMapCenter(district) {
 function shareOnWhatsApp() {
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
-    const text = `📌 ORONTES HATAY PAZARI\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+    const text = `📌 ORONTES YEREL PAZAR\n\n🌾 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL / ${item.unit}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -1390,17 +1400,17 @@ function updateMarqueeData() {
     const items = window.listings || [];
 
     if (items.length === 0) {
-        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Hatay Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
+        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
         return;
     }
 
     const categories = [
-        "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
-        "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye", "Diğer"
+        "Yöresel Gıda & Mutfak", "El Yapımı & Atölye", "Giyim & Ayakkabı",
+        "Ev Dekorasyonu", "Yerel Hizmetler & Ustalar", "Tarım & Doğal Ürünler", "Diğer"
     ];
 
     let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
-        <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Canlı Piyasa Endeksi:</span></span>`;
+        <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Piyasa Endeksi:</span></span>`;
 
     categories.forEach(cat => {
         const catListings = items.filter(i => i.category === cat);
@@ -1418,7 +1428,7 @@ function updateMarqueeData() {
             if (drops > rises) trendIcon = '<i class="fa-solid fa-arrow-trend-down text-emerald-400 ml-1.5" title="Fiyatlar Düşüşte"></i>';
             else if (rises > drops) trendIcon = '<i class="fa-solid fa-arrow-trend-up text-red-400 ml-1.5" title="Fiyatlar Yükselişte"></i>';
 
-            const emoji = categoryEmojis[cat] || '🌾';
+            const emoji = categoryEmojis[cat] || '📦';
             contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
                 <span>${emoji}</span>
                 <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan) ${trendIcon}</span>
@@ -1437,7 +1447,7 @@ function openCategoryDetailModal(cat) {
     
     window.catModalCurrentPage = 1;
     
-    const emoji = categoryEmojis[cat] || '🌾';
+    const emoji = categoryEmojis[cat] || '📦';
     document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
     document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif ilan`;
 
@@ -1463,7 +1473,7 @@ function renderCategoryModalContent() {
     const paginatedItems = items.slice(startIndex, startIndex + window.catModalItemsPerPage);
 
     paginatedItems.forEach(item => {
-        const emoji = categoryEmojis[item.category] || '🌾';
+        const emoji = categoryEmojis[item.category] || '📦';
         
         let priceHistoryBadge = '';
         if (item.priceHistory && item.priceHistory.length > 0) {
@@ -1737,7 +1747,7 @@ function renderListings() {
         else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
 
         const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
-        const emoji = categoryEmojis[item.category] || '🌾';
+        const emoji = categoryEmojis[item.category] || '📦';
 
         let priceHistoryBadge = '';
         if (item.priceHistory && item.priceHistory.length > 0) {
