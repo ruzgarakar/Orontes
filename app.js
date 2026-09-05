@@ -88,7 +88,7 @@ window.onChildAdded = onChildAdded;
 window.reauthenticateWithCredential = reauthenticateWithCredential;
 
 window.currentUser = null;
-window.userExtraData = { favorites: {}, offers: {} };
+window.userExtraData = { favorites: {}, offers: {}, avatar: '' };
 window.listings = [];
 window.filteredListings = [];
 window.currentViewMode = 'grid';
@@ -197,11 +197,11 @@ onAuthStateChanged(auth, async (user) => {
                 window.userExtraData = snap.val();
                 if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
             } else {
-                window.userExtraData = { favorites: {} };
+                window.userExtraData = { favorites: {}, avatar: '' };
             }
         } catch(err) {
             console.error("Kullanıcı verisi çekilemedi:", err);
-            window.userExtraData = { favorites: {} };
+            window.userExtraData = { favorites: {}, avatar: '' };
         }
 
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
@@ -239,7 +239,7 @@ onAuthStateChanged(auth, async (user) => {
     } else {
         if (loggedOutBox) loggedOutBox.classList.remove('hidden');
         if (loggedInBox) loggedInBox.classList.add('hidden');
-        window.userExtraData = { favorites: {} };
+        window.userExtraData = { favorites: {}, avatar: '' };
         window.pendingOffersCount = 0;
         window.updateNotificationBadge();
     }
@@ -598,7 +598,6 @@ window.handleFormSubmit = async function(e) {
         const category = document.getElementById('form-category').value;
         const newPrice = Number(document.getElementById('form-price').value);
         
-        // YENİ ALANLAR (Güvenli Okuma)
         const lTypeEl = document.getElementById('form-listing-type');
         const listingType = lTypeEl ? lTypeEl.value : 'tarim';
         
@@ -641,8 +640,8 @@ window.handleFormSubmit = async function(e) {
             userEmail: window.currentUser.email,
             title: document.getElementById('form-title').value,
             category: category,
-            listingType: listingType,          // YENİ
-            isCustomizable: isCustomizable,    // YENİ
+            listingType: listingType,          
+            isCustomizable: isCustomizable,    
             district: document.getElementById('form-district').value,
             address: document.getElementById('form-address').value || null,
             outsideHatay: isOutside,
@@ -697,6 +696,9 @@ window.updateAccountDetails = async function() {
     const newPass = document.getElementById('update-new-password').value;
     const currentPass = document.getElementById('update-current-password').value;
     const btn = document.getElementById('update-acc-btn');
+    
+    const avatarInputEl = document.getElementById('update-avatar-base64');
+    const newAvatar = avatarInputEl ? avatarInputEl.value : '';
 
     if (!currentPass) {
         window.showToast("Lütfen mevcut şifrenizi girin.", "warning");
@@ -728,14 +730,22 @@ window.updateAccountDetails = async function() {
             }
         }
 
-        await update(ref(db, 'users/' + window.currentUser.uid), {
+        // Güncelleme paketini hazırlıyoruz (Fotoğraf varsa ekliyoruz)
+        let userUpdatePayload = {
             username: newUsername,
             phone: newPhone
-        });
-        
-        await update(ref(db, 'publicProfiles/' + window.currentUser.uid), {
+        };
+        let publicProfilePayload = {
             username: newUsername
-        });
+        };
+
+        if (newAvatar) {
+            userUpdatePayload.avatar = newAvatar;
+            publicProfilePayload.avatar = newAvatar;
+        }
+
+        await update(ref(db, 'users/' + window.currentUser.uid), userUpdatePayload);
+        await update(ref(db, 'publicProfiles/' + window.currentUser.uid), publicProfilePayload);
         await updateProfile(window.currentUser, { displayName: newUsername });
 
         if (newPass.trim() !== "") {
@@ -753,6 +763,10 @@ window.updateAccountDetails = async function() {
 
         window.userExtraData.username = newUsername;
         window.userExtraData.phone = newPhone;
+        if (newAvatar) {
+            window.userExtraData.avatar = newAvatar;
+        }
+        
         document.getElementById('update-current-password').value = '';
         document.getElementById('update-new-password').value = '';
         closeAccountModal();
@@ -901,7 +915,8 @@ window.openSellerProfileModal = async function(sellerUid) {
     if (!sellerUid) return;
 
     const nameEl = document.getElementById('seller-profile-name');
-    const avatarEl = document.getElementById('seller-profile-avatar');
+    const avatarTextEl = document.getElementById('seller-profile-avatar-text');
+    const avatarImgEl = document.getElementById('seller-profile-avatar-img');
     const joinedEl = document.getElementById('seller-profile-joined');
     const ratingEl = document.getElementById('seller-profile-rating');
     const countEl = document.getElementById('seller-profile-count');
@@ -911,7 +926,15 @@ window.openSellerProfileModal = async function(sellerUid) {
     const displayName = sellerListings.length ? sellerListings[0].seller : 'Satıcı/Hizmet Veren';
 
     nameEl.innerText = displayName;
-    avatarEl.innerText = (displayName || 'U').charAt(0).toUpperCase();
+    if(avatarTextEl) {
+        avatarTextEl.innerText = (displayName || 'U').charAt(0).toUpperCase();
+        avatarTextEl.classList.remove('hidden');
+    }
+    if(avatarImgEl) {
+        avatarImgEl.classList.add('hidden');
+        avatarImgEl.src = '';
+    }
+    
     joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
     ratingEl.innerText = "☆☆☆☆☆";
     countEl.innerText = `${sellerListings.length} ilan`;
@@ -919,14 +942,28 @@ window.openSellerProfileModal = async function(sellerUid) {
 
     document.getElementById('seller-profile-modal').classList.remove('hidden');
 
+    // Satıcının profil bilgilerini ve varsa Avatar'ını çekme
     try {
         const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
-        if (profileSnap.exists() && profileSnap.val().joinedAt) {
-            const d = new Date(profileSnap.val().joinedAt);
-            const now = Date.now();
-            const years = Math.floor((now - profileSnap.val().joinedAt) / (365 * 24 * 60 * 60 * 1000));
-            const sinceText = years >= 1 ? `${years} yıldır üye` : `${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} tarihinden beri üye`;
-            joinedEl.innerText = sinceText;
+        if (profileSnap.exists()) {
+            const pData = profileSnap.val();
+            
+            if (pData.joinedAt) {
+                const d = new Date(pData.joinedAt);
+                const now = Date.now();
+                const years = Math.floor((now - pData.joinedAt) / (365 * 24 * 60 * 60 * 1000));
+                const sinceText = years >= 1 ? `${years} yıldır üye` : `${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} tarihinden beri üye`;
+                joinedEl.innerText = sinceText;
+            } else {
+                joinedEl.innerText = "Üyelik tarihi bilinmiyor";
+            }
+            
+            // Eğer avatarı varsa görseli yerleştir
+            if (pData.avatar && avatarImgEl && avatarTextEl) {
+                avatarImgEl.src = pData.avatar;
+                avatarImgEl.classList.remove('hidden');
+                avatarTextEl.classList.add('hidden');
+            }
         } else {
             joinedEl.innerText = "Üyelik tarihi bilinmiyor";
         }
@@ -1079,7 +1116,6 @@ window.getListingLocationText = function(item) {
     return item.district || '';
 };
 
-// KATEGORİ VE EMOJİLER ÇOĞALTILDI (Tarım + El Yapımı + Hizmetler)
 const categoryEmojis = {
     // Tarım & Yöresel
     "Zeytin & Yağ": "🫒",
@@ -1307,37 +1343,32 @@ window.geocodeAddress = async function() {
     }
 };
 
-// DİNAMİK FORM ALANLARI FONKSİYONU - (Eski Toptancı fonksiyonunu kapsayacak şekilde yenilendi)
 window.toggleDynamicFields = function() {
-    // 1. Toptancı alanı mantığı (Eski Yapı Korundu)
     const bType = document.getElementById('form-business-type');
     const wholesaleBox = document.getElementById('wholesale-fields');
     if (wholesaleBox && bType) {
         wholesaleBox.classList.toggle('hidden', bType.value !== 'Toptancı');
     }
 
-    // 2. Yeni İlan Türü (Hizmet/Ürün/El Yapımı) mantığı
     const lTypeEl = document.getElementById('form-listing-type');
-    if (!lTypeEl) return; // Henüz HTML'e eklenmediyse sorunsuz çalışmaya devam eder
+    if (!lTypeEl) return;
     const lType = lTypeEl.value;
 
-    const bTypeContainer = document.getElementById('business-type-container'); // "Üretici/Toptancı" seçimi
-    const customOrderBox = document.getElementById('custom-order-fields'); // "Siparişe Göre Yapılır" check kutusu
+    const bTypeContainer = document.getElementById('business-type-container'); 
+    const customOrderBox = document.getElementById('custom-order-fields'); 
     
     if (lType === 'hizmet') {
-        if (bTypeContainer) bTypeContainer.classList.add('hidden'); // Hizmette toptancı olmaz
+        if (bTypeContainer) bTypeContainer.classList.add('hidden'); 
         if (customOrderBox) customOrderBox.classList.add('hidden'); 
     } else if (lType === 'el_yapimi') {
         if (bTypeContainer) bTypeContainer.classList.remove('hidden');
         if (customOrderBox) customOrderBox.classList.remove('hidden'); 
-    } else { // tarim
+    } else { 
         if (bTypeContainer) bTypeContainer.classList.remove('hidden');
         if (customOrderBox) customOrderBox.classList.add('hidden');
     }
 };
-// Eski HTML bağlantıları kopmasın diye yönlendirme yapıyoruz
 window.toggleWholesaleFields = window.toggleDynamicFields;
-
 
 function updateFormMapCenter(district) {
     const coords = districtCoords[district] || [36.2023, 36.1613];
@@ -1441,7 +1472,6 @@ function updateMarqueeData() {
         return;
     }
 
-    // YENİ KATEGORİLER MARQUEE ALANINA EKLENDİ
     const categories = [
         "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
         "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye & Lojistik",
@@ -1576,7 +1606,26 @@ function openAccountModal() {
     const name = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
     document.getElementById('account-username').innerText = name;
     document.getElementById('account-email').innerText = window.currentUser.email;
-    document.getElementById('account-avatar').innerText = name.charAt(0).toUpperCase();
+    
+    // AVATAR UI YÖNETİMİ
+    const avatarImg = document.getElementById('account-avatar-img');
+    const avatarText = document.getElementById('account-avatar-text');
+    const settingsPreview = document.getElementById('settings-avatar-preview');
+    const settingsPlaceholder = document.getElementById('settings-avatar-placeholder');
+    
+    if (window.userExtraData.avatar) {
+        if (avatarImg) { avatarImg.src = window.userExtraData.avatar; avatarImg.classList.remove('hidden'); }
+        if (avatarText) avatarText.classList.add('hidden');
+        
+        if (settingsPreview) { settingsPreview.src = window.userExtraData.avatar; settingsPreview.classList.remove('hidden'); }
+        if (settingsPlaceholder) settingsPlaceholder.classList.add('hidden');
+    } else {
+        if (avatarImg) { avatarImg.src = ''; avatarImg.classList.add('hidden'); }
+        if (avatarText) { avatarText.innerText = name.charAt(0).toUpperCase(); avatarText.classList.remove('hidden'); }
+        
+        if (settingsPreview) { settingsPreview.src = ''; settingsPreview.classList.add('hidden'); }
+        if (settingsPlaceholder) settingsPlaceholder.classList.remove('hidden');
+    }
 
     document.getElementById('update-username').value = name;
     document.getElementById('update-phone').value = window.userExtraData.phone || '';
@@ -1630,9 +1679,12 @@ function openFormModal() {
     document.getElementById('form-lng').value = '';
     document.getElementById('form-address').value = '';
     
-    // YENİ ALANLAR RESET
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = 'tarim';
+    
+    // Kategori seçeneklerini ayarlama
+    if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
+
     const customEl = document.getElementById('form-customizable');
     if(customEl) customEl.checked = false;
 
@@ -1655,7 +1707,7 @@ function openFormModal() {
     const minOrd = document.getElementById('form-min-order');
     if (minOrd) minOrd.value = '';
     
-    window.toggleDynamicFields(); // Yeni Dinamik Alan Fonksiyonu çağırılıyor
+    window.toggleDynamicFields(); 
     document.getElementById('form-modal').classList.remove('hidden'); 
     
     setTimeout(() => {
@@ -1670,11 +1722,15 @@ function openFormModalForEdit() {
     document.getElementById('edit-listing-id').value = item.id;
     document.getElementById('form-modal-title').innerText = "İlanı Düzenle";
     document.getElementById('form-title').value = item.title;
-    document.getElementById('form-category').value = item.category;
     
-    // YENİ ALANLAR DOLDURULUYOR
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = item.listingType || 'tarim';
+    
+    // Kategori seçeneklerini güncelleme
+    if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
+    
+    document.getElementById('form-category').value = item.category;
+
     const customEl = document.getElementById('form-customizable');
     if(customEl) customEl.checked = item.isCustomizable || false;
 
@@ -1706,7 +1762,7 @@ function openFormModalForEdit() {
     const minOrd = document.getElementById('form-min-order');
     if (minOrd) minOrd.value = item.minOrderQty || '';
     
-    window.toggleDynamicFields(); // Yeni Dinamik Alan Fonksiyonu çağırılıyor
+    window.toggleDynamicFields(); 
 
     document.getElementById('detail-modal').classList.add('hidden');
     document.getElementById('form-modal').classList.remove('hidden');
@@ -1821,7 +1877,6 @@ function renderListings() {
             </div>`;
         }
 
-        // YENİ BADGE SİSTEMİ EKLENDİ
         card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
         card.innerHTML = `
             <div>
@@ -1994,7 +2049,6 @@ function openDetailModal(id) {
         wholesaleBox.classList.add('hidden');
     }
 
-    // YENİ ALAN (El Yapımı / Sipariş Üzerine Üretim)
     const customBox = document.getElementById('detail-custom-box');
     if (customBox) {
         if (item.isCustomizable) {
