@@ -17,7 +17,6 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// --- YENİ: 400 HATA SAYFASI ---
 window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad Request)") {
     document.body.innerHTML = `
         <div style="height:100vh; width:100vw; display:flex; flex-direction:column; justify-content:center; align-items:center; background-color:#f8f9fa; color:#1a1a1a; font-family:sans-serif; text-align:center; padding:20px; z-index:999999; position:fixed; top:0; left:0;">
@@ -32,7 +31,6 @@ window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad 
     `;
 };
 
-// --- YENİ: PRO MOD - Özel Bildirim (Toast) Sistemi ---
 window.showToast = function(message, type = 'success') {
     const toast = document.createElement('div');
     toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
@@ -100,8 +98,9 @@ window.formMapInstance = null;
 window.formMarker = null;
 window.activeOffersListener = null;
 window.activeOffersQuery = null;
+window.activeOutgoingOffersListener = null;
+window.activeOutgoingOffersQuery = null;
 
-// Gelen Kutusu İçin Değişken
 window.pendingOffersCount = 0;
 
 window.currentPage = 1;
@@ -176,8 +175,13 @@ onAuthStateChanged(auth, async (user) => {
     const loggedInBox = document.getElementById('auth-logged-in');
 
     if (window.activeOffersListener && window.activeOffersQuery) {
-        off(window.activeOffersQuery, 'value', window.activeOffersListener); // DÜZELTME: onValue kullandığımız için value olarak temizliyoruz
+        off(window.activeOffersQuery, 'value', window.activeOffersListener);
         window.activeOffersListener = null;
+    }
+    
+    if (window.activeOutgoingOffersListener && window.activeOutgoingOffersQuery) {
+        off(window.activeOutgoingOffersQuery, 'value', window.activeOutgoingOffersListener);
+        window.activeOutgoingOffersListener = null;
     }
 
     if (user) {
@@ -200,7 +204,7 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {} };
         }
 
-        // --- DÜZELTME: BİLDİRİM SAYACI İÇİN GERÇEK ZAMANLI İZLEYİCİ ---
+        // Bize gelen teklifleri (Satıcıysak) dinleyen yapı
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
         window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
             let count = 0;
@@ -219,10 +223,15 @@ onAuthStateChanged(auth, async (user) => {
             window.pendingOffersCount = count;
             window.updateNotificationBadge();
 
-            if (newlyAdded) {
-                window.showToast("🔔 Yeni bir teklif aldınız! Gelen kutunuzu kontrol edin.", "success");
-            }
+            if (newlyAdded) window.showToast("🔔 Yeni bir teklif aldınız! Gelen kutunuzu kontrol edin.", "success");
 
+            const offersTabContent = document.getElementById('tab-content-offers');
+            if (offersTabContent && !offersTabContent.classList.contains('hidden')) window.loadIncomingOffers();
+        });
+
+        // Bizim gönderdiğimiz teklifleri (Alıcıysak) dinleyen yapı
+        window.activeOutgoingOffersQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(user.uid));
+        window.activeOutgoingOffersListener = onValue(window.activeOutgoingOffersQuery, (snapshot) => {
             const offersTabContent = document.getElementById('tab-content-offers');
             if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
                 window.loadIncomingOffers();
@@ -239,7 +248,6 @@ onAuthStateChanged(auth, async (user) => {
     window.filterListings();
 });
 
-// YENİ: Bildirim Rozetini Güncelleme Fonksiyonu
 window.updateNotificationBadge = function() {
     const badge = document.getElementById('notification-badge');
     if (badge) {
@@ -350,7 +358,7 @@ window.handleAuthSubmit = async function(e) {
 
     try {
         if (mode === 'login') {
-            const loginResult = await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth, email, password);
             window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
             closeAuthModal();
         } else {
@@ -388,13 +396,9 @@ window.handleAuthSubmit = async function(e) {
             
             try {
                 await sendEmailVerification(res.user);
-            } catch (emailErr) {
-                console.warn("E-posta gönderimi başarısız:", emailErr);
-            }
+            } catch (emailErr) {}
 
-            try {
-                await updateProfile(res.user, { displayName: username });
-            } catch(e) {}
+            try { await updateProfile(res.user, { displayName: username }); } catch(e) {}
             
             try {
                 await update(ref(db, 'users/' + res.user.uid), {
@@ -409,8 +413,7 @@ window.handleAuthSubmit = async function(e) {
                 });
                 await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
             } catch (dbErr) {
-                console.error("Veritabanı Yazma Hatası:", dbErr);
-                window.showToast("Kayıt başarılı ancak Firebase veritabanı kuralları veri kaydını engelledi.", "warning");
+                window.showToast("Kayıt başarılı ancak Firebase kuralları veri kaydını engelledi.", "warning");
             }
 
             await signOut(auth);
@@ -420,16 +423,13 @@ window.handleAuthSubmit = async function(e) {
     } catch (err) {
         if (err.message === "UI_VALIDATION") {
         } else if (err.code === 'auth/email-already-in-use') {
-            window.showToast("Bu e-posta adresi zaten kayıtlı! Şifrenizi unuttuysanız sıfırlama talebi gönderin.", "error");
+            window.showToast("Bu e-posta adresi zaten kayıtlı!", "error");
         } else if (err.code === 'auth/invalid-email') {
             window.showToast("Lütfen geçerli bir e-posta adresi yazın.", "error");
         } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
             window.showToast("E-posta adresiniz veya şifreniz hatalı.", "error");
-        } else if (err.code === 'auth/operation-not-allowed') {
-            window.showToast("DİKKAT: Firebase Console'da 'Email/Password' ile giriş yöntemi kapalı! Lütfen aktif edin.", "error");
         } else {
             window.showToast("Bir hata oluştu: " + err.message, "error");
-            console.error(err);
         }
     } finally {
         btn.disabled = false;
@@ -437,25 +437,36 @@ window.handleAuthSubmit = async function(e) {
     }
 };
 
-// --- DÜZELTME: ŞİFRE SIFIRLAMA FORMU ENGELLENDİ ---
 window.handleForgotPassword = async function(e) {
-    if (e) e.preventDefault(); // Sayfanın yenilenmesini kesin engeller
-    const email = document.getElementById('auth-email').value;
+    // 1. Sayfanın yenilenmesini kesin olarak engelle
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+    }
+    
+    // 2. Boşlukları (trim) temizleyerek al
+    const emailInput = document.getElementById('auth-email');
+    const email = emailInput ? emailInput.value.trim() : '';
+    
     if (!email) {
-        window.showToast("Önce üstteki e-posta alanına adresinizi yazın.", "warning");
+        window.showToast("Lütfen e-posta alanına kayıtlı adresinizi yazın.", "warning");
         return;
     }
-    try {
-        await sendPasswordResetEmail(auth, email);
-        window.showToast("Şifre sıfırlama bağlantısı e-postanıza gönderildi. Gereksiz (Spam) kutusuna bakmayı unutmayın.", "success");
-    } catch(err) {
-        window.showToast("Hata: " + err.message, "error");
-    }
-};
 
-window.handleLogout = function() { 
-    signOut(auth); 
-    window.showToast("Çıkış yapıldı.", "success");
+    try {
+        window.showToast("İstek gönderiliyor, lütfen bekleyin...", "warning");
+        await sendPasswordResetEmail(auth, email);
+        window.showToast("Şifre sıfırlama bağlantısı gönderildi! (Gereksiz/Spam kutusunu da kontrol edin)", "success");
+    } catch(err) {
+        console.error("Sıfırlama Hatası Detayı:", err);
+        // Hata durumunda Firebase'in gerçek hata kodunu ekrana basalım ki sorunu görelim
+        if (err.code === 'auth/user-not-found') {
+            window.showToast("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.", "error");
+        } else if (err.code === 'auth/invalid-email') {
+            window.showToast("Geçersiz bir e-posta formatı girdiniz.", "error");
+        } else {
+            window.showToast("Bir hata oluştu: " + err.message, "error");
+        }
+    }
 };
 
 window.togglePasswordVisibility = function(inputId, iconId) {
@@ -571,7 +582,6 @@ window.handleFormSubmit = async function(e) {
         const category = document.getElementById('form-category').value;
         const newPrice = Number(document.getElementById('form-price').value);
 
-        // --- YENİ: FİYAT ZAMAN GEÇMİŞİ KAYDI ---
         let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
         if (existingItem && existingItem.price !== newPrice) {
             priceHistory.push({ price: existingItem.price, date: Date.now() });
@@ -935,60 +945,85 @@ window.openSellerProfileModal = async function(sellerUid) {
 
 function closeSellerProfileModal() { document.getElementById('seller-profile-modal').classList.add('hidden'); }
 
+
+// --- GÜNCELLENDİ: TEKLİF KUTUSU HEM GELEN HEM GİDEN TEKLİFLERİ GÖSTERİR ---
 window.loadIncomingOffers = async function() {
     const container = document.getElementById('tab-content-offers');
     container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
 
     try {
-        const offersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
-        const snap = await get(offersQuery);
-        const data = snap.val();
+        const incomingQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
+        const outgoingQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(window.currentUser.uid));
+        
+        const [inSnap, outSnap] = await Promise.all([get(incomingQuery), get(outgoingQuery)]);
+        
+        const incomingData = inSnap.val() || {};
+        const outgoingData = outSnap.val() || {};
 
-        if (!data) {
-            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
-            return;
-        }
+        const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
+        const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
-        const myOffers = Object.keys(data).map(k => ({id: k, ...data[k]}));
+        const allOffers = [...incomingOffers, ...outgoingOffers].sort((a,b) => b.date - a.date);
+
         container.innerHTML = '';
 
-        if (myOffers.length === 0) {
-            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz tarafınıza iletilen bir teklif bulunmuyor.</p>`;
+        if (allOffers.length === 0) {
+            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız veya gönderdiğiniz bir teklif bulunmuyor.</p>`;
             return;
         }
 
-        myOffers.sort((a,b) => b.date - a.date).forEach(o => {
+        allOffers.forEach(o => {
             const div = document.createElement('div');
-            div.className = "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2";
+            const isIncoming = o.type === 'incoming';
             
-            let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-            if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-            const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
-            const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
+            div.className = isIncoming 
+                ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
+                : "bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-2 mb-2";
 
             const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
 
-            div.innerHTML = `
-                <div class="flex justify-between font-bold text-amber-900">
-                    <span>📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</span>
-                    <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
-                </div>
-                <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
-                    <div class="space-x-1">
-                        <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
-                        <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+            if (isIncoming) {
+                let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
+                if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif üzerine görüşmek istiyorum.`;
+                const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
+                        <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TEKLİF</span>
+                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklif</span>
                     </div>
-                </div>
-                ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
-                ${cleanPhone ? `
-                    <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm">
-                        <i class="fa-brands fa-whatsapp text-sm"></i>
-                        <span>Teklif Veren İle WhatsApp'tan Yazış</span>
-                    </a>
-                ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
-            `;
+                    <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
+                    <p class="text-[10px] text-gray-600">Teklif Veren: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                        <div class="space-x-1">
+                            <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
+                            <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                        </div>
+                    </div>
+                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                    ${cleanPhone ? `
+                        <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm mt-1">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>Alıcı İle WhatsApp'tan Yazış</span>
+                        </a>
+                    ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
+                        <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TEKLİF</span>
+                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL Teklifim</span>
+                    </div>
+                    <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Satıcı Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                        ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Satıcı onayladı, iletişime geçecektir.</span>` : ''}
+                    </div>
+                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                `;
+            }
             container.appendChild(div);
         });
     } catch(err) {
@@ -1276,7 +1311,6 @@ function switchAccountTab(tab) {
     if (tab === 'offers') window.loadIncomingOffers();
 }
 
-// YENİ: Gelen Kutusuna Hızlı Geçiş Fonksiyonu
 window.openInboxTab = function() {
     if (!window.currentUser) {
         window.openAuthModal('login');
@@ -1328,7 +1362,6 @@ function getTimeAgo(timestamp) {
     return `${Math.floor(days / 30)} ay önce`;
 }
 
-// --- YENİ: CANLI PİYASA ENDEKSİNDE TREND GRAFİĞİ ---
 function updateMarqueeData() {
     const container = document.getElementById('marquee-container');
     if (!container) return;
@@ -1350,7 +1383,6 @@ function updateMarqueeData() {
     categories.forEach(cat => {
         const catListings = items.filter(i => i.category === cat);
         if (catListings.length > 0) {
-            // Trend analizi: Kategori içindeki ilanlarda fiyat düşüşü mü çok artışı mı?
             let drops = 0; let rises = 0;
             catListings.forEach(i => {
                 if (i.priceHistory && i.priceHistory.length > 0) {
@@ -1411,7 +1443,6 @@ function renderCategoryModalContent() {
     paginatedItems.forEach(item => {
         const emoji = categoryEmojis[item.category] || '🌾';
         
-        // Modal içi fiyat mini grafiği (varsa)
         let priceHistoryBadge = '';
         if (item.priceHistory && item.priceHistory.length > 0) {
             const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
@@ -1686,7 +1717,6 @@ function renderListings() {
         const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
         const emoji = categoryEmojis[item.category] || '🌾';
 
-        // --- YENİ: İLAN KARTI FİYAT GEÇMİŞİ (VİTRİN) ---
         let priceHistoryBadge = '';
         if (item.priceHistory && item.priceHistory.length > 0) {
             const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
@@ -1839,7 +1869,6 @@ function openDetailModal(id) {
     const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
     document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
     
-    // --- YENİ: İLAN DETAY SAYFASI FİYAT GEÇMİŞİ GRAFİĞİ ---
     let priceHTML = `${item.price} TL`;
     if (item.priceHistory && item.priceHistory.length > 0) {
         const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
@@ -1931,4 +1960,4 @@ window.updateFormMapCenter = updateFormMapCenter;
 window.updateMarqueeData = updateMarqueeData;
 window.renderPaginationControls = renderPaginationControls;
 window.loadFavoriteListings = loadFavoriteListings;
-window.openInboxTab = openInboxTab; // Yeni Gelen Kutusu Fonksiyonunu Dışa Aktarıyoruz
+window.openInboxTab = openInboxTab;
