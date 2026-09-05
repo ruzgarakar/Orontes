@@ -372,7 +372,17 @@ window.handleAuthSubmit = async function(e) {
 
     try {
         if (mode === 'login') {
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            
+            // E-posta doğrulanmış mı kontrolü eklendi
+            if (!userCredential.user.emailVerified) {
+                await signOut(auth); // Doğrulanmamışsa hemen çıkış yaptır
+                window.showToast("Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "warning");
+                btn.disabled = false;
+                btn.innerText = "Giriş Yap";
+                return; // İşlemi durdur
+            }
+
             window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
             closeAuthModal();
         } else {
