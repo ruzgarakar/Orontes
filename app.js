@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
     authDomain: "orontes-886a3.firebaseapp.com",
@@ -342,6 +343,20 @@ window.executeLocalFilters = function() {
 };
 
 setTimeout(() => { window.filterListings(); }, 300);
+
+// --- ÇIKIŞ YAP FONKSİYONU EKLENDİ ---
+window.handleLogout = async function() {
+    try {
+        await signOut(auth);
+        window.showToast("Başarıyla çıkış yapıldı.", "success");
+        if (typeof closeAccountModal === 'function') closeAccountModal();
+        if (typeof closeDetailModal === 'function') closeDetailModal();
+        if (typeof closeFormModal === 'function') closeFormModal();
+    } catch(err) {
+        window.showToast("Çıkış yapılamadı: " + err.message, "error");
+    }
+};
+// ------------------------------------
 
 window.handleAuthSubmit = async function(e) {
     e.preventDefault();
@@ -944,8 +959,6 @@ window.openSellerProfileModal = async function(sellerUid) {
 
 function closeSellerProfileModal() { document.getElementById('seller-profile-modal').classList.add('hidden'); }
 
-
-// --- GÜNCELLENDİ: TEKLİF KUTUSU HEM GELEN HEM GİDEN TEKLİFLERİ GÖSTERİR ---
 window.loadIncomingOffers = async function() {
     const container = document.getElementById('tab-content-offers');
     container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
