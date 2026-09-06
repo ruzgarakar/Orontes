@@ -27,6 +27,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet.js CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet MarkerCluster CSS (YENİ) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <!-- Harici Stil Dosyası -->
     <link rel="stylesheet" href="style.css">
 </head>
@@ -195,13 +198,21 @@
                 <span id="total-count" class="text-xs text-gray-400 font-normal">(Yükleniyor...)</span>
             </h2>
 
+            <!-- GÜNCELLENEN: Harita (Cluster) Görünümü Butonu Eklendi -->
             <div class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80">
-                <button id="view-grid-btn" onclick="setViewMode('grid')" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
-                <button id="view-list-btn" onclick="setViewMode('list')" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
+                <button id="view-grid-btn" onclick="setViewMode('grid'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
+                <button id="view-list-btn" onclick="setViewMode('list'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
+                <button id="view-map-btn" onclick="document.getElementById('global-map-container').classList.remove('hidden'); document.getElementById('listings-grid').classList.add('hidden'); window.renderGlobalMap('global-map');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition" title="Harita Üzerinde İlanları Gör"><i class="fa-solid fa-map-location-dot"></i></button>
             </div>
         </div>
 
         <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+        
+        <!-- YENİ: Toplu Kümeleme (Marker Cluster) Harita Konteyneri -->
+        <div id="global-map-container" class="hidden w-full h-[500px] rounded-2xl border border-gray-200 shadow-sm z-10 relative">
+            <div id="global-map" class="w-full h-full rounded-2xl"></div>
+        </div>
+
         <div id="pagination-container" class="mt-8 flex justify-center items-center space-x-2"></div>
     </main>
 
@@ -266,7 +277,7 @@
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             
             <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
-                <!-- GÜNCELLENEN: Dinamik Avatar Alanı (Kişisel Resim Desteği) -->
+                <!-- Dinamik Avatar Alanı (Kişisel Resim Desteği) -->
                 <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase overflow-hidden relative" id="account-avatar-container">
                     <span id="account-avatar-text">U</span>
                     <img id="account-avatar-img" src="" class="hidden w-full h-full object-cover">
@@ -296,7 +307,7 @@
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
                     <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
                     
-                    <!-- YENİ EKLENEN: Profil Fotoğrafı (Avatar) Seçici -->
+                    <!-- Profil Fotoğrafı (Avatar) Seçici -->
                     <div class="flex items-center space-x-4 mb-3 pb-3 border-b border-gray-200/60">
                         <div class="w-12 h-12 rounded-full bg-white overflow-hidden relative border border-gray-300">
                             <img id="settings-avatar-preview" src="" class="w-full h-full object-cover hidden">
@@ -395,6 +406,12 @@
                     <span>Bu ilan kişiye/siparişe özel üretilebilmektedir (Özelleştirilebilir).</span>
                 </div>
 
+                <!-- YENİ: Hasat Rozeti -->
+                <div id="detail-harvest-box" class="hidden bg-orange-50 border border-orange-300 text-orange-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-seedling"></i>
+                    <span>Ön Sipariş / Hasat Tarihi: <span id="detail-harvest-date">-</span></span>
+                </div>
+
                 <div id="detail-wholesale-box" class="hidden bg-lux-olive/10 border border-lux-olive/30 text-lux-olive p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-building"></i>
                     <span>Toptancı ilanı — Minimum sipariş: <span id="detail-min-order">-</span></span>
@@ -423,9 +440,10 @@
                         </div>
                         <span id="detail-seller-rating" class="text-xs font-bold text-lux-gold">☆☆☆☆☆</span>
                     </div>
-                    <div id="rate-seller-box" class="hidden pt-2 border-t border-gray-200/60 flex items-center justify-between gap-2" onclick="event.stopPropagation()">
+                    <div id="rate-seller-box" class="hidden pt-2 border-t border-gray-200/60 flex items-center justify-between gap-2 flex-wrap" onclick="event.stopPropagation()">
                         <span class="text-[10px] text-gray-500">Bu profili değerlendirin:</span>
-                        <div id="rate-seller-stars" class="flex gap-1 text-lg cursor-pointer"></div>
+                        <!-- JS Tarafından Doldurulan Yıldızlar ve Rozetler Bu Alana Gelecek -->
+                        <div id="rate-seller-stars" class="flex flex-col gap-1 w-full"></div>
                     </div>
                 </div>
 
@@ -454,7 +472,7 @@
         <div class="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
             <div class="bg-lux-dark text-white p-5">
-                <!-- GÜNCELLENEN: Dinamik Avatar Alanı -->
+                <!-- Dinamik Avatar Alanı -->
                 <div class="w-14 h-14 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-xl uppercase mb-3 overflow-hidden relative" id="seller-profile-avatar-container">
                     <span id="seller-profile-avatar-text">U</span>
                     <img id="seller-profile-avatar-img" src="" class="hidden w-full h-full object-cover">
@@ -465,6 +483,9 @@
                     <span id="seller-profile-rating" class="font-bold text-lux-gold">☆☆☆☆☆</span>
                     <span id="seller-profile-count" class="text-lux-sage">0 ilan</span>
                 </div>
+                
+                <!-- YENİ: Satıcı Profil Rozetleri Container -->
+                <div id="seller-profile-badges" class="flex flex-wrap mt-3 gap-1.5"></div>
             </div>
             <div class="p-5">
                 <h3 class="text-[11px] font-bold uppercase text-gray-400 mb-3">Bu Satıcının İlanları</h3>
@@ -520,7 +541,6 @@
                 <input type="hidden" id="form-lat" value="">
                 <input type="hidden" id="form-lng" value="">
 
-                <!-- GÜNCELLENEN: Kategoriler artık JS fonksiyonuna bağlı data-type'lara sahip -->
                 <div class="grid grid-cols-2 gap-3">
                     <select id="form-listing-type" onchange="window.toggleDynamicFields(); filterCategoryOptions();" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none font-semibold text-lux-dark">
                         <option value="tarim">🌾 Tarım / Ürün</option>
@@ -616,6 +636,12 @@
                     <input type="checkbox" id="form-customizable" class="accent-purple-600 cursor-pointer w-4 h-4">
                 </div>
 
+                <!-- YENİ: Hasat / Ön Sipariş Alanı -->
+                <div id="harvest-date-container" class="bg-orange-50/50 p-3 rounded-xl border border-orange-200 space-y-2.5">
+                    <label class="block text-[11px] font-semibold uppercase text-orange-700">🌱 Hasat / Ön Sipariş Tarihi (İsteğe Bağlı)</label>
+                    <input type="text" id="form-harvest-date" placeholder="Örn: Ekim Ayında Teslim, Gelecek Hafta Çıkacak..." class="w-full border border-orange-200 p-2 rounded-xl text-xs bg-white outline-none">
+                </div>
+
                 <div>
                     <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">Görsel (Ürün / Hizmet)</label>
                     <input type="file" id="form-file" accept="image/*" onchange="window.checkFileSize(this)" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
@@ -666,7 +692,7 @@
                     <option value="Ulaşılamıyor">Kişiye Ulaşılamıyor</option>
                     <option value="Uygunsuz İçerik">Uygunsuz İçerik</option>
                 </select>
-                <textarea id="report-note" rows="2" placeholder="Ek not..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                <textarea id="report-note" rows="2" placeholder="Ek note..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
                 <button type="submit" id="report-btn" class="w-full bg-red-600 text-white font-bold py-2 rounded-xl text-xs">Gönder</button>
          </form>
       </div>
@@ -718,6 +744,7 @@
 
     <!-- Kütüphaneler ve Harici JavaScript Dosyası -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script type="module" src="app.js"></script>
 </body>
 </html>
