@@ -175,6 +175,16 @@ window.compressImage = function(file) {
 };
 
 onAuthStateChanged(auth, async (user) => {
+    // E-postası doğrulanmamış kullanıcıyı UI tarafında login yapmamak için kontrol
+    if (user && !user.emailVerified) {
+        window.currentUser = null;
+        const loggedOutBox = document.getElementById('auth-logged-out');
+        const loggedInBox = document.getElementById('auth-logged-in');
+        if (loggedOutBox) loggedOutBox.classList.remove('hidden');
+        if (loggedInBox) loggedInBox.classList.add('hidden');
+        return;
+    }
+
     window.currentUser = user;
     const loggedOutBox = document.getElementById('auth-logged-out');
     const loggedInBox = document.getElementById('auth-logged-in');
@@ -288,7 +298,6 @@ window.triggerDatabaseFilter = function(category = '') {
             items.push({ id: childSnapshot.key, ...childSnapshot.val() });
         });
         
-        // 3. Favori İlan / Fiyat Düşüş Bildirimi Check
         if (window.currentUser && window.userExtraData && window.userExtraData.favorites) {
             items.forEach(item => {
                 if (window.userExtraData.favorites[item.id] && item.priceHistory && item.priceHistory.length > 0) {
@@ -305,7 +314,6 @@ window.triggerDatabaseFilter = function(category = '') {
         window.executeLocalFilters();
         window.updateMarqueeData(); 
         
-        // 4. Global Cluster Haritasını (varsa) güncelle
         if(typeof window.renderGlobalMap === 'function') {
             window.renderGlobalMap();
         }
@@ -363,7 +371,6 @@ window.executeLocalFilters = function() {
     window.currentPage = 1;
     renderListings();
     
-    // Global haritayı yenile
     if(typeof window.renderGlobalMap === 'function') {
         window.renderGlobalMap();
     }
@@ -400,14 +407,48 @@ window.handleAuthSubmit = async function(e) {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             
             if (!userCredential.user.emailVerified) {
-                await signOut(auth);
                 window.showToast("Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "warning");
                 btn.disabled = false;
                 btn.innerText = "Giriş Yap";
+                
+                // Yeniden gönderme butonu oluştur/göster
+                let resendBtn = document.getElementById('resend-verification-btn');
+                if (!resendBtn) {
+                    resendBtn = document.createElement('button');
+                    resendBtn.id = 'resend-verification-btn';
+                    resendBtn.type = 'button';
+                    resendBtn.className = 'w-full bg-lux-gold text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3';
+                    const form = document.querySelector('#auth-modal form');
+                    if(form) form.appendChild(resendBtn);
+                }
+                resendBtn.innerText = "Doğrulama Kodunu Tekrar Gönder";
+                resendBtn.classList.remove('hidden');
+                
+                resendBtn.onclick = async () => {
+                    resendBtn.disabled = true;
+                    resendBtn.innerText = "Gönderiliyor...";
+                    try {
+                        await sendEmailVerification(userCredential.user);
+                        window.showToast("Doğrulama e-postası başarıyla gönderildi! Lütfen gereksiz/spam kutunuzu da kontrol edin.", "success");
+                        resendBtn.classList.add('hidden');
+                    } catch(err) {
+                        if(err.code === 'auth/too-many-requests') {
+                            window.showToast("Çok fazla istek yaptınız. Lütfen biraz bekleyip tekrar deneyin.", "error");
+                        } else {
+                            window.showToast("E-posta gönderilemedi: " + err.message, "error");
+                        }
+                    } finally {
+                        resendBtn.disabled = false;
+                        resendBtn.innerText = "Doğrulama Kodunu Tekrar Gönder";
+                        await signOut(auth);
+                    }
+                };
                 return; 
             }
 
             window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
+            const resendBtn = document.getElementById('resend-verification-btn');
+            if (resendBtn) resendBtn.classList.add('hidden');
             closeAuthModal();
         } else {
             if (!username) {
@@ -671,7 +712,6 @@ window.handleFormSubmit = async function(e) {
             category: category,
             listingType: listingType,          
             isCustomizable: isCustomizable,    
-            // 2. Hasat Dönemi / Sezonluk Ön Sipariş Sistemi: Input'tan harvest tarihini çek
             harvestDate: document.getElementById('form-harvest-date') ? document.getElementById('form-harvest-date').value : null,
             district: document.getElementById('form-district').value,
             address: document.getElementById('form-address').value || null,
@@ -863,7 +903,7 @@ window.deleteCurrentListing = async function(id) {
     }
 };
 
-// 1. İki Taraf için İnceleme & Satıcı Rozetleri: Mikro-etiket destekli değerlendirme UI
+// 1. Rozet (Badge) Renk ve Tema Uyum Düzenlemesi
 window.loadSellerProfileBox = async function(sellerUid) {
     const joinedEl = document.getElementById('detail-seller-joined');
     const ratingEl = document.getElementById('detail-seller-rating');
@@ -941,15 +981,16 @@ window.loadSellerProfileBox = async function(sellerUid) {
                 const badgeEl = document.createElement('span');
                 badgeEl.innerText = badge;
                 const isSelected = selectedBadges.has(badge);
-                badgeEl.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-white border-lux-dark font-bold' : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200'}`;
+                // Renk Düzenlemesi Burada (Altın Yazı / Koyu Arka Plan veya Açık Arka Plan)
+                badgeEl.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium'}`;
                 
                 badgeEl.onclick = () => {
                     if (selectedBadges.has(badge)) {
                         selectedBadges.delete(badge);
-                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200";
+                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium";
                     } else {
                         selectedBadges.add(badge);
-                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-dark text-white border-lux-dark font-bold";
+                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-dark text-lux-gold border-lux-gold font-bold";
                     }
                 };
                 badgesContainer.appendChild(badgeEl);
@@ -1073,7 +1114,6 @@ window.openSellerProfileModal = async function(sellerUid) {
             ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
             : 'Henüz değerlendirme yok';
             
-        // Satıcı Rozetleri İstatistikleri (Feature 1 Devamı)
         const badgeCounts = {};
         ratingsArray.forEach(r => {
             if (r.badges && Array.isArray(r.badges)) {
@@ -1088,8 +1128,9 @@ window.openSellerProfileModal = async function(sellerUid) {
             if (sortedBadges.length > 0) {
                 sortedBadges.forEach(([badgeName, count]) => {
                     const bSpan = document.createElement('span');
-                    bSpan.className = "bg-lux-gold/10 text-lux-dark text-[10px] font-bold px-2.5 py-1 rounded-full mr-1.5 mb-1.5 inline-flex items-center border border-lux-gold/40 shadow-sm";
-                    bSpan.innerHTML = `${badgeName} <span class="bg-lux-dark text-white rounded-full px-1.5 py-0.5 text-[8px] ml-1.5">${count}</span>`;
+                    // Renk Düzenlemesi Burada (Koyu Arka Plan / Altın Yazı)
+                    bSpan.className = "bg-lux-dark text-lux-gold text-[10px] font-bold px-2.5 py-1 rounded-full mr-1.5 mb-1.5 inline-flex items-center border border-lux-gold shadow-sm";
+                    bSpan.innerHTML = `${badgeName} <span class="bg-lux-gold text-lux-dark rounded-full px-1.5 py-0.5 text-[9px] ml-1.5 font-extrabold">${count}</span>`;
                     badgesDOM.appendChild(bSpan);
                 });
             }
@@ -1231,7 +1272,6 @@ window.getListingLocationText = function(item) {
 };
 
 const categoryEmojis = {
-    // Tarım & Yöresel
     "Zeytin & Yağ": "🫒",
     "Narenciye": "🍊",
     "Salça & Sos": "🌶️",
@@ -1239,11 +1279,9 @@ const categoryEmojis = {
     "Sebze & Sera": "🥬",
     "Canlı Hayvan & Süt": "🐄",
     "Fide & Tohum": "🌱",
-    // El Sanatları ve Girişimler
     "El Sanatları": "🎨",
     "Giyim & Aksesuar": "🧶",
     "Ev Yapımı Ürünler": "🍯",
-    // Hizmetler
     "Tadilat & Tamirat": "🛠️",
     "Özel Ders": "📚",
     "Temizlik": "🧹",
@@ -1289,7 +1327,6 @@ const districtCoords = {
     'Yayladağı': [35.9033, 36.0594]
 };
 
-// 4. Haritada Toplu Kümeleme (Marker Cluster)
 window.renderGlobalMap = function(containerId = 'global-map') {
     const mapEl = document.getElementById(containerId);
     if (!mapEl) return; 
@@ -1520,8 +1557,6 @@ window.toggleDynamicFields = function() {
 
     const bTypeContainer = document.getElementById('business-type-container'); 
     const customOrderBox = document.getElementById('custom-order-fields'); 
-    
-    // 2. Hasat / Sezonluk Ön Sipariş Alanı Toggles
     const harvestContainer = document.getElementById('harvest-date-container');
     
     if (lType === 'hizmet') {
@@ -1533,7 +1568,6 @@ window.toggleDynamicFields = function() {
         if (customOrderBox) customOrderBox.classList.remove('hidden'); 
         if (harvestContainer) harvestContainer.classList.add('hidden');
     } else { 
-        // Tarım kategorisi için Hasat Alanını göster
         if (bTypeContainer) bTypeContainer.classList.remove('hidden');
         if (customOrderBox) customOrderBox.classList.add('hidden');
         if (harvestContainer) harvestContainer.classList.remove('hidden');
@@ -1964,7 +1998,7 @@ function openAuthModal(mode) {
 }
 
 function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
-function toggleAuthMode() { 
+window.toggleAuthMode = function() { 
     const currentMode = document.getElementById('auth-mode').value;
     const targetMode = currentMode === 'login' ? 'register' : 'login';
     
@@ -1973,8 +2007,11 @@ function toggleAuthMode() {
     document.getElementById('auth-email').value = '';
     document.getElementById('auth-password').value = '';
     
+    const resendBtn = document.getElementById('resend-verification-btn');
+    if (resendBtn) resendBtn.classList.add('hidden');
+    
     openAuthModal(targetMode);
-}
+};
 
 function openTermsModal() { document.getElementById('terms-modal').classList.remove('hidden'); }
 function closeTermsModal() { document.getElementById('terms-modal').classList.add('hidden'); }
@@ -2235,7 +2272,6 @@ function openDetailModal(id) {
         }
     }
     
-    // 2. Hasat / Ön Sipariş Gösterimi
     const harvestBox = document.getElementById('detail-harvest-box');
     const harvestText = document.getElementById('detail-harvest-date');
     if (harvestBox && harvestText) {
@@ -2257,13 +2293,13 @@ function openDetailModal(id) {
         outsideBox.classList.add('hidden');
     }
 
-    // 5. Hizmet Sektörü İçin Özel Buton (Teklif/Keşif)
+    // 2. Buton Boyut Eşitlemesi (Yeşil "İletişim" / Mavi "Teklif Al")
     const detailWhatsAppBtn = document.getElementById('detail-whatsapp'); 
     let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
     if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
     
     if (item.listingType === 'hizmet' && detailWhatsAppBtn) {
-        detailWhatsAppBtn.innerHTML = `<i class="fa-solid fa-clipboard-list mr-1.5"></i> Ücretsiz Keşif / Teklif Al`;
+        detailWhatsAppBtn.innerHTML = `<i class="fa-solid fa-clipboard-list mr-1"></i> <span>Ücretsiz Keşif / Teklif</span>`;
         detailWhatsAppBtn.onclick = (e) => {
             e.preventDefault();
             const noteInput = document.getElementById('offer-note-input');
@@ -2275,13 +2311,15 @@ function openDetailModal(id) {
         };
         detailWhatsAppBtn.href = "#";
         detailWhatsAppBtn.target = "_self";
-        detailWhatsAppBtn.className = "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-xl transition text-center shadow-sm text-sm";
+        // Boyutu diğer butonlarla (Düzenle, Sil, Paylaş vb.) eşitlendi
+        detailWhatsAppBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
     } else if (detailWhatsAppBtn) {
         const waMsg = `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız/hizmetiniz hakkında görüşmek istiyorum.`;
         detailWhatsAppBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
         detailWhatsAppBtn.target = "_blank";
-        detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-lg mr-1.5"></i> Satıcıyla Görüş`;
-        detailWhatsAppBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl transition text-center shadow-sm text-sm";
+        detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>İletişim</span>`;
+        // Boyutu diğer butonlarla (Düzenle, Sil, Paylaş vb.) eşitlendi
+        detailWhatsAppBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
         detailWhatsAppBtn.onclick = null;
     }
 
@@ -2320,7 +2358,7 @@ window.openFormModalForEdit = openFormModalForEdit;
 window.setViewMode = setViewMode;
 window.changePage = changePage;
 window.shareOnWhatsApp = shareOnWhatsApp;
-window.openDetailModal = openDetailModal;
+window.openDetailModal = openDetailModal;                            
 window.closeDetailModal = closeDetailModal;
 window.filterListings = filterListings;
 window.executeLocalFilters = executeLocalFilters;
