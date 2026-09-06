@@ -452,15 +452,19 @@
                         <span class="text-[9px] text-gray-400 uppercase font-bold block">İlan Sahibi</span>
                         <span id="detail-seller" class="font-bold text-lux-dark text-sm">İsim</span>
                     </div>
-                    <div class="flex items-center space-x-1.5">
+                    <div class="flex items-center space-x-1.5 flex-wrap gap-1">
                         <button onclick="openReportModal()" title="Şikayet Et" class="bg-gray-100 hover:bg-gray-200 text-gray-600 p-2 rounded-lg transition text-xs"><i class="fa-solid fa-flag"></i></button>
-                        <button id="edit-btn" onclick="openFormModalForEdit()" class="hidden bg-amber-100 text-amber-800 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Düzenle</button>
-                        <button id="delete-btn" onclick="deleteCurrentListing()" class="hidden bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg text-xs font-semibold">Sil</button>
-                        <button onclick="shareOnWhatsApp()" title="WhatsApp'ta Paylaş" class="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
+                        <button id="edit-btn" onclick="openFormModalForEdit()" class="hidden bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg text-xs font-semibold">Düzenle</button>
+                        <button id="delete-btn" onclick="deleteCurrentListing()" class="hidden bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold">Sil</button>
+                        <button onclick="shareOnWhatsApp()" title="WhatsApp'ta Paylaş" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                             <span>Paylaş</span>
                         </button>
-                        <a id="detail-whatsapp" href="#" target="_blank" class="bg-lux-dark text-white px-3 py-1.5 rounded-lg font-semibold text-xs shadow-sm">İletişim</a>
+                        <!-- GÜNCELLENEN İLETİŞİM BUTONU (Diğer butonlarla birebir aynı boyutta) -->
+                        <a id="detail-whatsapp" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
+                            <i class="fa-brands fa-whatsapp text-sm"></i>
+                            <span>İletişim</span>
+                        </a>
                     </div>
                 </div>
          </div>
@@ -517,7 +521,11 @@
                 </div>
 
                 <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
+                
+                <!-- EKLENEN DOĞRULAMA KODU BUTONU (JS tarafından yönetilecek) -->
+                <button type="button" id="resend-verification-btn" class="w-full bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3 hidden">Doğrulama Kodunu Tekrar Gönder</button>
             </form>
+            
             <div class="mt-4 flex flex-col items-center space-y-2">
                 <button type="button" id="forgot-password-btn" onclick="handleForgotPassword()" class="text-[11px] text-gray-500 hover:underline">Şifremi Unuttum?</button>
                 <button type="button" id="auth-switch-btn" onclick="toggleAuthMode()" class="text-xs text-lux-olive hover:underline font-semibold">Hesabın yok mu? Kayıt Ol</button>
@@ -692,7 +700,7 @@
                     <option value="Ulaşılamıyor">Kişiye Ulaşılamıyor</option>
                     <option value="Uygunsuz İçerik">Uygunsuz İçerik</option>
                 </select>
-                <textarea id="report-note" rows="2" placeholder="Ek note..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                <textarea id="report-note" rows="2" placeholder="Ek not..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
                 <button type="submit" id="report-btn" class="w-full bg-red-600 text-white font-bold py-2 rounded-xl text-xs">Gönder</button>
          </form>
       </div>
