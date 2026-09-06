@@ -169,32 +169,6 @@ window.compressImage = function(file) {
     });
 };
 
-// YENİ: Favorilerdeki fiyat düşüşlerini kontrol eden yardımcı fonksiyon
-window.checkFavoritePriceDrops = function() {
-    if (!window.userExtraData || !window.userExtraData.favorites || window.listings.length === 0) return;
-    
-    const favIds = Object.keys(window.userExtraData.favorites);
-    let dropCount = 0;
-    let lastDroppedItem = null;
-
-    favIds.forEach(id => {
-        const item = window.listings.find(l => l.id === id);
-        if (item && item.priceHistory && item.priceHistory.length > 0) {
-            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-            if (item.price < oldPrice) {
-                dropCount++;
-                lastDroppedItem = item;
-            }
-        }
-    });
-
-    if (dropCount === 1 && lastDroppedItem) {
-        window.showToast(`🔥 Favorilerinizdeki "${window.escapeHtml(lastDroppedItem.title)}" ilanında fiyat düştü!`, 'success');
-    } else if (dropCount > 1) {
-        window.showToast(`🔥 Favorilerinizdeki ${dropCount} ilanda fiyat düşüşü var!`, 'success');
-    }
-};
-
 onAuthStateChanged(auth, async (user) => {
     window.currentUser = user;
     const loggedOutBox = document.getElementById('auth-logged-out');
@@ -230,9 +204,6 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {}, avatar: '' };
         }
 
-        // Giriş yapınca favori fiyat kontrolünü tetikle
-        setTimeout(window.checkFavoritePriceDrops, 2000);
-
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
         window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
             let count = 0;
@@ -251,7 +222,7 @@ onAuthStateChanged(auth, async (user) => {
             window.pendingOffersCount = count;
             window.updateNotificationBadge();
 
-            if (newlyAdded) window.showToast("🔔 Yeni bir teklif/mesaj aldınız! Gelen kutunuzu kontrol edin.", "success");
+            if (newlyAdded) window.showToast("🔔 Yeni bir teklif aldınız! Gelen kutunuzu kontrol edin.", "success");
 
             const offersTabContent = document.getElementById('tab-content-offers');
             if (offersTabContent && !offersTabContent.classList.contains('hidden')) window.loadIncomingOffers();
@@ -569,7 +540,7 @@ window.submitPriceOffer = async function() {
     if (!item) return;
 
     if (item.uid === window.currentUser.uid) {
-        window.showToast("Kendi ilanınıza talep gönderemezsiniz.", "error");
+        window.showToast("Kendi ilanınıza teklif gönderemezsiniz.", "error");
         return;
     }
 
@@ -586,7 +557,7 @@ window.submitPriceOffer = async function() {
             status: 'Beklemede',
             date: Date.now()
         });
-        window.showToast("Talebiniz başarıyla iletildi!", "success");
+        window.showToast("İletişim/Teklif talebiniz başarıyla iletildi!", "success");
         document.getElementById('offer-price-input').value = '';
         document.getElementById('offer-note-input').value = '';
     } catch (err) {
@@ -633,10 +604,6 @@ window.handleFormSubmit = async function(e) {
         const customEl = document.getElementById('form-customizable');
         const isCustomizable = customEl ? customEl.checked : false;
 
-        // YENİ: Teslimat Tarihi / Ön Sipariş
-        const deliveryEl = document.getElementById('form-delivery-date');
-        const deliveryDate = deliveryEl ? deliveryEl.value.trim() : '';
-
         let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
         if (existingItem && existingItem.price !== newPrice) {
             priceHistory.push({ price: existingItem.price, date: Date.now() });
@@ -675,7 +642,6 @@ window.handleFormSubmit = async function(e) {
             category: category,
             listingType: listingType,          
             isCustomizable: isCustomizable,    
-            deliveryDate: deliveryDate,        // YENİ
             district: document.getElementById('form-district').value,
             address: document.getElementById('form-address').value || null,
             outsideHatay: isOutside,
@@ -764,6 +730,7 @@ window.updateAccountDetails = async function() {
             }
         }
 
+        // Güncelleme paketini hazırlıyoruz (Fotoğraf varsa ekliyoruz)
         let userUpdatePayload = {
             username: newUsername,
             phone: newPhone
@@ -929,20 +896,11 @@ window.submitRating = async function(sellerUid, score) {
         window.showToast("Kendi ilanınıza puan veremezsiniz.", "error");
         return;
     }
-
-    // YENİ: İnceleme etiketlerini (Mikro-Rozetler) topla
-    let selectedTags = [];
-    document.querySelectorAll('.rating-tag-checkbox:checked').forEach(cb => {
-        selectedTags.push(cb.value);
-    });
-
     try {
         await update(ref(db, `ratings/${sellerUid}/${window.currentUser.uid}`), {
             score: score,
-            tags: selectedTags,
             date: Date.now()
         });
-        window.showToast("Değerlendirmeniz kaydedildi!", "success");
         window.loadSellerProfileBox(sellerUid);
         const sellerModal = document.getElementById('seller-profile-modal');
         if (sellerModal && !sellerModal.classList.contains('hidden')) {
@@ -984,6 +942,7 @@ window.openSellerProfileModal = async function(sellerUid) {
 
     document.getElementById('seller-profile-modal').classList.remove('hidden');
 
+    // Satıcının profil bilgilerini ve varsa Avatar'ını çekme
     try {
         const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
         if (profileSnap.exists()) {
@@ -999,6 +958,7 @@ window.openSellerProfileModal = async function(sellerUid) {
                 joinedEl.innerText = "Üyelik tarihi bilinmiyor";
             }
             
+            // Eğer avatarı varsa görseli yerleştir
             if (pData.avatar && avatarImgEl && avatarTextEl) {
                 avatarImgEl.src = pData.avatar;
                 avatarImgEl.classList.remove('hidden');
@@ -1085,7 +1045,7 @@ window.loadIncomingOffers = async function() {
             if (isIncoming) {
                 let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
                 if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için gönderdiğiniz talep üzerine görüşmek istiyorum.`;
+                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
                 const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
                 div.innerHTML = `
@@ -1217,8 +1177,7 @@ const districtCoords = {
     'Yayladağı': [35.9033, 36.0594]
 };
 
-// YENİ: Haritada Kümeleme (Marker Cluster) Özelliği eklendi
-window.renderMap = function(lat, lng, district) {
+function renderMap(lat, lng, district) {
     const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
     if (window.mapInstance) {
         window.mapInstance.remove();
@@ -1230,21 +1189,9 @@ window.renderMap = function(lat, lng, district) {
         attribution: '© OpenStreetMap'
     }).addTo(window.mapInstance);
 
-    // Eğer cluster kütüphanesi yüklenmişse (HTML'de) onu kullan, yoksa düz pin koy
-    if (typeof L.markerClusterGroup !== 'undefined' && !(lat && lng)) {
-        const markers = L.markerClusterGroup();
-        window.filteredListings.forEach(item => {
-            if(item.lat && item.lng && item.district === district) {
-                const marker = L.marker([item.lat, item.lng]).bindPopup(`<b>${escapeHtml(item.title)}</b><br>${item.price} TL`);
-                markers.addLayer(marker);
-            }
-        });
-        window.mapInstance.addLayer(markers);
-    } else {
-        L.marker(coords).addTo(window.mapInstance)
-            .bindPopup(`<b>ORONTES Konumu</b><br>Hatay / ${escapeHtml(district)}`)
-            .openPopup();
-    }
+    L.marker(coords).addTo(window.mapInstance)
+        .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${escapeHtml(district)}`)
+        .openPopup();
         
     setTimeout(() => {
         if(window.mapInstance) window.mapInstance.invalidateSize();
@@ -1410,21 +1357,15 @@ window.toggleDynamicFields = function() {
     const bTypeContainer = document.getElementById('business-type-container'); 
     const customOrderBox = document.getElementById('custom-order-fields'); 
     
-    // YENİ: Teslimat/Ön Sipariş Alanını Aç/Kapa
-    const deliveryBox = document.getElementById('delivery-date-fields'); 
-    
     if (lType === 'hizmet') {
         if (bTypeContainer) bTypeContainer.classList.add('hidden'); 
         if (customOrderBox) customOrderBox.classList.add('hidden'); 
-        if (deliveryBox) deliveryBox.classList.add('hidden');
     } else if (lType === 'el_yapimi') {
         if (bTypeContainer) bTypeContainer.classList.remove('hidden');
         if (customOrderBox) customOrderBox.classList.remove('hidden'); 
-        if (deliveryBox) deliveryBox.classList.remove('hidden');
     } else { 
         if (bTypeContainer) bTypeContainer.classList.remove('hidden');
         if (customOrderBox) customOrderBox.classList.add('hidden');
-        if (deliveryBox) deliveryBox.classList.remove('hidden');
     }
 };
 window.toggleWholesaleFields = window.toggleDynamicFields;
@@ -1666,6 +1607,7 @@ function openAccountModal() {
     document.getElementById('account-username').innerText = name;
     document.getElementById('account-email').innerText = window.currentUser.email;
     
+    // AVATAR UI YÖNETİMİ
     const avatarImg = document.getElementById('account-avatar-img');
     const avatarText = document.getElementById('account-avatar-text');
     const settingsPreview = document.getElementById('settings-avatar-preview');
@@ -1740,14 +1682,11 @@ function openFormModal() {
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = 'tarim';
     
+    // Kategori seçeneklerini ayarlama
     if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
 
     const customEl = document.getElementById('form-customizable');
     if(customEl) customEl.checked = false;
-    
-    // Teslimat Tarihi Sıfırlama
-    const deliveryEl = document.getElementById('form-delivery-date');
-    if (deliveryEl) deliveryEl.value = '';
 
     window.locationOutsideHatay = null;
     const owBanner = document.getElementById('outside-hatay-warning');
@@ -1787,15 +1726,13 @@ function openFormModalForEdit() {
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = item.listingType || 'tarim';
     
+    // Kategori seçeneklerini güncelleme
     if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
     
     document.getElementById('form-category').value = item.category;
 
     const customEl = document.getElementById('form-customizable');
     if(customEl) customEl.checked = item.isCustomizable || false;
-    
-    const deliveryEl = document.getElementById('form-delivery-date');
-    if (deliveryEl) deliveryEl.value = item.deliveryDate || '';
 
     document.getElementById('form-district').value = item.district;
     document.getElementById('form-address').value = item.address || '';
@@ -1894,6 +1831,264 @@ async function handleReportSubmit(e) {
         window.showToast("Hata: " + err.message, "error");
         window.showErrorPage(400, "Şikayet Gönderilemedi");
     }
+}
+
+function renderListings() {
+    const grid = document.getElementById('listings-grid');
+    if (!grid) return;
+    const items = window.filteredListings || [];
+    grid.classList.toggle('list-mode', window.currentViewMode === 'list');
+    grid.className = window.currentViewMode === 'list'
+        ? 'list-mode'
+        : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
+    
+    const countEl = document.getElementById('total-count');
+    if (countEl) countEl.innerText = `${items.length} İlan/Hizmet Bulundu`;
+    grid.innerHTML = '';
+
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun sonuç bulunamadı.</div>`;
+        const pagContainer = document.getElementById('pagination-container');
+        if (pagContainer) pagContainer.innerHTML = '';
+        return;
+    }
+
+    const startIndex = (window.currentPage - 1) * window.itemsPerPage;
+    const paginatedItems = items.slice(startIndex, startIndex + window.itemsPerPage);
+
+    paginatedItems.forEach(item => {
+        const card = document.createElement('div');
+
+        const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
+
+        let cardStyle = 'border border-gray-200/70';
+        if (isVipActive) cardStyle = 'vip-card';
+        else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
+
+        const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
+        const emoji = categoryEmojis[item.category] || '📦';
+
+        let priceHistoryBadge = '';
+        if (item.priceHistory && item.priceHistory.length > 0) {
+            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+            const isDrop = item.price < oldPrice;
+            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-500' : 'text-red-500'} font-bold flex items-center mt-1">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'} mr-1"></i> Eski: ${oldPrice}
+            </div>`;
+        }
+
+        card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
+        card.innerHTML = `
+            <div>
+                <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
+                    <img src="${escapeHtml(item.image)}" class="w-full h-full object-cover">
+                    <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
+                        <i class="fa-solid fa-heart"></i>
+                    </button>
+                    <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                        ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded shadow">VIP</span>' : ''}
+                        ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse shadow">ACİL</span>' : ''}
+                        
+                        ${item.listingType === 'hizmet' ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🛠️ HİZMET</span>' : ''}
+                        ${item.listingType === 'el_yapimi' ? '<span class="bg-purple-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎨 EL YAPIMI</span>' : ''}
+                        ${item.isCustomizable ? '<span class="bg-pink-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">SİPARİŞ ÜZERİNE</span>' : ''}
+
+                        ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
+                        ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
+                    </div>
+                </div>
+                <div class="p-3.5">
+                    <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
+                        <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
+                        <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
+                    </div>
+                    <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
+                </div>
+            </div>
+            <div class="px-3.5 pb-3.5">
+                <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
+                    <div>
+                        <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Fiyat')}</span>
+                        <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
+                        ${priceHistoryBadge}
+                        ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${escapeHtml(item.minOrderQty)}</span>` : ''}
+                    </div>
+                    <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">İncele</button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+
+    renderPaginationControls(items.length);
+}
+
+function renderPaginationControls(totalItems) {
+    const container = document.getElementById('pagination-container');
+    if (!container) return;
+    const totalPages = Math.ceil(totalItems / window.itemsPerPage);
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    let html = `<button onclick="changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+    }
+    html += `<button onclick="changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+    container.innerHTML = html;
+}
+
+function changePage(page) {
+    const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
+    window.currentPage = Math.min(Math.max(1, page), totalPages);
+    renderListings();
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+}
+
+window.haversineKm = function(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+};
+
+window.nearbyModeActive = false;
+window.userGeoLocation = null;
+
+window.toggleNearbyMode = function() {
+    const btn = document.getElementById('nearby-btn');
+    if (window.nearbyModeActive) {
+        window.nearbyModeActive = false;
+        if (btn) btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+        window.filterListings();
+        return;
+    }
+    if (!navigator.geolocation) {
+        window.showToast("Tarayıcınız konum özelliğini desteklemiyor.", "error");
+        return;
+    }
+    if (btn) btn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            window.userGeoLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            window.nearbyModeActive = true;
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
+            }
+            window.filterListings();
+        },
+        (err) => {
+            if (btn) btn.disabled = false;
+            window.showToast("Konumunuza erişilemedi. Tarayıcı izinlerini kontrol edin.", "error");
+        },
+        { enableHighAccuracy: false, timeout: 8000 }
+    );
+};
+
+function resetAllFilters() {
+    const searchEl = document.getElementById('search-input');
+    const catEl = document.getElementById('category-filter');
+    const distEl = document.getElementById('district-filter');
+    const sortEl = document.getElementById('sort-filter');
+    const minEl = document.getElementById('min-price-filter');
+    const maxEl = document.getElementById('max-price-filter');
+
+    if (searchEl) searchEl.value = '';
+    if (catEl) catEl.value = '';
+    if (distEl) distEl.value = '';
+    if (sortEl) sortEl.value = 'newest';
+    if (minEl) minEl.value = '';
+    if (maxEl) maxEl.value = '';
+
+    window.nearbyModeActive = false;
+    const nearbyBtn = document.getElementById('nearby-btn');
+    if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+    window.filterListings();
+}
+
+function setViewMode(mode) { window.currentViewMode = mode; renderListings(); }
+function closeFormModal() { document.getElementById('form-modal').classList.add('hidden'); }
+function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); window.activeListingId = null; }
+
+function openDetailModal(id) {
+    const item = (window.listings || []).find(l => l.id === id);
+    if (!item) return;
+
+    window.activeListingId = id;
+    window.activeSellerUid = item.uid;
+    document.getElementById('detail-img').src = item.image;
+    document.getElementById('detail-title').innerText = item.title;
+    document.getElementById('detail-category').innerText = item.category;
+    
+    document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
+    const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
+    document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
+    
+    let priceHTML = `${item.price} TL`;
+    if (item.priceHistory && item.priceHistory.length > 0) {
+        const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+        const isDrop = item.price < oldPrice;
+        priceHTML += `
+            <div class="text-[11px] font-bold ${isDrop ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'} inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ml-3 shadow-sm border border-gray-100">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i>
+                <span>Eski: ${oldPrice} TL</span>
+            </div>
+        `;
+    }
+    document.getElementById('detail-price').innerHTML = priceHTML;
+    document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
+    document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
+    document.getElementById('detail-seller').innerText = item.seller;
+
+    const wholesaleBox = document.getElementById('detail-wholesale-box');
+    if (item.businessType === 'Toptancı' && item.minOrderQty) {
+        document.getElementById('detail-min-order').innerText = item.minOrderQty;
+        wholesaleBox.classList.remove('hidden');
+    } else {
+        wholesaleBox.classList.add('hidden');
+    }
+
+    const customBox = document.getElementById('detail-custom-box');
+    if (customBox) {
+        if (item.isCustomizable) {
+            customBox.classList.remove('hidden');
+        } else {
+            customBox.classList.add('hidden');
+        }
+    }
+
+    const outsideBox = document.getElementById('detail-outside-hatay-box');
+    if (item.outsideHatay) {
+        const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
+        const districtPart = item.realDistrict ? `, ${item.realDistrict} ilçesinde` : '';
+        document.getElementById('detail-outside-hatay-text').innerText = `Bu kayıt Hatay dışında — ${cityPart}${districtPart} bulunuyor.`;
+        outsideBox.classList.remove('hidden');
+    } else {
+        outsideBox.classList.add('hidden');
+    }
+
+    window.loadSellerProfileBox(item.uid);
+
+    const deleteBtn = document.getElementById('delete-btn');
+    const editBtn = document.getElementById('edit-btn');
+    if (window.currentUser && item.uid === window.currentUser.uid) {
+        deleteBtn.classList.remove('hidden');
+        editBtn.classList.remove('hidden');
+    } else {
+        deleteBtn.classList.add('hidden');
+        editBtn.classList.add('hidden');
+    }
+
+    let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
+    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+    const waMsg = `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız/hizmetiniz hakkında görüşmek istiyorum.`;
+    document.getElementById('detail-whatsapp').href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+
+    updateFavBtnStyle(id);
+    document.getElementById('detail-modal').classList.remove('hidden');
+
+    setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
 }
 
 window.openFormModal = openFormModal;
