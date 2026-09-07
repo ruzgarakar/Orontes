@@ -302,8 +302,11 @@ window.triggerDatabaseFilter = function(category = '') {
             items.forEach(item => {
                 if (window.userExtraData.favorites[item.id] && item.priceHistory && item.priceHistory.length > 0) {
                     const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-                    if (item.price < oldPrice && !window.notifiedPriceDrops.has(item.id)) {
-                        window.showToast(`İlgilendiğiniz "${item.title}" ilanında fiyat düştü! (${oldPrice} TL ➔ ${item.price} TL)`, "success");
+                    if (item.price !== oldPrice && !window.notifiedPriceDrops.has(item.id)) {
+                        const isDrop = item.price < oldPrice;
+                        const msgType = isDrop ? "success" : "warning";
+                        const verb = isDrop ? "düştü" : "yükseldi";
+                        window.showToast(`İlgilendiğiniz "${item.title}" ilanında fiyat ${verb}! (${oldPrice} TL ➔ ${item.price} TL)`, msgType);
                         window.notifiedPriceDrops.add(item.id);
                     }
                 }
@@ -411,13 +414,12 @@ window.handleAuthSubmit = async function(e) {
                 btn.disabled = false;
                 btn.innerText = "Giriş Yap";
                 
-                // Yeniden gönderme butonu oluştur/göster
                 let resendBtn = document.getElementById('resend-verification-btn');
                 if (!resendBtn) {
                     resendBtn = document.createElement('button');
                     resendBtn.id = 'resend-verification-btn';
                     resendBtn.type = 'button';
-                    resendBtn.className = 'w-full bg-lux-gold text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3';
+                    resendBtn.className = 'w-full bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3';
                     const form = document.querySelector('#auth-modal form');
                     if(form) form.appendChild(resendBtn);
                 }
@@ -903,7 +905,6 @@ window.deleteCurrentListing = async function(id) {
     }
 };
 
-// 1. Rozet (Badge) Renk ve Tema Uyum Düzenlemesi
 window.loadSellerProfileBox = async function(sellerUid) {
     const joinedEl = document.getElementById('detail-seller-joined');
     const ratingEl = document.getElementById('detail-seller-rating');
@@ -950,7 +951,6 @@ window.loadSellerProfileBox = async function(sellerUid) {
 
             starsEl.innerHTML = '';
             
-            // Yıldız Seçimi
             const starContainer = document.createElement('div');
             starContainer.className = "flex space-x-1 mb-2";
             let currentSelectedScore = myRating;
@@ -972,7 +972,6 @@ window.loadSellerProfileBox = async function(sellerUid) {
             }
             starsEl.appendChild(starContainer);
 
-            // Rozet Seçimi
             const badgesContainer = document.createElement('div');
             badgesContainer.className = "flex flex-wrap gap-1.5 my-2";
             const selectedBadges = new Set(myBadges);
@@ -981,7 +980,6 @@ window.loadSellerProfileBox = async function(sellerUid) {
                 const badgeEl = document.createElement('span');
                 badgeEl.innerText = badge;
                 const isSelected = selectedBadges.has(badge);
-                // Renk Düzenlemesi Burada (Altın Yazı / Koyu Arka Plan veya Açık Arka Plan)
                 badgeEl.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium'}`;
                 
                 badgeEl.onclick = () => {
@@ -997,7 +995,6 @@ window.loadSellerProfileBox = async function(sellerUid) {
             });
             starsEl.appendChild(badgesContainer);
 
-            // Gönder Butonu
             const submitBtn = document.createElement('button');
             submitBtn.innerText = "Puanla & Gönder";
             submitBtn.className = "bg-lux-gold text-lux-dark font-bold text-xs px-3 py-1.5 rounded-lg w-full hover:bg-yellow-500 transition shadow-sm mt-1";
@@ -1128,7 +1125,6 @@ window.openSellerProfileModal = async function(sellerUid) {
             if (sortedBadges.length > 0) {
                 sortedBadges.forEach(([badgeName, count]) => {
                     const bSpan = document.createElement('span');
-                    // Renk Düzenlemesi Burada (Koyu Arka Plan / Altın Yazı)
                     bSpan.className = "bg-lux-dark text-lux-gold text-[10px] font-bold px-2.5 py-1 rounded-full mr-1.5 mb-1.5 inline-flex items-center border border-lux-gold shadow-sm";
                     bSpan.innerHTML = `${badgeName} <span class="bg-lux-gold text-lux-dark rounded-full px-1.5 py-0.5 text-[9px] ml-1.5 font-extrabold">${count}</span>`;
                     badgesDOM.appendChild(bSpan);
@@ -1178,66 +1174,114 @@ window.loadIncomingOffers = async function() {
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
         const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
-        const allOffers = [...incomingOffers, ...outgoingOffers].sort((a,b) => b.date - a.date);
+        // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (YENİ EKLENEN KISIM)
+        const priceAlerts = [];
+        if (window.userExtraData && window.userExtraData.favorites) {
+            Object.keys(window.userExtraData.favorites).forEach(favId => {
+                const item = (window.listings || []).find(l => l.id === favId);
+                if (item && item.priceHistory && item.priceHistory.length > 0) {
+                    const lastHistory = item.priceHistory[item.priceHistory.length - 1];
+                    // Eğer ilan fiyatı değiştiyse bunu diziye ekliyoruz
+                    if (item.price !== lastHistory.price) {
+                        priceAlerts.push({
+                            id: 'alert_' + item.id,
+                            type: 'price_alert',
+                            listingId: item.id,
+                            listingTitle: item.title,
+                            oldPrice: lastHistory.price,
+                            newPrice: item.price,
+                            date: lastHistory.date,
+                            isDrop: item.price < lastHistory.price
+                        });
+                    }
+                }
+            });
+        }
+
+        // Fiyat değişim bildirimleri ve teklifleri tarihe göre birleştir ve sırala
+        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
 
         container.innerHTML = '';
 
         if (allOffers.length === 0) {
-            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız veya gönderdiğiniz bir teklif/mesaj bulunmuyor.</p>`;
+            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız, gönderdiğiniz teklif veya favori bildiriminiz bulunmuyor.</p>`;
             return;
         }
 
         allOffers.forEach(o => {
             const div = document.createElement('div');
-            const isIncoming = o.type === 'incoming';
             
-            div.className = isIncoming 
-                ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
-                : "bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-2 mb-2";
-
-            const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
-
-            if (isIncoming) {
-                let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-                if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
-                const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
-
+            if (o.type === 'price_alert') {
+                // FİYAT BİLDİRİM KARTI
+                div.className = "bg-blue-50 p-3 rounded-xl border border-blue-200 text-xs space-y-2 mb-2";
+                const trendColor = o.isDrop ? "text-emerald-600" : "text-red-600";
+                const trendIcon = o.isDrop ? "fa-arrow-trend-down" : "fa-arrow-trend-up";
+                const trendBg = o.isDrop ? "bg-emerald-100" : "bg-red-100";
+                
                 div.innerHTML = `
-                    <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
-                        <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>
-                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
+                    <div class="flex justify-between items-center font-bold text-blue-900 border-b border-blue-200/50 pb-1 mb-1">
+                        <span class="text-[10px] bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded"><i class="fa-solid fa-star text-amber-500 mr-1"></i> FAVORİ BİLDİRİMİ</span>
+                        <span class="${trendColor}"><i class="fa-solid ${trendIcon}"></i> ${window.escapeHtml(String(o.newPrice))} TL</span>
                     </div>
-                    <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
-                    <p class="text-[10px] text-gray-600">Gönderen: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                    <p class="font-bold cursor-pointer hover:text-blue-700" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle)} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
                     <div class="flex justify-between items-center mt-2">
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
-                        <div class="space-x-1">
-                            <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
-                            <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
-                        </div>
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${trendBg} ${trendColor}">
+                            Eski: ${o.oldPrice} TL ➔ Yeni: ${o.newPrice} TL
+                        </span>
+                        <button onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm transition">İlanı İncele</button>
                     </div>
-                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
-                    ${cleanPhone ? `
-                        <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm mt-1">
-                            <i class="fa-brands fa-whatsapp text-sm"></i>
-                            <span>Kişiyle WhatsApp'tan Yazış</span>
-                        </a>
-                    ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
                 `;
             } else {
-                div.innerHTML = `
-                    <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
-                        <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>
-                        <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
-                    </div>
-                    <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
-                    <div class="flex justify-between items-center mt-2">
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Karşı Taraf Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
-                        ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
-                    </div>
-                    ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
-                `;
+                // MEVCUT TEKLİF KARTLARI (Gelen/Giden)
+                const isIncoming = o.type === 'incoming';
+                div.className = isIncoming 
+                    ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
+                    : "bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-2 mb-2";
+
+                const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
+
+                if (isIncoming) {
+                    let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
+                    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
+                    const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
+
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
+                            <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>
+                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
+                        </div>
+                        <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
+                        <p class="text-[10px] text-gray-600">Gönderen: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                            <div class="space-x-1">
+                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
+                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                            </div>
+                        </div>
+                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                        ${cleanPhone ? `
+                            <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm mt-1">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>Kişiyle WhatsApp'tan Yazış</span>
+                            </a>
+                        ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
+                            <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>
+                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
+                        </div>
+                        <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Karşı Taraf Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                            ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
+                        </div>
+                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                    `;
+                }
             }
             container.appendChild(div);
         });
@@ -2293,7 +2337,6 @@ function openDetailModal(id) {
         outsideBox.classList.add('hidden');
     }
 
-    // 2. Buton Boyut Eşitlemesi (Yeşil "İletişim" / Mavi "Teklif Al")
     const detailWhatsAppBtn = document.getElementById('detail-whatsapp'); 
     let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
     if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
@@ -2311,14 +2354,12 @@ function openDetailModal(id) {
         };
         detailWhatsAppBtn.href = "#";
         detailWhatsAppBtn.target = "_self";
-        // Boyutu diğer butonlarla (Düzenle, Sil, Paylaş vb.) eşitlendi
         detailWhatsAppBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
     } else if (detailWhatsAppBtn) {
         const waMsg = `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız/hizmetiniz hakkında görüşmek istiyorum.`;
         detailWhatsAppBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
         detailWhatsAppBtn.target = "_blank";
         detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>İletişim</span>`;
-        // Boyutu diğer butonlarla (Düzenle, Sil, Paylaş vb.) eşitlendi
         detailWhatsAppBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
         detailWhatsAppBtn.onclick = null;
     }
