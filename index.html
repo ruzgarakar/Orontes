@@ -58,6 +58,11 @@
                         <i class="fa-solid fa-filter"></i>
                         <span>Filtre</span>
                     </button>
+                    <!-- YENİ: Mobil Alım Talebi Butonu -->
+                    <button onclick="openBuyRequestModal()" class="bg-blue-600 text-white font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-sm">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <span>Alım Talebi</span>
+                    </button>
                     <button onclick="openFormModal()" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-sm">
                         <i class="fa-solid fa-plus"></i>
                         <span>İlan Ver</span>
@@ -86,6 +91,13 @@
                         <span class="hidden sm:inline">Hesabım</span>
                     </button>
                     <button onclick="handleLogout()" title="Çıkış Yap" class="text-gray-300 hover:text-red-400 text-xs px-1.5 py-1"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    
+                    <!-- YENİ: Masaüstü Alım Talebi Butonu -->
+                    <button onclick="openBuyRequestModal()" class="hidden sm:flex bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition items-center space-x-1.5">
+                        <i class="fa-solid fa-bullhorn text-xs"></i>
+                        <span>Alım Talebi</span>
+                    </button>
+                    
                     <button onclick="openFormModal()" class="hidden sm:flex bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition items-center space-x-1.5">
                         <i class="fa-solid fa-plus text-xs"></i>
                         <span>İlan Ver</span>
@@ -94,6 +106,7 @@
             </div>
         </div>
     </header>
+
     <div class="bg-lux-olive text-white text-[11px] py-2 overflow-hidden border-b border-lux-dark/20 relative">
         <div class="marquee-wrapper" id="marquee-container"></div>
     </div>
@@ -102,9 +115,10 @@
     <section class="bg-lux-dark text-white py-8 sm:py-10 px-4 border-b border-lux-olive/30">
         <div class="max-w-7xl mx-auto text-center">
             <h1 class="text-xl sm:text-4xl font-light tracking-tight mb-2">Hatay’ın Yerel Pazaryeri ve Hizmet Ağı</h1>
-            <p class="text-lux-sage max-w-xl mx-auto text-xs sm:text-sm font-light">Üreticiden, el emeğinden ve yerel ustadan doğrudan alıcıya; komisyonsuz dijital pazar yeri.</p>
+            <p class="text-lux-sage max-w-xl mx-auto text-xs sm:text-sm font-light">İster ilan verin, ister aradığınızı söyleyin; yerel üretici ve ustalarla doğrudan, komisyonsuz buluşun.</p>
         </div>
     </section>
+
     <!-- FİLTRELEME -->
     <section id="filter-section" class="max-w-7xl mx-auto px-4 -mt-6 relative z-20">
         <div class="bg-white p-3.5 rounded-2xl shadow-md border border-gray-200/80 flex flex-col gap-2.5">
@@ -188,22 +202,34 @@
         </div>
     </section>
 
-    <!-- İLAN LİSTESİ -->
+    <!-- ANA İÇERİK (İlanlar & Alım Talepleri) -->
     <main class="max-w-7xl mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-base font-semibold text-lux-dark flex items-center space-x-2">
-                <span>Vitrin İlanları</span>
-                <span id="total-count" class="text-xs text-gray-400 font-normal">(Yükleniyor...)</span>
-            </h2>
+        
+        <!-- YENİ EKLENEN SEKME YAPISI (Tersine Pazar Yeri) -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="flex items-center space-x-2 bg-gray-100 p-1.5 rounded-xl w-full md:w-auto overflow-x-auto whitespace-nowrap">
+                <button id="tab-listings" onclick="switchMainTab('listings')" class="px-4 py-2 rounded-lg text-xs font-bold bg-white shadow text-lux-dark transition flex-1 md:flex-none text-center">Satılık İlanlar</button>
+                <button id="tab-buy-requests" onclick="switchMainTab('requests')" class="px-4 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-lux-dark transition flex-1 md:flex-none text-center">Alım Talepleri (Tersine Pazar)</button>
+            </div>
 
-            <div class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80">
-                <button id="view-grid-btn" onclick="setViewMode('grid'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
-                <button id="view-list-btn" onclick="setViewMode('list'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
-                <button id="view-map-btn" onclick="document.getElementById('global-map-container').classList.remove('hidden'); document.getElementById('listings-grid').classList.add('hidden'); window.renderGlobalMap('global-map');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition" title="Harita Üzerinde İlanları Gör"><i class="fa-solid fa-map-location-dot"></i></button>
+            <div class="flex justify-between items-center w-full md:w-auto gap-4">
+                <h2 class="text-base font-semibold text-lux-dark flex items-center space-x-2 shrink-0">
+                    <span id="main-section-title">Vitrin İlanları</span>
+                    <span id="total-count" class="text-xs text-gray-400 font-normal">(Yükleniyor...)</span>
+                </h2>
+
+                <div id="view-mode-buttons" class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80 shrink-0">
+                    <button id="view-grid-btn" onclick="setViewMode('grid'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
+                    <button id="view-list-btn" onclick="setViewMode('list'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
+                    <button id="view-map-btn" onclick="document.getElementById('global-map-container').classList.remove('hidden'); document.getElementById('listings-grid').classList.add('hidden'); window.renderGlobalMap('global-map');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition" title="Harita Üzerinde İlanları Gör"><i class="fa-solid fa-map-location-dot"></i></button>
+                </div>
             </div>
         </div>
 
         <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+        
+        <!-- YENİ: Alım Talepleri Grid -->
+        <div id="buy-requests-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
         
         <div id="global-map-container" class="hidden w-full h-[500px] rounded-2xl border border-gray-200 shadow-sm z-10 relative">
             <div id="global-map" class="w-full h-full rounded-2xl"></div>
@@ -224,6 +250,10 @@
                     <div>
                         <p class="font-semibold text-gray-800">İlan vermek gerçekten ücretsiz mi?</p>
                         <p class="font-light">Evet, ORONTES üzerinde tüm üretici, toptancı ve zanaatkarlar ücretsiz ilan açabilir.</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-800">Alım Talebi nedir?</p>
+                        <p class="font-light">Sadece ürün satmak için değil, ihtiyacınız olan ürünü veya hizmeti aradığınızı duyurmak için de talep oluşturabilirsiniz. Üreticiler veya ustalar size doğrudan teklif verir.</p>
                     </div>
                     <div>
                         <p class="font-semibold text-gray-800">3 Aylık Hediye VIP Vitrin Rozeti nedir?</p>
@@ -666,6 +696,69 @@
                 </div>
 
               <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">İlanı Kaydet</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- YENİ: ALIM TALEBİ MODAL -->
+    <div id="buy-request-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
+            <button onclick="closeBuyRequestModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-bold mb-1 text-blue-900"><i class="fa-solid fa-bullhorn text-blue-600 mr-2"></i>Alım Talebi Oluştur</h3>
+            <p class="text-xs text-gray-500 mb-4">Aradığınız ürünü veya hizmeti yazın, üreticiler/satıcılar size teklif sunsun.</p>
+            
+            <form id="buy-request-form" onsubmit="handleBuyRequestSubmit(event)" class="space-y-3.5">
+                <select id="req-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none font-semibold text-blue-900">
+                    <option value="" disabled selected>Kategori Seçin*</option>
+                    <optgroup label="Tarım & Yöresel">
+                        <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
+                        <option value="Narenciye">🍊 Narenciye</option>
+                        <option value="Salça & Sos">🌶️ Salça & Sos</option>
+                        <option value="Bakliyat & Hububat">🌾 Bakliyat & Hububat</option>
+                        <option value="Sebze & Sera">🥬 Sebze & Sera</option>
+                        <option value="Canlı Hayvan & Süt">🐄 Hayvan & Süt</option>
+                        <option value="Fide & Tohum">🌱 Fide & Tohum</option>
+                    </optgroup>
+                    <optgroup label="Hizmet & İşçilik">
+                        <option value="Tadilat & Tamirat">🛠️ Tadilat & Tamirat</option>
+                        <option value="Tarım İşçiliği">🧑‍🌾 Tarım İşçiliği</option>
+                        <option value="Nakliye & Lojistik">🚛 Nakliye & Lojistik</option>
+                    </optgroup>
+                    <option value="Diğer">📦 Diğer</option>
+                </select>
+
+                <input type="text" id="req-title" required placeholder="Ne arıyorsunuz? (Örn: 3 Ton W. Murcott Mandalina)*" class="w-full border border-blue-200 p-2 rounded-xl text-xs bg-blue-50/30 outline-none">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <select id="req-district" required class="border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="">Tüm Hatay (İlçe Seçin)</option>
+                        <option value="Altınözü">Altınözü</option>
+                        <option value="Antakya">Antakya</option>
+                        <option value="Arsuz">Arsuz</option>
+                        <option value="Belen">Belen</option>
+                        <option value="Defne">Defne</option>
+                        <option value="Dörtyol">Dörtyol</option>
+                        <option value="Erzin">Erzin</option>
+                        <option value="Hassa">Hassa</option>
+                        <option value="İskenderun">İskenderun</option>
+                        <option value="Kırıkhan">Kırıkhan</option>
+                        <option value="Kumlu">Kumlu</option>
+                        <option value="Payas">Payas</option>
+                        <option value="Reyhanlı">Reyhanlı</option>
+                        <option value="Samandağ">Samandağ</option>
+                        <option value="Yayladağı">Yayladağı</option>
+                    </select>
+                    <input type="text" id="req-qty" placeholder="Miktar (Örn: 500 KG / 1 Adet)" class="border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                </div>
+                
+                <textarea id="req-desc" required rows="3" placeholder="Talep detayları, kalite beklentisi, tahmini bütçe aralığı vb..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none"></textarea>
+                
+                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                    <input type="text" id="req-buyer" required placeholder="Firma / Ad Soyad*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-gray-50 outline-none">
+                    <input type="tel" id="req-phone" required placeholder="WhatsApp Tel*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-gray-50 outline-none">
+                </div>
+                
+                <button type="submit" id="req-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Talebi Yayınla</button>
             </form>
         </div>
     </div>
