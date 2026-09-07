@@ -676,6 +676,12 @@ window.handleFormSubmit = async function(e) {
         const customEl = document.getElementById('form-customizable');
         const isCustomizable = customEl ? customEl.checked : false;
 
+        // --- YENİ EKLENEN ÖZELLİK: NAKLİYE DEĞERLERİ ---
+        const routeStart = document.getElementById('form-route-start') ? document.getElementById('form-route-start').value : null;
+        const routeEnd = document.getElementById('form-route-end') ? document.getElementById('form-route-end').value : null;
+        const logisticsType = document.getElementById('form-logistics-type') ? document.getElementById('form-logistics-type').value : null;
+        // -------------------------------------------------
+
         let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
         if (existingItem && existingItem.price !== newPrice) {
             priceHistory.push({ price: existingItem.price, date: Date.now() });
@@ -715,6 +721,9 @@ window.handleFormSubmit = async function(e) {
             listingType: listingType,          
             isCustomizable: isCustomizable,    
             harvestDate: document.getElementById('form-harvest-date') ? document.getElementById('form-harvest-date').value : null,
+            routeStart: routeStart,          // YENİ EKLENDİ
+            routeEnd: routeEnd,              // YENİ EKLENDİ
+            logisticsType: logisticsType,    // YENİ EKLENDİ
             district: document.getElementById('form-district').value,
             address: document.getElementById('form-address').value || null,
             outsideHatay: isOutside,
@@ -1603,6 +1612,18 @@ window.toggleDynamicFields = function() {
     const customOrderBox = document.getElementById('custom-order-fields'); 
     const harvestContainer = document.getElementById('harvest-date-container');
     
+    // --- YENİ EKLENEN ÖZELLİK: NAKLİYE ALANLARI GÖSTER/GİZLE ---
+    const formCategory = document.getElementById('form-category');
+    const logisticsFields = document.getElementById('logistics-route-fields');
+    if (formCategory && logisticsFields) {
+        if (formCategory.value === 'Nakliye & Lojistik') {
+            logisticsFields.classList.remove('hidden');
+        } else {
+            logisticsFields.classList.add('hidden');
+        }
+    }
+    // -----------------------------------------------------------
+
     if (lType === 'hizmet') {
         if (bTypeContainer) bTypeContainer.classList.add('hidden'); 
         if (customOrderBox) customOrderBox.classList.add('hidden'); 
@@ -1930,6 +1951,8 @@ function openFormModal() {
     document.getElementById('form-lng').value = '';
     document.getElementById('form-address').value = '';
     if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = '';
+    if (document.getElementById('form-route-start')) document.getElementById('form-route-start').value = '';
+    if (document.getElementById('form-route-end')) document.getElementById('form-route-end').value = '';
     
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = 'tarim';
@@ -1985,6 +2008,12 @@ function openFormModalForEdit() {
     if(customEl) customEl.checked = item.isCustomizable || false;
 
     if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = item.harvestDate || '';
+
+    // --- YENİ EKLENEN ÖZELLİK: NAKLİYE VERİLERİNİ FORMA GETİR ---
+    if (document.getElementById('form-route-start')) document.getElementById('form-route-start').value = item.routeStart || '';
+    if (document.getElementById('form-route-end')) document.getElementById('form-route-end').value = item.routeEnd || '';
+    if (document.getElementById('form-logistics-type')) document.getElementById('form-logistics-type').value = item.logisticsType || '';
+    // -----------------------------------------------------------
 
     document.getElementById('form-district').value = item.district;
     document.getElementById('form-address').value = item.address || '';
@@ -2327,6 +2356,19 @@ function openDetailModal(id) {
         }
     }
 
+    // --- YENİ EKLENEN ÖZELLİK: NAKLİYE ALANLARINI MODALDA GÖSTER ---
+    const logisticsBox = document.getElementById('detail-logistics-box'); // HTML'e eklenecek varsayımıyla
+    if (logisticsBox) {
+        if (item.category === 'Nakliye & Lojistik' && item.routeStart && item.routeEnd) {
+            document.getElementById('detail-route').innerText = `${item.routeStart} ➔ ${item.routeEnd}`;
+            document.getElementById('detail-logistics-type').innerText = item.logisticsType || 'Belirtilmedi';
+            logisticsBox.classList.remove('hidden');
+        } else {
+            logisticsBox.classList.add('hidden');
+        }
+    }
+    // -----------------------------------------------------------------
+
     const outsideBox = document.getElementById('detail-outside-hatay-box');
     if (item.outsideHatay) {
         const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
@@ -2381,6 +2423,168 @@ function openDetailModal(id) {
 
     setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
 }
+
+
+// --- YENİ EKLENEN ÖZELLİK 1: ALIM TALEPLERİ (TERSİNE PAZAR YERİ) ---
+window.purchaseRequests = [];
+
+window.listenPurchaseRequests = function() {
+    const requestsRef = query(ref(db, 'purchaseRequests'), orderByChild('date'), limitToLast(50));
+    onValue(requestsRef, (snapshot) => {
+        const items = [];
+        snapshot.forEach((child) => {
+            items.push({ id: child.key, ...child.val() });
+        });
+        window.purchaseRequests = items.reverse();
+        if(typeof window.renderPurchaseRequests === 'function') {
+            window.renderPurchaseRequests();
+        }
+    });
+};
+
+window.submitPurchaseRequest = async function(title, category, district, amount, desc) {
+    if (!window.currentUser) {
+        window.showToast("Alım talebi oluşturmak için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+
+    try {
+        await push(ref(db, 'purchaseRequests'), {
+            uid: window.currentUser.uid,
+            buyerName: window.userExtraData.username || window.currentUser.displayName || "Alıcı",
+            title: title, 
+            category: category,
+            district: district,
+            amount: amount, 
+            desc: desc,
+            status: 'Aktif',
+            date: Date.now()
+        });
+        window.showToast("Alım talebiniz başarıyla yayınlandı!", "success");
+    } catch (err) {
+        window.showToast("Talep oluşturulamadı: " + err.message, "error");
+    }
+};
+
+window.renderPurchaseRequests = function() {
+    const container = document.getElementById('purchase-requests-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    if (window.purchaseRequests.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Henüz aktif bir alım talebi bulunmuyor.</p>`;
+        return;
+    }
+
+    window.purchaseRequests.forEach(req => {
+        const div = document.createElement('div');
+        div.className = "bg-blue-50 border border-blue-200 p-3 rounded-xl mb-3 shadow-sm transition hover:shadow-md";
+        div.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="bg-blue-600 text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase">Alıcı Aranıyor</span>
+                    <h4 class="font-bold text-lux-dark mt-1 text-sm">${escapeHtml(req.title)}</h4>
+                    <p class="text-[10px] text-gray-600 mt-1"><i class="fa-solid fa-location-dot text-blue-500"></i> ${escapeHtml(req.district)} | Miktar: <span class="font-bold">${escapeHtml(req.amount)}</span></p>
+                </div>
+                <button onclick="window.openOfferForRequest('${req.id}')" class="bg-lux-gold text-lux-dark font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-yellow-500 transition shadow-sm whitespace-nowrap">Ben Satarım</button>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-2 bg-white/50 p-2 rounded italic">"${escapeHtml(req.desc)}"</p>
+        `;
+        container.appendChild(div);
+    });
+};
+
+window.openOfferForRequest = function(reqId) {
+    window.showToast("Bu talebe teklif verme ekranı yakında eklenecek! (Şimdilik mesaj olarak alıcıya bildirim gönderilebilir)", "warning");
+};
+
+// --- YENİ EKLENEN ÖZELLİK 3: HASAT TAKVİMİ VERİSİ ---
+window.harvestCalendarData = [
+    { product: "Zeytin", districts: ["Altınözü", "Antakya", "Arsuz"], months: [9, 10, 11] },
+    { product: "Narenciye (Mandalina/Portakal)", districts: ["Dörtyol", "Erzin", "Arsuz"], months: [10, 11, 0, 1] },
+    { product: "Samandağ Biberi", districts: ["Samandağ"], months: [6, 7, 8, 9] },
+    { product: "Üzüm", districts: ["Hassa", "Kırıkhan"], months: [7, 8] },
+    { product: "Pamuk", districts: ["Amik Ovası (Kumlu, Reyhanlı)"], months: [8, 9] }
+];
+
+window.renderHarvestCalendar = function() {
+    const container = document.getElementById('harvest-calendar-container');
+    if (!container) return;
+    
+    const months = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+    const currentMonth = new Date().getMonth();
+
+    let html = `<div class="overflow-x-auto rounded-xl border border-gray-200"><table class="w-full text-left border-collapse min-w-[600px]">
+        <thead>
+            <tr class="bg-lux-dark text-lux-gold text-[10px]">
+                <th class="p-2.5 border-b border-gray-600">Ürün & Bölge</th>`;
+    
+    months.forEach((m, i) => {
+        html += `<th class="p-2 border-b border-gray-600 text-center ${i === currentMonth ? 'bg-lux-olive text-white' : ''}">${m}</th>`;
+    });
+    
+    html += `</tr></thead><tbody class="text-[10px] bg-white">`;
+
+    window.harvestCalendarData.forEach(item => {
+        html += `<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="p-2.5 font-bold text-lux-dark">${item.product}<br><span class="text-[8px] font-normal text-gray-500">${item.districts.join(", ")}</span></td>`;
+        months.forEach((_, index) => {
+            const isHarvest = item.months.includes(index);
+            html += `<td class="p-2 border-l border-gray-100 text-center ${isHarvest ? 'bg-emerald-50 text-emerald-600' : 'bg-transparent'}">${isHarvest ? '🌱' : ''}</td>`;
+        });
+        html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+};
+
+// --- YENİ EKLENEN ÖZELLİK 4: GÜNLÜK HAL FİYATLARI BÜLTENİ ---
+window.loadMarketPrices = async function() {
+    const container = document.getElementById('market-prices-container');
+    if(!container) return;
+    
+    container.innerHTML = '<p class="text-xs text-gray-400">Hal fiyatları güncelleniyor...</p>';
+    
+    try {
+        // İleride buraya gerçek bir API endpoint'i eklenebilir. Şimdilik statik yapı ile test ediyoruz.
+        const mockPrices = [
+            { item: "Domates (Sera)", min: 15, max: 22, trend: "up" },
+            { item: "Limon (Enterdonat)", min: 8, max: 12, trend: "down" },
+            { item: "Zeytinyağı (Litre)", min: 250, max: 280, trend: "stable" },
+            { item: "Kırmızı Biber", min: 30, max: 45, trend: "up" }
+        ];
+
+        let html = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">`;
+        mockPrices.forEach(p => {
+            const icon = p.trend === 'up' ? '<i class="fa-solid fa-arrow-trend-up text-red-500"></i>' : (p.trend === 'down' ? '<i class="fa-solid fa-arrow-trend-down text-emerald-500"></i>' : '<i class="fa-solid fa-minus text-gray-400"></i>');
+            html += `
+                <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between">
+                    <span class="font-bold text-xs text-lux-dark mb-2">${p.item}</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-extrabold text-emerald-700">${p.min}₺ - ${p.max}₺</span>
+                        <span>${icon}</span>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>
+        <p class="text-[9px] text-gray-400 mt-2 text-right italic"><i class="fa-solid fa-circle-info"></i> Fiyatlar temsilidir. Hatay BŞB hal kayıtlarına entegre edilecektir.</p>`;
+        
+        container.innerHTML = html;
+    } catch(err) {
+        container.innerHTML = '<p class="text-xs text-red-500">Fiyatlar çekilemedi.</p>';
+    }
+};
+
+// Sistemi yüklerken yeni özellikleri tetikle
+setTimeout(() => { 
+    window.listenPurchaseRequests();
+    if (document.getElementById('harvest-calendar-container')) window.renderHarvestCalendar();
+    if (document.getElementById('market-prices-container')) window.loadMarketPrices();
+}, 1000);
+
+// -----------------------------------------------------------
 
 window.openFormModal = openFormModal;
 window.closeFormModal = closeFormModal;
