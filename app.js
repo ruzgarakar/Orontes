@@ -12,6 +12,7 @@ const firebaseConfig = {
     appId: "1:220241708945:web:1a638ad256a7872282fc30",
     measurementId: "G-WP8LYJG7N9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
@@ -34,6 +35,7 @@ window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad 
         </div>
     `;
 };
+
 window.showToast = function(message, type = 'success') {
     const toast = document.createElement('div');
     toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
@@ -94,6 +96,8 @@ window.currentUser = null;
 window.userExtraData = { favorites: {}, offers: {}, avatar: '' };
 window.listings = [];
 window.filteredListings = [];
+window.buyRequests = []; // YENİ: Alım Talepleri Verisi
+window.currentMainTab = 'listings'; // YENİ: Aktif sekme kontrolü
 window.currentViewMode = 'grid';
 window.activeListingId = null;
 window.mapInstance = null;
@@ -103,6 +107,7 @@ window.activeOffersListener = null;
 window.activeOffersQuery = null;
 window.activeOutgoingOffersListener = null;
 window.activeOutgoingOffersQuery = null;
+window.activeBuyRequestsListener = null; // YENİ: Alım Talepleri Listener
 
 window.pendingOffersCount = 0;
 
@@ -277,6 +282,24 @@ window.activeDbListener = null;
 window.activeQuery = null;
 window.lastFetchedCategory = null;
 
+// YENİ: Alım Talepleri (Buy Requests) Dinleyicisi
+window.triggerBuyRequestsListener = function() {
+    const q = query(ref(db, 'buyRequests'), orderByChild('date'), limitToLast(100));
+    if (window.activeBuyRequestsListener) {
+        off(q, 'value', window.activeBuyRequestsListener);
+    }
+    window.activeBuyRequestsListener = onValue(q, (snapshot) => {
+        const items = [];
+        snapshot.forEach(child => {
+            items.push({ id: child.key, ...child.val() });
+        });
+        window.buyRequests = items.sort((a, b) => b.date - a.date);
+        if (window.currentMainTab === 'requests') {
+            window.renderBuyRequests();
+        }
+    });
+};
+
 window.triggerDatabaseFilter = function(category = '') {
     let q;
     if (category) {
@@ -370,14 +393,19 @@ window.executeLocalFilters = function() {
     else window.filteredListings.sort((a, b) => b.date - a.date);
 
     window.currentPage = 1;
-    renderListings();
+    if (window.currentMainTab === 'listings') {
+        renderListings();
+    }
     
     if(typeof window.renderGlobalMap === 'function') {
         window.renderGlobalMap();
     }
 };
 
-setTimeout(() => { window.filterListings(); }, 300);
+setTimeout(() => { 
+    window.filterListings(); 
+    window.triggerBuyRequestsListener(); 
+}, 300);
 
 window.handleLogout = async function() {
     try {
@@ -386,6 +414,7 @@ window.handleLogout = async function() {
         if (typeof closeAccountModal === 'function') closeAccountModal();
         if (typeof closeDetailModal === 'function') closeDetailModal();
         if (typeof closeFormModal === 'function') closeFormModal();
+        if (typeof closeBuyRequestModal === 'function') closeBuyRequestModal();
     } catch(err) {
         window.showToast("Çıkış yapılamadı: " + err.message, "error");
     }
@@ -760,6 +789,43 @@ window.handleFormSubmit = async function(e) {
     }
 };
 
+// YENİ: Alım Talebi Gönderimi (Buy Request)
+window.handleBuyRequestSubmit = async function(e) {
+    e.preventDefault();
+    if (!window.currentUser) {
+        window.showToast("Talep oluşturmak için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+    
+    const btn = document.getElementById('req-submit-btn');
+    btn.disabled = true;
+    btn.innerText = "Yayınlanıyor...";
+    
+    try {
+        await push(ref(db, 'buyRequests'), {
+            uid: window.currentUser.uid,
+            category: document.getElementById('req-category').value,
+            title: document.getElementById('req-title').value,
+            district: document.getElementById('req-district').value,
+            qty: document.getElementById('req-qty').value,
+            desc: document.getElementById('req-desc').value,
+            buyerName: document.getElementById('req-buyer').value,
+            phone: document.getElementById('req-phone').value,
+            date: Date.now(),
+            status: 'Aktif'
+        });
+        window.showToast("Alım talebiniz başarıyla yayınlandı!", "success");
+        closeBuyRequestModal();
+        switchMainTab('requests');
+    } catch(err) {
+        window.showToast("Hata: " + err.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Talebi Yayınla";
+    }
+};
+
 window.updateAccountDetails = async function() {
     if (!window.currentUser) return;
     const newUsername = document.getElementById('update-username').value.trim();
@@ -863,6 +929,12 @@ window.deleteUserAccount = async function() {
         const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
         for (const listing of myListings) {
             try { await remove(ref(db, 'listings/' + listing.id)); } catch(e) {}
+        }
+        
+        // Alım Taleplerini de sil
+        const myRequests = (window.buyRequests || []).filter(r => r.uid === window.currentUser.uid);
+        for (const req of myRequests) {
+            try { await remove(ref(db, 'buyRequests/' + req.id)); } catch(e) {}
         }
 
         try {
@@ -1172,14 +1244,12 @@ window.loadIncomingOffers = async function() {
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
         const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
-        // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (YENİ EKLENEN KISIM)
         const priceAlerts = [];
         if (window.userExtraData && window.userExtraData.favorites) {
             Object.keys(window.userExtraData.favorites).forEach(favId => {
                 const item = (window.listings || []).find(l => l.id === favId);
                 if (item && item.priceHistory && item.priceHistory.length > 0) {
                     const lastHistory = item.priceHistory[item.priceHistory.length - 1];
-                    // Eğer ilan fiyatı değiştiyse bunu diziye ekliyoruz
                     if (item.price !== lastHistory.price) {
                         priceAlerts.push({
                             id: 'alert_' + item.id,
@@ -1196,7 +1266,6 @@ window.loadIncomingOffers = async function() {
             });
         }
 
-        // Fiyat değişim bildirimleri ve teklifleri tarihe göre birleştir ve sırala
         const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
 
         container.innerHTML = '';
@@ -1210,7 +1279,6 @@ window.loadIncomingOffers = async function() {
             const div = document.createElement('div');
             
             if (o.type === 'price_alert') {
-                // FİYAT BİLDİRİM KARTI
                 div.className = "bg-blue-50 p-3 rounded-xl border border-blue-200 text-xs space-y-2 mb-2";
                 const trendColor = o.isDrop ? "text-emerald-600" : "text-red-600";
                 const trendIcon = o.isDrop ? "fa-arrow-trend-down" : "fa-arrow-trend-up";
@@ -1230,7 +1298,6 @@ window.loadIncomingOffers = async function() {
                     </div>
                 `;
             } else {
-                // MEVCUT TEKLİF KARTLARI (Gelen/Giden)
                 const isIncoming = o.type === 'incoming';
                 div.className = isIncoming 
                     ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
@@ -1658,6 +1725,41 @@ function switchAccountTab(tab) {
     if (tab === 'offers') window.loadIncomingOffers();
 }
 
+// YENİ: Ana Sekmeleri (Satılık İlanlar vs Alım Talepleri) Değiştirme
+window.switchMainTab = function(tab) {
+    window.currentMainTab = tab;
+    const tabListings = document.getElementById('tab-listings');
+    const tabRequests = document.getElementById('tab-buy-requests');
+    const gridListings = document.getElementById('listings-grid');
+    const gridRequests = document.getElementById('buy-requests-grid');
+    const mapContainer = document.getElementById('global-map-container');
+    const viewBtns = document.getElementById('view-mode-buttons');
+    const pagination = document.getElementById('pagination-container');
+    const titleText = document.getElementById('main-section-title');
+    
+    if (tab === 'listings') {
+        if (tabListings) tabListings.className = "px-4 py-2 rounded-lg text-xs font-bold bg-white shadow text-lux-dark transition flex-1 md:flex-none text-center";
+        if (tabRequests) tabRequests.className = "px-4 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-lux-dark transition flex-1 md:flex-none text-center";
+        if (gridRequests) gridRequests.classList.add('hidden');
+        if (window.currentViewMode !== 'map' && gridListings) gridListings.classList.remove('hidden');
+        if (window.currentViewMode === 'map' && mapContainer) mapContainer.classList.remove('hidden');
+        if (viewBtns) viewBtns.classList.remove('hidden');
+        if (pagination) pagination.classList.remove('hidden');
+        if (titleText) titleText.innerText = "Vitrin İlanları";
+        window.filterListings();
+    } else {
+        if (tabRequests) tabRequests.className = "px-4 py-2 rounded-lg text-xs font-bold bg-white shadow text-blue-900 transition border border-blue-100 flex-1 md:flex-none text-center";
+        if (tabListings) tabListings.className = "px-4 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-lux-dark transition flex-1 md:flex-none text-center";
+        if (gridListings) gridListings.classList.add('hidden');
+        if (mapContainer) mapContainer.classList.add('hidden');
+        if (gridRequests) gridRequests.classList.remove('hidden');
+        if (viewBtns) viewBtns.classList.add('hidden');
+        if (pagination) pagination.classList.add('hidden');
+        if (titleText) titleText.innerText = "Güncel Alım Talepleri";
+        window.renderBuyRequests();
+    }
+};
+
 window.openInboxTab = function() {
     if (!window.currentUser) {
         window.openAuthModal('login');
@@ -1964,6 +2066,31 @@ function openFormModal() {
     }, 200);
 }
 
+// YENİ: Alım Talebi Modalı Aç/Kapa
+window.openBuyRequestModal = function() {
+    if (!window.currentUser) {
+        window.showToast("Alım talebi oluşturmak için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+    const form = document.getElementById('buy-request-form');
+    if (form) form.reset();
+    
+    const latestName = window.userExtraData?.username || window.currentUser?.displayName || window.currentUser?.email.split('@')[0];
+    const latestPhone = window.userExtraData?.phone || '';
+    
+    const buyerInput = document.getElementById('req-buyer');
+    const phoneInput = document.getElementById('req-phone');
+    if (buyerInput) buyerInput.value = latestName || '';
+    if (phoneInput) phoneInput.value = latestPhone || '';
+    
+    document.getElementById('buy-request-modal').classList.remove('hidden');
+};
+
+window.closeBuyRequestModal = function() {
+    document.getElementById('buy-request-modal').classList.add('hidden');
+};
+
 function openFormModalForEdit() {
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
@@ -2179,6 +2306,54 @@ function renderListings() {
     renderPaginationControls(items.length);
 }
 
+// YENİ: Alım Taleplerini (Buy Requests) Render Et
+window.renderBuyRequests = function() {
+    const grid = document.getElementById('buy-requests-grid');
+    if (!grid) return;
+    const items = window.buyRequests || [];
+    grid.innerHTML = '';
+    
+    const countEl = document.getElementById('total-count');
+    if (countEl) countEl.innerText = `${items.length} Alım Talebi Bulundu`;
+    
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Henüz aktif bir alım talebi bulunmuyor.</div>`;
+        return;
+    }
+    
+    items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-blue-50/50 rounded-2xl border border-blue-200/60 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between h-full";
+        
+        let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
+        if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+        const waMsg = `Merhaba ${item.buyerName}, ORONTES'teki "${escapeHtml(item.title)}" talebiniz için iletişime geçiyorum. Elimde bu ürün/hizmet mevcut.`;
+        
+        card.innerHTML = `
+            <div>
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-[10px] bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md">${escapeHtml(item.category)}</span>
+                    <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
+                </div>
+                <h3 class="font-bold text-blue-900 text-sm mb-1">${escapeHtml(item.title)}</h3>
+                <p class="text-[10px] text-gray-500 mb-3"><i class="fa-solid fa-location-dot text-blue-500 mr-1"></i>${escapeHtml(item.district || 'Tüm Hatay')} ${item.qty ? `• <b>Miktar:</b> ${escapeHtml(item.qty)}` : ''}</p>
+                <div class="text-xs text-gray-700 bg-white p-2 rounded-lg border border-blue-100 mb-3 line-clamp-3">${escapeHtml(item.desc)}</div>
+            </div>
+            <div class="pt-3 border-t border-blue-100/50 flex justify-between items-center mt-auto">
+                <div class="min-w-0 pr-2">
+                    <span class="block text-[9px] text-gray-400 uppercase font-bold">Talep Sahibi</span>
+                    <span class="block text-xs font-bold text-lux-dark truncate">${escapeHtml(item.buyerName)}</span>
+                </div>
+                <a href="https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}" target="_blank" class="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-semibold text-[11px] transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                    <span>Teklif Ver</span>
+                </a>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+};
+
 function renderPaginationControls(totalItems) {
     const container = document.getElementById('pagination-container');
     if (!container) return;
@@ -2196,8 +2371,10 @@ function renderPaginationControls(totalItems) {
 function changePage(page) {
     const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
     window.currentPage = Math.min(Math.max(1, page), totalPages);
-    renderListings();
-    window.scrollTo({ top: 400, behavior: 'smooth' });
+    if (window.currentMainTab === 'listings') {
+        renderListings();
+        window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
 }
 
 window.haversineKm = function(lat1, lng1, lat2, lng2) {
@@ -2380,6 +2557,7 @@ function openDetailModal(id) {
     setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
 }
 
+// Global Exportlar
 window.openFormModal = openFormModal;
 window.closeFormModal = closeFormModal;
 window.openAuthModal = openAuthModal;
@@ -2415,3 +2593,11 @@ window.updateMarqueeData = updateMarqueeData;
 window.renderPaginationControls = renderPaginationControls;
 window.loadFavoriteListings = loadFavoriteListings;
 window.openInboxTab = openInboxTab;
+
+// YENİ EKLENEN GLOBAL FONKSİYONLAR
+window.openBuyRequestModal = openBuyRequestModal;
+window.closeBuyRequestModal = closeBuyRequestModal;
+window.switchMainTab = switchMainTab;
+window.handleBuyRequestSubmit = handleBuyRequestSubmit;
+window.renderBuyRequests = renderBuyRequests;
+window.triggerBuyRequestsListener = triggerBuyRequestsListener;
