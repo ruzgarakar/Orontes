@@ -12,6 +12,7 @@ const firebaseConfig = {
     appId: "1:220241708945:web:1a638ad256a7872282fc30",
     measurementId: "G-WP8LYJG7N9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
@@ -34,6 +35,7 @@ window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad 
         </div>
     `;
 };
+
 window.showToast = function(message, type = 'success') {
     const toast = document.createElement('div');
     toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
@@ -94,8 +96,6 @@ window.currentUser = null;
 window.userExtraData = { favorites: {}, offers: {}, avatar: '' };
 window.listings = [];
 window.filteredListings = [];
-window.buyRequests = []; // YENİ: Alım Talepleri Verisi
-window.currentMainTab = 'listings'; // YENİ: Aktif sekme kontrolü
 window.currentViewMode = 'grid';
 window.activeListingId = null;
 window.mapInstance = null;
@@ -105,7 +105,6 @@ window.activeOffersListener = null;
 window.activeOffersQuery = null;
 window.activeOutgoingOffersListener = null;
 window.activeOutgoingOffersQuery = null;
-window.activeBuyRequestsListener = null; // YENİ: Alım Talepleri Listener
 
 window.pendingOffersCount = 0;
 
@@ -280,24 +279,6 @@ window.activeDbListener = null;
 window.activeQuery = null;
 window.lastFetchedCategory = null;
 
-// YENİ: Alım Talepleri (Buy Requests) Dinleyicisi
-window.triggerBuyRequestsListener = function() {
-    const q = query(ref(db, 'buyRequests'), orderByChild('date'), limitToLast(100));
-    if (window.activeBuyRequestsListener) {
-        off(q, 'value', window.activeBuyRequestsListener);
-    }
-    window.activeBuyRequestsListener = onValue(q, (snapshot) => {
-        const items = [];
-        snapshot.forEach(child => {
-            items.push({ id: child.key, ...child.val() });
-        });
-        window.buyRequests = items.sort((a, b) => b.date - a.date);
-        if (window.currentMainTab === 'requests') {
-            window.renderBuyRequests();
-        }
-    });
-};
-
 window.triggerDatabaseFilter = function(category = '') {
     let q;
     if (category) {
@@ -391,19 +372,14 @@ window.executeLocalFilters = function() {
     else window.filteredListings.sort((a, b) => b.date - a.date);
 
     window.currentPage = 1;
-    if (window.currentMainTab === 'listings') {
-        renderListings();
-    }
+    renderListings();
     
     if(typeof window.renderGlobalMap === 'function') {
         window.renderGlobalMap();
     }
 };
 
-setTimeout(() => { 
-    window.filterListings(); 
-    window.triggerBuyRequestsListener(); 
-}, 300);
+setTimeout(() => { window.filterListings(); }, 300);
 
 window.handleLogout = async function() {
     try {
@@ -412,7 +388,6 @@ window.handleLogout = async function() {
         if (typeof closeAccountModal === 'function') closeAccountModal();
         if (typeof closeDetailModal === 'function') closeDetailModal();
         if (typeof closeFormModal === 'function') closeFormModal();
-        if (typeof closeBuyRequestModal === 'function') closeBuyRequestModal();
     } catch(err) {
         window.showToast("Çıkış yapılamadı: " + err.message, "error");
     }
@@ -787,43 +762,6 @@ window.handleFormSubmit = async function(e) {
     }
 };
 
-// YENİ: Alım Talebi Gönderimi (Buy Request)
-window.handleBuyRequestSubmit = async function(e) {
-    e.preventDefault();
-    if (!window.currentUser) {
-        window.showToast("Talep oluşturmak için giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
-    
-    const btn = document.getElementById('req-submit-btn');
-    btn.disabled = true;
-    btn.innerText = "Yayınlanıyor...";
-    
-    try {
-        await push(ref(db, 'buyRequests'), {
-            uid: window.currentUser.uid,
-            category: document.getElementById('req-category').value,
-            title: document.getElementById('req-title').value,
-            district: document.getElementById('req-district').value,
-            qty: document.getElementById('req-qty').value,
-            desc: document.getElementById('req-desc').value,
-            buyerName: document.getElementById('req-buyer').value,
-            phone: document.getElementById('req-phone').value,
-            date: Date.now(),
-            status: 'Aktif'
-        });
-        window.showToast("Alım talebiniz başarıyla yayınlandı!", "success");
-        closeBuyRequestModal();
-        switchMainTab('requests');
-    } catch(err) {
-        window.showToast("Hata: " + err.message, "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Talebi Yayınla";
-    }
-};
-
 window.updateAccountDetails = async function() {
     if (!window.currentUser) return;
     const newUsername = document.getElementById('update-username').value.trim();
@@ -927,12 +865,6 @@ window.deleteUserAccount = async function() {
         const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
         for (const listing of myListings) {
             try { await remove(ref(db, 'listings/' + listing.id)); } catch(e) {}
-        }
-        
-        // Alım Taleplerini de sil
-        const myRequests = (window.buyRequests || []).filter(r => r.uid === window.currentUser.uid);
-        for (const req of myRequests) {
-            try { await remove(ref(db, 'buyRequests/' + req.id)); } catch(e) {}
         }
 
         try {
@@ -1242,12 +1174,14 @@ window.loadIncomingOffers = async function() {
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
         const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
+        // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (YENİ EKLENEN KISIM)
         const priceAlerts = [];
         if (window.userExtraData && window.userExtraData.favorites) {
             Object.keys(window.userExtraData.favorites).forEach(favId => {
                 const item = (window.listings || []).find(l => l.id === favId);
                 if (item && item.priceHistory && item.priceHistory.length > 0) {
                     const lastHistory = item.priceHistory[item.priceHistory.length - 1];
+                    // Eğer ilan fiyatı değiştiyse bunu diziye ekliyoruz
                     if (item.price !== lastHistory.price) {
                         priceAlerts.push({
                             id: 'alert_' + item.id,
@@ -1264,6 +1198,7 @@ window.loadIncomingOffers = async function() {
             });
         }
 
+        // Fiyat değişim bildirimleri ve teklifleri tarihe göre birleştir ve sırala
         const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
 
         container.innerHTML = '';
@@ -1277,6 +1212,7 @@ window.loadIncomingOffers = async function() {
             const div = document.createElement('div');
             
             if (o.type === 'price_alert') {
+                // FİYAT BİLDİRİM KARTI
                 div.className = "bg-blue-50 p-3 rounded-xl border border-blue-200 text-xs space-y-2 mb-2";
                 const trendColor = o.isDrop ? "text-emerald-600" : "text-red-600";
                 const trendIcon = o.isDrop ? "fa-arrow-trend-down" : "fa-arrow-trend-up";
@@ -1296,6 +1232,7 @@ window.loadIncomingOffers = async function() {
                     </div>
                 `;
             } else {
+                // MEVCUT TEKLİF KARTLARI (Gelen/Giden)
                 const isIncoming = o.type === 'incoming';
                 div.className = isIncoming 
                     ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
@@ -1306,15 +1243,20 @@ window.loadIncomingOffers = async function() {
                 if (isIncoming) {
                     let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
                     if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
+                    const isSupply = o.offerKind === 'supply';
+                    const waMsg = isSupply
+                        ? `Merhaba ${o.buyerName || 'Üretici'}, ORONTES'teki "${o.listingTitle || 'alım talebim'}" başlıklı ALIM TALEBİME gönderdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL'lik tedarik teklifi hakkında görüşmek istiyorum.`
+                        : `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
                     const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
                     div.innerHTML = `
                         <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
-                            <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>
+                            ${isSupply
+                                ? '<span class="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded"><i class="fa-solid fa-cart-shopping mr-0.5"></i> ALIM TALEBİME TEDARİK TEKLİFİ</span>'
+                                : '<span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>'}
                             <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
                         </div>
-                        <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
+                        <p class="font-bold ${isSupply ? 'cursor-pointer hover:text-lux-olive' : ''}" ${isSupply ? `onclick="closeAccountModal(); window.openOfferTargetModal('supply', '${window.escapeHtml(o.listingId)}')"` : ''}>📌 ${window.escapeHtml(o.listingTitle || 'İlan')} ${isSupply ? '<i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>' : ''}</p>
                         <p class="text-[10px] text-gray-600">Gönderen: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
@@ -1334,10 +1276,12 @@ window.loadIncomingOffers = async function() {
                 } else {
                     div.innerHTML = `
                         <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
-                            <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>
+                            ${o.offerKind === 'supply'
+                                ? '<span class="text-[10px] bg-lux-olive text-white px-1.5 py-0.5 rounded"><i class="fa-solid fa-truck-field mr-0.5"></i> GÖNDERDİĞİM TEDARİK TEKLİFİ</span>'
+                                : '<span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>'}
                             <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
                         </div>
-                        <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
+                        <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); window.openOfferTargetModal('${o.offerKind || 'listing'}', '${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Karşı Taraf Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
                             ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
@@ -1707,7 +1651,7 @@ function updateFavBtnStyle(id) {
 }
 
 function switchAccountTab(tab) {
-    ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
+    ['listings', 'favorites', 'offers', 'buyrequests', 'settings'].forEach(t => {
         const el = document.getElementById(`tab-content-${t}`);
         const btnEl = document.getElementById(`tab-btn-${t}`);
         if (el) el.classList.add('hidden');
@@ -1721,42 +1665,8 @@ function switchAccountTab(tab) {
 
     if (tab === 'favorites') loadFavoriteListings();
     if (tab === 'offers') window.loadIncomingOffers();
+    if (tab === 'buyrequests' && typeof window.loadMyBuyRequests === 'function') window.loadMyBuyRequests();
 }
-
-// YENİ: Ana Sekmeleri (Satılık İlanlar vs Alım Talepleri) Değiştirme
-window.switchMainTab = function(tab) {
-    window.currentMainTab = tab;
-    const tabListings = document.getElementById('tab-listings');
-    const tabRequests = document.getElementById('tab-buy-requests');
-    const gridListings = document.getElementById('listings-grid');
-    const gridRequests = document.getElementById('buy-requests-grid');
-    const mapContainer = document.getElementById('global-map-container');
-    const viewBtns = document.getElementById('view-mode-buttons');
-    const pagination = document.getElementById('pagination-container');
-    const titleText = document.getElementById('main-section-title');
-    
-    if (tab === 'listings') {
-        if (tabListings) tabListings.className = "px-4 py-2 rounded-lg text-xs font-bold bg-white shadow text-lux-dark transition flex-1 md:flex-none text-center";
-        if (tabRequests) tabRequests.className = "px-4 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-lux-dark transition flex-1 md:flex-none text-center";
-        if (gridRequests) gridRequests.classList.add('hidden');
-        if (window.currentViewMode !== 'map' && gridListings) gridListings.classList.remove('hidden');
-        if (window.currentViewMode === 'map' && mapContainer) mapContainer.classList.remove('hidden');
-        if (viewBtns) viewBtns.classList.remove('hidden');
-        if (pagination) pagination.classList.remove('hidden');
-        if (titleText) titleText.innerText = "Vitrin İlanları";
-        window.filterListings();
-    } else {
-        if (tabRequests) tabRequests.className = "px-4 py-2 rounded-lg text-xs font-bold bg-white shadow text-blue-900 transition border border-blue-100 flex-1 md:flex-none text-center";
-        if (tabListings) tabListings.className = "px-4 py-2 rounded-lg text-xs font-bold text-gray-500 hover:text-lux-dark transition flex-1 md:flex-none text-center";
-        if (gridListings) gridListings.classList.add('hidden');
-        if (mapContainer) mapContainer.classList.add('hidden');
-        if (gridRequests) gridRequests.classList.remove('hidden');
-        if (viewBtns) viewBtns.classList.add('hidden');
-        if (pagination) pagination.classList.add('hidden');
-        if (titleText) titleText.innerText = "Güncel Alım Talepleri";
-        window.renderBuyRequests();
-    }
-};
 
 window.openInboxTab = function() {
     if (!window.currentUser) {
@@ -1818,7 +1728,8 @@ function updateMarqueeData() {
     const items = window.listings || [];
 
     if (items.length === 0) {
-        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
+        const brCountEmpty = (window.buyRequests || []).filter(r => (r.status || 'Açık') === 'Açık').length;
+        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span>${brCountEmpty > 0 ? `<button onclick="document.getElementById('buyrequests-section').scrollIntoView({behavior:'smooth'})" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">🤝 ${brCountEmpty} Aktif Alım Talebi</button>` : ''}</div>`;
         return;
     }
 
@@ -1831,6 +1742,13 @@ function updateMarqueeData() {
 
     let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
         <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Canlı Piyasa Endeksi:</span></span>`;
+
+    const openBrCount = (window.buyRequests || []).filter(r => (r.status || 'Açık') === 'Açık').length;
+    if (openBrCount > 0) {
+        contentHTML += `<button onclick="document.getElementById('buyrequests-section').scrollIntoView({behavior:'smooth'})" title="Alıcıların açtığı alım talepleri" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-extrabold px-2.5 py-1 rounded-lg border border-lux-dark/20 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+            <span>🤝</span><span>ALICI ARIYOR: ${openBrCount} Aktif Alım Talebi</span>
+        </button>`;
+    }
 
     categories.forEach(cat => {
         const catListings = items.filter(i => i.category === cat);
@@ -2064,31 +1982,6 @@ function openFormModal() {
     }, 200);
 }
 
-// YENİ: Alım Talebi Modalı Aç/Kapa
-window.openBuyRequestModal = function() {
-    if (!window.currentUser) {
-        window.showToast("Alım talebi oluşturmak için giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
-    const form = document.getElementById('buy-request-form');
-    if (form) form.reset();
-    
-    const latestName = window.userExtraData?.username || window.currentUser?.displayName || window.currentUser?.email.split('@')[0];
-    const latestPhone = window.userExtraData?.phone || '';
-    
-    const buyerInput = document.getElementById('req-buyer');
-    const phoneInput = document.getElementById('req-phone');
-    if (buyerInput) buyerInput.value = latestName || '';
-    if (phoneInput) phoneInput.value = latestPhone || '';
-    
-    document.getElementById('buy-request-modal').classList.remove('hidden');
-};
-
-window.closeBuyRequestModal = function() {
-    document.getElementById('buy-request-modal').classList.add('hidden');
-};
-
 function openFormModalForEdit() {
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
@@ -2304,54 +2197,6 @@ function renderListings() {
     renderPaginationControls(items.length);
 }
 
-// YENİ: Alım Taleplerini (Buy Requests) Render Et
-window.renderBuyRequests = function() {
-    const grid = document.getElementById('buy-requests-grid');
-    if (!grid) return;
-    const items = window.buyRequests || [];
-    grid.innerHTML = '';
-    
-    const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} Alım Talebi Bulundu`;
-    
-    if (items.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Henüz aktif bir alım talebi bulunmuyor.</div>`;
-        return;
-    }
-    
-    items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = "bg-blue-50/50 rounded-2xl border border-blue-200/60 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between h-full";
-        
-        let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
-        if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-        const waMsg = `Merhaba ${item.buyerName}, ORONTES'teki "${escapeHtml(item.title)}" talebiniz için iletişime geçiyorum. Elimde bu ürün/hizmet mevcut.`;
-        
-        card.innerHTML = `
-            <div>
-                <div class="flex justify-between items-start mb-2">
-                    <span class="text-[10px] bg-blue-200 text-blue-800 font-bold px-2 py-0.5 rounded-md">${escapeHtml(item.category)}</span>
-                    <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
-                </div>
-                <h3 class="font-bold text-blue-900 text-sm mb-1">${escapeHtml(item.title)}</h3>
-                <p class="text-[10px] text-gray-500 mb-3"><i class="fa-solid fa-location-dot text-blue-500 mr-1"></i>${escapeHtml(item.district || 'Tüm Hatay')} ${item.qty ? `• <b>Miktar:</b> ${escapeHtml(item.qty)}` : ''}</p>
-                <div class="text-xs text-gray-700 bg-white p-2 rounded-lg border border-blue-100 mb-3 line-clamp-3">${escapeHtml(item.desc)}</div>
-            </div>
-            <div class="pt-3 border-t border-blue-100/50 flex justify-between items-center mt-auto">
-                <div class="min-w-0 pr-2">
-                    <span class="block text-[9px] text-gray-400 uppercase font-bold">Talep Sahibi</span>
-                    <span class="block text-xs font-bold text-lux-dark truncate">${escapeHtml(item.buyerName)}</span>
-                </div>
-                <a href="https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}" target="_blank" class="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-semibold text-[11px] transition flex items-center space-x-1.5 shadow-sm">
-                    <i class="fa-brands fa-whatsapp text-sm"></i>
-                    <span>Teklif Ver</span>
-                </a>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-};
-
 function renderPaginationControls(totalItems) {
     const container = document.getElementById('pagination-container');
     if (!container) return;
@@ -2369,10 +2214,8 @@ function renderPaginationControls(totalItems) {
 function changePage(page) {
     const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
     window.currentPage = Math.min(Math.max(1, page), totalPages);
-    if (window.currentMainTab === 'listings') {
-        renderListings();
-        window.scrollTo({ top: 400, behavior: 'smooth' });
-    }
+    renderListings();
+    window.scrollTo({ top: 400, behavior: 'smooth' });
 }
 
 window.haversineKm = function(lat1, lng1, lat2, lng2) {
@@ -2555,7 +2398,6 @@ function openDetailModal(id) {
     setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
 }
 
-// Global Exportlar
 window.openFormModal = openFormModal;
 window.closeFormModal = closeFormModal;
 window.openAuthModal = openAuthModal;
@@ -2592,10 +2434,1103 @@ window.renderPaginationControls = renderPaginationControls;
 window.loadFavoriteListings = loadFavoriteListings;
 window.openInboxTab = openInboxTab;
 
-// YENİ EKLENEN GLOBAL FONKSİYONLAR
-window.openBuyRequestModal = openBuyRequestModal;
-window.closeBuyRequestModal = closeBuyRequestModal;
-window.switchMainTab = switchMainTab;
-window.handleBuyRequestSubmit = handleBuyRequestSubmit;
-window.renderBuyRequests = renderBuyRequests;
-window.triggerBuyRequestsListener = triggerBuyRequestsListener;
+/* =========================================================================================
+   ORONTES — YENİ MODÜLLER (Mevcut özelliklerin hiçbiri değiştirilmemiş / silinmemiştir)
+   1) ALIM TALEPLERİ  → Tersine Pazar Yeri ("Ne Arıyorsun?")
+   2) HATAY İNTERAKTİF HASAT & SEZON TAKVİMİ
+   ========================================================================================= */
+
+/* ------------------------------- ORTAK SABİTLER ------------------------------- */
+
+window.HATAY_DISTRICT_LIST = [
+    'Altınözü', 'Antakya', 'Arsuz', 'Belen', 'Defne', 'Dörtyol', 'Erzin', 'Hassa',
+    'İskenderun', 'Kırıkhan', 'Kumlu', 'Payas', 'Reyhanlı', 'Samandağ', 'Yayladağı'
+];
+
+window.ALL_CATEGORY_LIST = [
+    "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", "Sebze & Sera",
+    "Canlı Hayvan & Süt", "Fide & Tohum", "El Sanatları", "Giyim & Aksesuar",
+    "Ev Yapımı Ürünler", "Tadilat & Tamirat", "Özel Ders", "Temizlik",
+    "Tarım İşçiliği", "Nakliye & Lojistik", "Diğer"
+];
+
+window.BR_BUYER_TYPES = [
+    "🏢 Toptancı / Hal Esnafı",
+    "🍽️ Restoran & Otel",
+    "🛒 Market / Zincir Market",
+    "🚢 İhracatçı",
+    "🏭 Fabrika / İşleme Tesisi",
+    "🤝 Kooperatif / Birlik",
+    "📦 E-Ticaret Satıcısı",
+    "👤 Bireysel Alıcı"
+];
+
+/* =========================================================================================
+   MODÜL 1 — ALIM TALEPLERİ (TERSİNE PAZAR YERİ)
+   ========================================================================================= */
+
+window.buyRequests = [];
+window.filteredBuyRequests = [];
+window.brCurrentPage = 1;
+window.brItemsPerPage = 8;
+window.activeBuyRequestId = null;
+window.brDistrictSelection = new Set(['Tüm Hatay']);
+window.brOnlyOpen = true;
+window.activeBuyRequestsListener = null;
+window.activeBuyRequestsQuery = null;
+window.notifiedBuyRequests = new Set();
+
+/* ---- Canlı veri dinleyicisi ---- */
+window.startBuyRequestsListener = function () {
+    try {
+        const q = query(ref(db, 'buyRequests'), orderByChild('date'), limitToLast(120));
+
+        if (window.activeBuyRequestsQuery && window.activeBuyRequestsListener) {
+            off(window.activeBuyRequestsQuery, 'value', window.activeBuyRequestsListener);
+        }
+
+        window.activeBuyRequestsQuery = q;
+        window.activeBuyRequestsListener = onValue(q, (snapshot) => {
+            const items = [];
+            snapshot.forEach((child) => {
+                items.push({ id: child.key, ...child.val() });
+            });
+            items.sort((a, b) => (b.date || 0) - (a.date || 0));
+
+            // Üreticiye "senin kategorinde alıcı var" bildirimi (tavuk-yumurta problemi çözümü)
+            if (window.currentUser && window.loginSessionTime) {
+                const myCategories = new Set(
+                    (window.listings || []).filter(l => l.uid === window.currentUser.uid).map(l => l.category)
+                );
+                items.forEach(rq => {
+                    if (!rq.date || rq.uid === window.currentUser.uid) return;
+                    if (window.notifiedBuyRequests.has(rq.id)) return;
+                    const isFresh = rq.date > window.loginSessionTime && (Date.now() - rq.date) < 20000;
+                    if (isFresh && myCategories.has(rq.category)) {
+                        window.notifiedBuyRequests.add(rq.id);
+                        window.showToast(`🤝 Sizin kategorinizde yeni ALIM TALEBİ: "${rq.title}" — hemen teklif verin!`, "success");
+                    }
+                });
+            }
+
+            window.buyRequests = items;
+            window.executeBuyRequestFilters();
+
+            if (typeof window.updateMarqueeData === 'function') window.updateMarqueeData();
+
+            const brTab = document.getElementById('tab-content-buyrequests');
+            if (brTab && !brTab.classList.contains('hidden')) window.loadMyBuyRequests();
+        }, (err) => {
+            console.warn('Alım talepleri okunamadı:', err);
+            const grid = document.getElementById('buyrequests-grid');
+            if (grid) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 bg-white rounded-2xl border border-gray-200 text-gray-500 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation text-lux-gold text-xl block mb-2"></i>
+                    <b class="text-lux-dark block mb-1">Alım talepleri şu anda görüntülenemiyor.</b>
+                    Lütfen birkaç saniye sonra sayfayı yenileyin.
+                </div>`;
+            }
+        });
+    } catch (err) {
+        console.warn('Alım talebi dinleyicisi başlatılamadı:', err);
+    }
+};
+
+/* ---- Filtreleme ---- */
+window.executeBuyRequestFilters = function () {
+    const searchEl = document.getElementById('br-search');
+    const catEl = document.getElementById('br-category-filter');
+    const distEl = document.getElementById('br-district-filter');
+    const sortEl = document.getElementById('br-sort-filter');
+
+    const search = searchEl ? searchEl.value.toLocaleLowerCase('tr-TR') : '';
+    const category = catEl ? catEl.value : '';
+    const district = distEl ? distEl.value : '';
+    const sort = sortEl ? sortEl.value : 'newest';
+
+    window.filteredBuyRequests = (window.buyRequests || []).filter(rq => {
+        const haystack = `${rq.title || ''} ${rq.desc || ''} ${rq.category || ''} ${rq.buyerName || ''}`.toLocaleLowerCase('tr-TR');
+        const matchesSearch = !search || haystack.includes(search);
+        const matchesCategory = !category || rq.category === category;
+
+        const districts = Array.isArray(rq.districts) ? rq.districts : (rq.districts ? [rq.districts] : []);
+        const isAllHatay = districts.length === 0 || districts.includes('Tüm Hatay');
+        const matchesDistrict = !district || isAllHatay || districts.includes(district);
+
+        const matchesStatus = !window.brOnlyOpen || (rq.status || 'Açık') === 'Açık';
+        return matchesSearch && matchesCategory && matchesDistrict && matchesStatus;
+    });
+
+    if (sort === 'oldest') window.filteredBuyRequests.sort((a, b) => (a.date || 0) - (b.date || 0));
+    else if (sort === 'price-high') window.filteredBuyRequests.sort((a, b) => (Number(b.targetPrice) || 0) - (Number(a.targetPrice) || 0));
+    else if (sort === 'price-low') window.filteredBuyRequests.sort((a, b) => (Number(a.targetPrice) || Infinity) - (Number(b.targetPrice) || Infinity));
+    else if (sort === 'urgent') window.filteredBuyRequests.sort((a, b) => (b.isUrgent ? 1 : 0) - (a.isUrgent ? 1 : 0) || (b.date || 0) - (a.date || 0));
+    else window.filteredBuyRequests.sort((a, b) => (b.date || 0) - (a.date || 0));
+
+    window.brCurrentPage = 1;
+    window.renderBuyRequests();
+};
+
+window.toggleBuyRequestOpenOnly = function () {
+    window.brOnlyOpen = !window.brOnlyOpen;
+    const btn = document.getElementById('br-open-toggle');
+    if (btn) {
+        btn.className = window.brOnlyOpen
+            ? "bg-lux-gold text-lux-dark font-bold px-3 py-2 rounded-xl text-xs transition whitespace-nowrap"
+            : "bg-lux-olive/40 text-lux-sage font-semibold px-3 py-2 rounded-xl text-xs transition whitespace-nowrap border border-lux-gold/20";
+        btn.innerHTML = window.brOnlyOpen
+            ? '<i class="fa-solid fa-toggle-on mr-1"></i> Sadece Açık Talepler'
+            : '<i class="fa-solid fa-toggle-off mr-1"></i> Kapananlar Dahil';
+    }
+    window.executeBuyRequestFilters();
+};
+
+window.resetBuyRequestFilters = function () {
+    const ids = ['br-search', 'br-category-filter', 'br-district-filter'];
+    ids.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const sortEl = document.getElementById('br-sort-filter');
+    if (sortEl) sortEl.value = 'newest';
+    window.brOnlyOpen = true;
+    const btn = document.getElementById('br-open-toggle');
+    if (btn) {
+        btn.className = "bg-lux-gold text-lux-dark font-bold px-3 py-2 rounded-xl text-xs transition whitespace-nowrap";
+        btn.innerHTML = '<i class="fa-solid fa-toggle-on mr-1"></i> Sadece Açık Talepler';
+    }
+    window.executeBuyRequestFilters();
+};
+
+/* ---- Yardımcılar ---- */
+window.getBuyRequestDistrictText = function (rq) {
+    const districts = Array.isArray(rq.districts) ? rq.districts : (rq.districts ? [rq.districts] : []);
+    if (districts.length === 0 || districts.includes('Tüm Hatay')) return 'Tüm Hatay (Farketmez)';
+    return districts.join(' · ');
+};
+
+window.getMatchingListingsForRequest = function (rq) {
+    const districts = Array.isArray(rq.districts) ? rq.districts : (rq.districts ? [rq.districts] : []);
+    const isAllHatay = districts.length === 0 || districts.includes('Tüm Hatay');
+    return (window.listings || []).filter(l => {
+        if (rq.category && l.category !== rq.category) return false;
+        if (!isAllHatay && !districts.includes(l.district)) return false;
+        return true;
+    }).sort((a, b) => (b.date || 0) - (a.date || 0));
+};
+
+/* ---- Kart listesi ---- */
+window.renderBuyRequests = function () {
+    const grid = document.getElementById('buyrequests-grid');
+    if (!grid) return;
+
+    const items = window.filteredBuyRequests || [];
+    const countEl = document.getElementById('br-total-count');
+    const openCount = (window.buyRequests || []).filter(r => (r.status || 'Açık') === 'Açık').length;
+    if (countEl) countEl.innerText = `${items.length} talep listelendi · ${openCount} açık alım talebi`;
+
+    grid.innerHTML = '';
+
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-lux-olive/40 text-gray-500 text-xs">
+            <i class="fa-solid fa-cart-flatbed text-2xl text-lux-sage block mb-2"></i>
+            <b class="text-lux-dark block mb-1">Bu kriterlerde alım talebi bulunamadı.</b>
+            Toptancı, restoran, otel veya hal esnafıysanız aradığınız ürünü buraya yazın; üreticiler size teklif getirsin.
+            <button onclick="window.openBuyRequestForm()" class="block mx-auto mt-3 bg-lux-dark text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-lux-olive transition">
+                <i class="fa-solid fa-plus mr-1"></i> Alım Talebi Oluştur
+            </button>
+        </div>`;
+        const pag = document.getElementById('br-pagination');
+        if (pag) pag.innerHTML = '';
+        return;
+    }
+
+    const startIndex = (window.brCurrentPage - 1) * window.brItemsPerPage;
+    const pageItems = items.slice(startIndex, startIndex + window.brItemsPerPage);
+
+    pageItems.forEach(rq => {
+        const isClosed = (rq.status || 'Açık') !== 'Açık';
+        const emoji = categoryEmojis[rq.category] || '📦';
+        const matchCount = window.getMatchingListingsForRequest(rq).length;
+
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-2xl border ${isClosed ? 'border-gray-200 opacity-70' : (rq.isUrgent ? 'border-[1.5px] border-red-500' : 'border-lux-olive/30')} p-4 flex flex-col justify-between hover:shadow-lg transition-all duration-300`;
+        card.innerHTML = `
+            <div>
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="bg-lux-dark text-lux-gold text-[9px] font-extrabold px-2 py-1 rounded-md uppercase tracking-wide whitespace-nowrap">
+                        <i class="fa-solid fa-cart-shopping mr-0.5"></i> Alım Talebi
+                    </span>
+                    <span class="text-[9px] text-gray-400 whitespace-nowrap"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(rq.date)}</span>
+                </div>
+
+                <div class="flex flex-wrap gap-1 mb-2">
+                    ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : ''}
+                    ${rq.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">🔥 ACİL</span>' : ''}
+                    ${rq.recurring ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🔁 DÜZENLİ ALIM</span>' : ''}
+                    ${rq.buyerType ? `<span class="bg-lux-bg text-lux-dark font-semibold text-[9px] px-2 py-0.5 rounded border border-gray-200">${escapeHtml(rq.buyerType)}</span>` : ''}
+                </div>
+
+                <h3 onclick="window.openBuyRequestDetail('${escapeHtml(rq.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">
+                    ${emoji} ${escapeHtml(rq.title || 'Alım talebi')}
+                </h3>
+
+                <div class="text-[10px] text-gray-500 space-y-1">
+                    <p><i class="fa-solid fa-weight-hanging text-lux-gold w-3"></i> Aranan miktar: <b class="text-lux-dark">${escapeHtml(rq.quantity || 'Belirtilmedi')} ${escapeHtml(rq.unit || '')}</b></p>
+                    <p><i class="fa-solid fa-location-dot text-lux-gold w-3"></i> ${escapeHtml(window.getBuyRequestDistrictText(rq))}</p>
+                    ${rq.deadline ? `<p><i class="fa-solid fa-calendar-day text-lux-gold w-3"></i> Teslim / Termin: ${escapeHtml(rq.deadline)}</p>` : ''}
+                    ${matchCount > 0 ? `<p class="text-emerald-700 font-semibold"><i class="fa-solid fa-seedling w-3"></i> Vitrinde ${matchCount} uygun ilan var</p>` : ''}
+                </div>
+            </div>
+
+            <div class="border-t border-gray-100 mt-3 pt-2.5 flex items-end justify-between gap-2">
+                <div>
+                    <span class="text-[9px] text-gray-400 block">${rq.targetPrice ? 'Hedef / Bütçe' : 'Fiyat'}</span>
+                    <span class="text-base font-bold text-lux-dark">${rq.targetPrice ? `${escapeHtml(String(rq.targetPrice))} TL` : 'Teklif Bekliyor'}</span>
+                    <span class="text-[9px] text-gray-400 block">${escapeHtml(rq.buyerName || 'Alıcı')}</span>
+                </div>
+                <button onclick="window.openBuyRequestDetail('${escapeHtml(rq.id)}')" class="text-[11px] ${isClosed ? 'bg-lux-bg text-gray-500' : 'bg-lux-gold text-lux-dark hover:bg-[#ad9868]'} font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                    ${isClosed ? 'Detay' : 'Teklif Ver'}
+                </button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+
+    window.renderBuyRequestPagination(items.length);
+};
+
+window.renderBuyRequestPagination = function (totalItems) {
+    const container = document.getElementById('br-pagination');
+    if (!container) return;
+    const totalPages = Math.ceil(totalItems / window.brItemsPerPage);
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    let html = `<button onclick="window.changeBuyRequestPage(${window.brCurrentPage - 1})" ${window.brCurrentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="window.changeBuyRequestPage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.brCurrentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+    }
+    html += `<button onclick="window.changeBuyRequestPage(${window.brCurrentPage + 1})" ${window.brCurrentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+    container.innerHTML = html;
+};
+
+window.changeBuyRequestPage = function (page) {
+    const totalPages = Math.max(1, Math.ceil((window.filteredBuyRequests || []).length / window.brItemsPerPage));
+    window.brCurrentPage = Math.min(Math.max(1, page), totalPages);
+    window.renderBuyRequests();
+    const sec = document.getElementById('buyrequests-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+/* ---- İlçe seçim çipleri (form) ---- */
+window.renderBrDistrictChips = function () {
+    const box = document.getElementById('br-district-chips');
+    if (!box) return;
+    box.innerHTML = '';
+
+    const makeChip = (label) => {
+        const chip = document.createElement('span');
+        const isSelected = window.brDistrictSelection.has(label);
+        chip.innerText = label;
+        chip.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-white hover:bg-lux-bg text-lux-dark border-gray-300 font-medium'}`;
+        chip.onclick = () => {
+            if (label === 'Tüm Hatay') {
+                window.brDistrictSelection.clear();
+                window.brDistrictSelection.add('Tüm Hatay');
+            } else {
+                window.brDistrictSelection.delete('Tüm Hatay');
+                if (window.brDistrictSelection.has(label)) window.brDistrictSelection.delete(label);
+                else window.brDistrictSelection.add(label);
+                if (window.brDistrictSelection.size === 0) window.brDistrictSelection.add('Tüm Hatay');
+            }
+            window.renderBrDistrictChips();
+        };
+        box.appendChild(chip);
+    };
+
+    makeChip('Tüm Hatay');
+    window.HATAY_DISTRICT_LIST.forEach(d => makeChip(d));
+};
+
+/* ---- Form modalı ---- */
+window.openBuyRequestForm = function (prefill) {
+    if (!window.currentUser) {
+        window.showToast("Alım talebi oluşturmak için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+
+    const form = document.getElementById('buyrequest-form');
+    if (form) form.reset();
+
+    document.getElementById('br-edit-id').value = '';
+    document.getElementById('br-form-title-text').innerText = 'Alım Talebi Oluştur (Ne Arıyorsun?)';
+    document.getElementById('br-submit-btn').innerText = 'Talebi Yayınla';
+
+    window.brDistrictSelection = new Set(['Tüm Hatay']);
+    window.renderBrDistrictChips();
+
+    const nameEl = document.getElementById('br-name');
+    const phoneEl = document.getElementById('br-phone');
+    if (nameEl) nameEl.value = window.userExtraData.username || window.currentUser.displayName || (window.currentUser.email || '').split('@')[0];
+    if (phoneEl) phoneEl.value = window.userExtraData.phone || '';
+
+    if (prefill && prefill.category) {
+        const catEl = document.getElementById('br-category');
+        if (catEl) catEl.value = prefill.category;
+    }
+    if (prefill && prefill.title) {
+        const tEl = document.getElementById('br-title');
+        if (tEl) tEl.value = prefill.title;
+    }
+    if (prefill && prefill.districts && prefill.districts.length) {
+        window.brDistrictSelection = new Set(prefill.districts);
+        window.renderBrDistrictChips();
+    }
+
+    document.getElementById('buyrequest-detail-modal').classList.add('hidden');
+    document.getElementById('buyrequest-form-modal').classList.remove('hidden');
+};
+
+window.closeBuyRequestForm = function () {
+    document.getElementById('buyrequest-form-modal').classList.add('hidden');
+};
+
+window.openBuyRequestFormForEdit = function (id) {
+    const rq = (window.buyRequests || []).find(r => r.id === id);
+    if (!rq) return;
+    if (!window.currentUser || rq.uid !== window.currentUser.uid) {
+        window.showToast("Bu talebi düzenleme yetkiniz yok.", "error");
+        return;
+    }
+
+    document.getElementById('br-edit-id').value = rq.id;
+    document.getElementById('br-form-title-text').innerText = 'Alım Talebini Düzenle';
+    document.getElementById('br-submit-btn').innerText = 'Değişiklikleri Kaydet';
+
+    document.getElementById('br-buyer-type').value = rq.buyerType || window.BR_BUYER_TYPES[0];
+    document.getElementById('br-category').value = rq.category || '';
+    document.getElementById('br-title').value = rq.title || '';
+    document.getElementById('br-quantity').value = rq.quantity || '';
+    document.getElementById('br-unit').value = rq.unit || '';
+    document.getElementById('br-target-price').value = rq.targetPrice || '';
+    document.getElementById('br-deadline').value = rq.deadline || '';
+    document.getElementById('br-desc').value = rq.desc || '';
+    document.getElementById('br-name').value = rq.buyerName || '';
+    document.getElementById('br-phone').value = rq.phone || '';
+    document.getElementById('br-recurring').checked = !!rq.recurring;
+    document.getElementById('br-urgent').checked = !!rq.isUrgent;
+
+    const districts = Array.isArray(rq.districts) ? rq.districts : (rq.districts ? [rq.districts] : ['Tüm Hatay']);
+    window.brDistrictSelection = new Set(districts.length ? districts : ['Tüm Hatay']);
+    window.renderBrDistrictChips();
+
+    document.getElementById('buyrequest-detail-modal').classList.add('hidden');
+    document.getElementById('buyrequest-form-modal').classList.remove('hidden');
+};
+
+window.handleBuyRequestSubmit = async function (e) {
+    e.preventDefault();
+    if (!window.currentUser) {
+        window.showToast("Alım talebi için giriş yapmalısınız.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('br-submit-btn');
+    const editId = document.getElementById('br-edit-id').value;
+
+    const title = document.getElementById('br-title').value.trim();
+    const category = document.getElementById('br-category').value;
+    const quantity = document.getElementById('br-quantity').value.trim();
+    const phone = document.getElementById('br-phone').value.trim();
+    const buyerName = document.getElementById('br-name').value.trim();
+
+    if (!title || !category || !quantity || !buyerName || !phone) {
+        window.showToast("Lütfen zorunlu (*) alanları doldurun.", "warning");
+        return;
+    }
+
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 10) {
+        window.showToast("Lütfen geçerli bir WhatsApp numarası girin.", "warning");
+        return;
+    }
+
+    const districts = Array.from(window.brDistrictSelection);
+    const existing = editId ? (window.buyRequests || []).find(r => r.id === editId) : null;
+
+    if (editId && (!existing || existing.uid !== window.currentUser.uid)) {
+        window.showToast("Bu talebi düzenleme yetkiniz yok.", "error");
+        return;
+    }
+
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Kaydediliyor...";
+
+    const payload = {
+        uid: window.currentUser.uid,
+        userEmail: window.currentUser.email,
+        buyerName: buyerName,
+        phone: phone,
+        buyerType: document.getElementById('br-buyer-type').value,
+        title: title,
+        category: category,
+        quantity: quantity,
+        unit: document.getElementById('br-unit').value.trim() || 'KG',
+        targetPrice: Number(document.getElementById('br-target-price').value) || null,
+        deadline: document.getElementById('br-deadline').value.trim() || null,
+        districts: districts.length ? districts : ['Tüm Hatay'],
+        recurring: document.getElementById('br-recurring').checked,
+        isUrgent: document.getElementById('br-urgent').checked,
+        desc: document.getElementById('br-desc').value.trim() || null,
+        status: existing ? (existing.status || 'Açık') : 'Açık',
+        date: existing ? existing.date : Date.now(),
+        updatedAt: Date.now()
+    };
+
+    try {
+        if (editId) {
+            await update(ref(db, 'buyRequests/' + editId), payload);
+            window.showToast("Alım talebiniz güncellendi.", "success");
+        } else {
+            await push(ref(db, 'buyRequests'), payload);
+            window.showToast("🤝 Alım talebiniz yayınlandı! Üreticiler size teklif gönderebilir.", "success");
+        }
+        window.closeBuyRequestForm();
+        const sec = document.getElementById('buyrequests-section');
+        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+        console.error(err);
+        window.showToast("Talep kaydedilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+};
+
+/* ---- Detay modalı ---- */
+window.openBuyRequestDetail = function (id) {
+    const rq = (window.buyRequests || []).find(r => r.id === id);
+    if (!rq) return;
+
+    window.activeBuyRequestId = id;
+    const isClosed = (rq.status || 'Açık') !== 'Açık';
+    const isOwner = window.currentUser && rq.uid === window.currentUser.uid;
+    const emoji = categoryEmojis[rq.category] || '📦';
+
+    document.getElementById('brd-title').innerText = `${emoji} ${rq.title || 'Alım Talebi'}`;
+    document.getElementById('brd-category').innerText = rq.category || '-';
+    document.getElementById('brd-time').innerText = getTimeAgo(rq.date);
+    document.getElementById('brd-quantity').innerText = `${rq.quantity || 'Belirtilmedi'} ${rq.unit || ''}`;
+    document.getElementById('brd-target-price').innerText = rq.targetPrice ? `${rq.targetPrice} TL` : 'Belirtilmedi (Teklif bekleniyor)';
+    document.getElementById('brd-deadline').innerText = rq.deadline || 'Belirtilmedi';
+    document.getElementById('brd-districts').innerText = window.getBuyRequestDistrictText(rq);
+    document.getElementById('brd-desc').innerText = rq.desc || 'Ek açıklama girilmedi.';
+    document.getElementById('brd-buyer').innerText = rq.buyerName || 'Alıcı';
+    document.getElementById('brd-buyer-type').innerText = rq.buyerType || '-';
+
+    const badges = document.getElementById('brd-badges');
+    badges.innerHTML = `
+        ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : '<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">AÇIK TALEP</span>'}
+        ${rq.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">🔥 ACİL</span>' : ''}
+        ${rq.recurring ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🔁 DÜZENLİ ALIM</span>' : ''}
+    `;
+
+    // WhatsApp köprüsü
+    const waBtn = document.getElementById('brd-whatsapp');
+    let cleanPhone = rq.phone ? rq.phone.replace(/[^0-9]/g, '') : '';
+    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+    if (waBtn) {
+        if (cleanPhone) {
+            const waMsg = `Merhaba ${rq.buyerName || ''}, ORONTES üzerindeki "${rq.title}" alım talebiniz için ürünüm/teklifim var. Görüşmek isterim.`;
+            waBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+            waBtn.classList.remove('hidden');
+        } else {
+            waBtn.classList.add('hidden');
+        }
+    }
+
+    // Sahibi kontrolleri
+    const ownerBox = document.getElementById('brd-owner-actions');
+    const offerBox = document.getElementById('brd-offer-box');
+    if (isOwner) {
+        ownerBox.classList.remove('hidden');
+        offerBox.classList.add('hidden');
+        document.getElementById('brd-status-btn').innerHTML = isClosed
+            ? '<i class="fa-solid fa-lock-open mr-1"></i> Talebi Yeniden Aç'
+            : '<i class="fa-solid fa-lock mr-1"></i> Talebi Kapat';
+    } else {
+        ownerBox.classList.add('hidden');
+        offerBox.classList.toggle('hidden', isClosed);
+    }
+
+    const closedNote = document.getElementById('brd-closed-note');
+    if (closedNote) closedNote.classList.toggle('hidden', !isClosed);
+
+    // Vitrindeki uygun ilanlar
+    const matchBox = document.getElementById('brd-matches');
+    const matches = window.getMatchingListingsForRequest(rq).slice(0, 6);
+    if (matchBox) {
+        if (matches.length === 0) {
+            matchBox.innerHTML = `<p class="text-[11px] text-gray-400 italic">Bu kritere uygun vitrin ilanı şu an görünmüyor. Talebiniz yayında kaldıkça üreticiler size ulaşabilir.</p>`;
+        } else {
+            matchBox.innerHTML = '';
+            matches.forEach(item => {
+                const row = document.createElement('div');
+                row.className = "flex justify-between items-center bg-lux-bg/40 p-2 rounded-xl border border-gray-200/60 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
+                row.onclick = () => { window.closeBuyRequestDetail(); window.openDetailModal(item.id); };
+                row.innerHTML = `
+                    <div class="flex items-center gap-2 min-w-0">
+                        <img src="${escapeHtml(item.image)}" class="w-9 h-9 rounded-lg object-cover shrink-0">
+                        <div class="min-w-0">
+                            <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                            <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(window.getListingLocationText(item))}</span>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-400 text-[10px]"></i>
+                `;
+                matchBox.appendChild(row);
+            });
+        }
+    }
+
+    const priceInput = document.getElementById('brd-offer-price');
+    const noteInput = document.getElementById('brd-offer-note');
+    if (priceInput) priceInput.value = '';
+    if (noteInput) noteInput.value = '';
+
+    document.getElementById('buyrequest-detail-modal').classList.remove('hidden');
+};
+
+window.closeBuyRequestDetail = function () {
+    document.getElementById('buyrequest-detail-modal').classList.add('hidden');
+    window.activeBuyRequestId = null;
+};
+
+/* ---- Üreticiden alıcıya tedarik teklifi (mevcut 'offers' altyapısını kullanır) ---- */
+window.submitSupplyOffer = async function () {
+    if (!window.currentUser) {
+        window.showToast("Teklif göndermek için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+    const rq = (window.buyRequests || []).find(r => r.id === window.activeBuyRequestId);
+    if (!rq) return;
+
+    if (rq.uid === window.currentUser.uid) {
+        window.showToast("Kendi alım talebinize teklif gönderemezsiniz.", "error");
+        return;
+    }
+    if ((rq.status || 'Açık') !== 'Açık') {
+        window.showToast("Bu alım talebi kapatılmış.", "warning");
+        return;
+    }
+
+    const price = document.getElementById('brd-offer-price').value;
+    const note = document.getElementById('brd-offer-note').value;
+
+    if (!price) {
+        window.showToast("Lütfen ürün/hizmet için birim fiyatınızı girin.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('brd-offer-btn');
+    if (btn) { btn.disabled = true; btn.innerText = "Gönderiliyor..."; }
+
+    try {
+        await push(ref(db, 'offers'), {
+            offerKind: 'supply',
+            requestId: rq.id,
+            listingId: rq.id,
+            listingTitle: rq.title,
+            sellerUid: rq.uid,
+            buyerUid: window.currentUser.uid,
+            buyerName: window.userExtraData.username || window.currentUser.displayName || window.currentUser.email,
+            buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
+            offeredPrice: price,
+            note: note,
+            status: 'Beklemede',
+            date: Date.now()
+        });
+        window.showToast("Tedarik teklifiniz alıcıya iletildi! Yanıtı 'Gelen / Gönderilen' sekmesinden takip edebilirsiniz.", "success");
+        document.getElementById('brd-offer-price').value = '';
+        document.getElementById('brd-offer-note').value = '';
+    } catch (err) {
+        window.showToast("Teklif iletilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "Tedarik Teklifimi Gönder"; }
+    }
+};
+
+window.toggleBuyRequestStatus = async function () {
+    const rq = (window.buyRequests || []).find(r => r.id === window.activeBuyRequestId);
+    if (!rq || !window.currentUser || rq.uid !== window.currentUser.uid) return;
+    const newStatus = (rq.status || 'Açık') === 'Açık' ? 'Kapandı' : 'Açık';
+    try {
+        await update(ref(db, 'buyRequests/' + rq.id), { status: newStatus, updatedAt: Date.now() });
+        window.showToast(`Talep durumu "${newStatus}" olarak güncellendi.`, "success");
+        setTimeout(() => window.openBuyRequestDetail(rq.id), 300);
+    } catch (err) {
+        window.showToast("Durum güncellenemedi: " + err.message, "error");
+    }
+};
+
+window.deleteBuyRequest = async function (id) {
+    const targetId = id || window.activeBuyRequestId;
+    const rq = (window.buyRequests || []).find(r => r.id === targetId);
+    if (!rq || !window.currentUser || rq.uid !== window.currentUser.uid) {
+        window.showToast("Bu talebi silme yetkiniz yok.", "error");
+        return;
+    }
+    if (!confirm("Bu alım talebini silmek istediğinizden emin misiniz?")) return;
+    try {
+        await remove(ref(db, 'buyRequests/' + targetId));
+        window.showToast("Alım talebi silindi.", "success");
+        window.closeBuyRequestDetail();
+        if (typeof window.loadMyBuyRequests === 'function') window.loadMyBuyRequests();
+    } catch (err) {
+        window.showToast("Silinemedi: " + err.message, "error");
+    }
+};
+
+/* ---- Hesabım > Alım Taleplerim sekmesi ---- */
+window.loadMyBuyRequests = function () {
+    const container = document.getElementById('tab-content-buyrequests');
+    if (!container) return;
+    if (!window.currentUser) { container.innerHTML = ''; return; }
+
+    const mine = (window.buyRequests || []).filter(r => r.uid === window.currentUser.uid);
+    container.innerHTML = `
+        <button onclick="closeAccountModal(); window.openBuyRequestForm();" class="w-full bg-lux-dark text-white font-bold py-2 rounded-xl text-xs hover:bg-lux-olive transition mb-2">
+            <i class="fa-solid fa-plus mr-1"></i> Yeni Alım Talebi Oluştur
+        </button>
+    `;
+
+    if (mine.length === 0) {
+        container.innerHTML += `<p class="text-xs text-gray-400 italic">Henüz bir alım talebiniz yok. Aradığınız ürünü yazın, üreticiler size teklif getirsin.</p>`;
+        return;
+    }
+
+    mine.forEach(rq => {
+        const isClosed = (rq.status || 'Açık') !== 'Açık';
+        const row = document.createElement('div');
+        row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
+        row.innerHTML = `
+            <div class="min-w-0 pr-2">
+                <span class="font-bold text-lux-dark block line-clamp-1">${categoryEmojis[rq.category] || '📦'} ${escapeHtml(rq.title)}</span>
+                <span class="text-[10px] text-gray-500">${escapeHtml(rq.quantity || '')} ${escapeHtml(rq.unit || '')} · ${escapeHtml(window.getBuyRequestDistrictText(rq))}</span>
+                <span class="text-[9px] font-bold ${isClosed ? 'text-gray-500' : 'text-emerald-700'} block">${isClosed ? 'KAPANDI' : 'AÇIK'}</span>
+            </div>
+            <div class="flex space-x-1 shrink-0">
+                <button onclick="closeAccountModal(); window.openBuyRequestDetail('${escapeHtml(rq.id)}')" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
+                <button onclick="closeAccountModal(); window.openBuyRequestFormForEdit('${escapeHtml(rq.id)}')" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="window.deleteBuyRequest('${escapeHtml(rq.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+};
+
+/* ---- Gelen kutusundaki teklif kartından hedefe gitme (ilan veya alım talebi) ---- */
+window.openOfferTargetModal = function (kind, targetId) {
+    if (kind === 'supply') {
+        const rq = (window.buyRequests || []).find(r => r.id === targetId);
+        if (rq) { window.openBuyRequestDetail(targetId); return; }
+        window.showToast("Bu alım talebi kaldırılmış veya artık listede değil.", "warning");
+        return;
+    }
+    window.openDetailModal(targetId);
+};
+
+/* =========================================================================================
+   MODÜL 2 — HATAY İNTERAKTİF HASAT & SEZON TAKVİMİ
+   ========================================================================================= */
+
+window.TR_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+window.TR_MONTHS_SHORT = ['Oc', 'Şu', 'Mr', 'Ni', 'My', 'Hz', 'Tm', 'Ağ', 'Ey', 'Ek', 'Ka', 'Ar'];
+
+/* months: hasat ayları (1-12) · peak: rekoltenin en yoğun olduğu aylar */
+window.HATAY_HARVEST_DATA = [
+    {
+        name: 'Sofralık & Yağlık Zeytin', emoji: '🫒', category: 'Zeytin & Yağ', keyword: 'zeytin',
+        districts: ['Altınözü', 'Yayladağı', 'Antakya', 'Kırıkhan', 'Belen', 'Reyhanlı', 'Hassa'],
+        months: [9, 10, 11, 12], peak: [10, 11],
+        note: 'Halhalı ve Sarı Haşebi çeşitleri öne çıkar. Ekim–Kasım rekolte zirvesidir; ön bağlantı Eylül başında yapılır.'
+    },
+    {
+        name: 'Soğuk Sıkım Zeytinyağı', emoji: '🫗', category: 'Zeytin & Yağ', keyword: 'zeytinyağı',
+        districts: ['Altınözü', 'Yayladağı', 'Antakya', 'Belen', 'Kırıkhan'],
+        months: [11, 12, 1], peak: [11, 12],
+        note: 'Sıkım sezonu hasadın hemen ardından açılır. Yeni sezon (erken hasat) yağ için Kasım ayı takip edilmelidir.'
+    },
+    {
+        name: 'Mandalina (Nova / Satsuma)', emoji: '🍊', category: 'Narenciye', keyword: 'mandalina',
+        districts: ['Dörtyol', 'Erzin', 'Payas', 'Samandağ', 'Arsuz', 'İskenderun'],
+        months: [10, 11, 12], peak: [11],
+        note: 'Erkenci çeşitler Ekim ortasında piyasaya çıkar. Zincir market tedarikçileri Eylül’de ön bağlantı yapar.'
+    },
+    {
+        name: 'W. Murcott Mandalina', emoji: '🍊', category: 'Narenciye', keyword: 'murcott',
+        districts: ['Dörtyol', 'Erzin', 'Payas', 'Arsuz'],
+        months: [1, 2, 3], peak: [2],
+        note: 'İhracatın lokomotifi geç çeşit. Şubat en yoğun dönem; soğuk hava deposu ile Mart sonuna kadar sürebilir.'
+    },
+    {
+        name: 'Portakal (Washington / Valencia)', emoji: '🍊', category: 'Narenciye', keyword: 'portakal',
+        districts: ['Dörtyol', 'Erzin', 'Samandağ', 'Arsuz', 'Payas'],
+        months: [12, 1, 2, 3, 4], peak: [1, 2],
+        note: 'Washington kışın, Valencia ilkbaharda toplanır. Meyve suyu fabrikaları için sıkımlık tonaj bu dönemde bulunur.'
+    },
+    {
+        name: 'Limon (Enterdonat / Mayer)', emoji: '🍋', category: 'Narenciye', keyword: 'limon',
+        districts: ['Dörtyol', 'Erzin', 'Samandağ', 'Arsuz'],
+        months: [9, 10, 11, 12], peak: [10, 11],
+        note: 'Enterdonat Eylül sonunda başlar. Depolanabilir olduğu için yıl boyu bağlantı yapılabilir.'
+    },
+    {
+        name: 'Greyfurt', emoji: '🍊', category: 'Narenciye', keyword: 'greyfurt',
+        districts: ['Dörtyol', 'Erzin', 'Arsuz'],
+        months: [11, 12, 1, 2], peak: [12],
+        note: 'Star Ruby çeşidi ihracatta öne çıkar; Aralık ayı en verimli dönemdir.'
+    },
+    {
+        name: 'Salçalık Kırmızı Biber', emoji: '🌶️', category: 'Salça & Sos', keyword: 'biber',
+        districts: ['Samandağ', 'Antakya', 'Defne', 'Kumlu', 'Altınözü'],
+        months: [8, 9, 10], peak: [9],
+        note: 'Hatay usulü salça ve pul biber üretiminin ana dönemi. Eylül ayında toplu alım fiyatları en uygun seviyededir.'
+    },
+    {
+        name: 'Sivri / Çarliston Biber (Sera)', emoji: '🫑', category: 'Sebze & Sera', keyword: 'biber',
+        districts: ['Samandağ', 'Arsuz', 'Defne', 'Erzin'],
+        months: [3, 4, 5, 6, 10, 11, 12], peak: [4, 11],
+        note: 'Örtüaltı üretim sayesinde yılın büyük kısmında tedarik edilebilir; kış aylarında fiyat yükselir.'
+    },
+    {
+        name: 'Domates (Sera)', emoji: '🍅', category: 'Sebze & Sera', keyword: 'domates',
+        districts: ['Samandağ', 'Arsuz', 'Erzin', 'Dörtyol'],
+        months: [3, 4, 5, 6, 10, 11, 12], peak: [5, 11],
+        note: 'İki dönemli sera üretimi vardır. Hal ve market tedariki için Mayıs ve Kasım en bol dönemlerdir.'
+    },
+    {
+        name: 'Patlıcan & Kabak (Sera)', emoji: '🍆', category: 'Sebze & Sera', keyword: 'patlıcan',
+        districts: ['Samandağ', 'Arsuz', 'Defne', 'Antakya'],
+        months: [4, 5, 6, 10, 11], peak: [5],
+        note: 'Restoran ve otel tedarikinde düzenli haftalık alım için uygundur.'
+    },
+    {
+        name: 'Sofralık Üzüm', emoji: '🍇', category: 'Sebze & Sera', keyword: 'üzüm',
+        districts: ['Hassa', 'Kırıkhan', 'Belen', 'Yayladağı'],
+        months: [7, 8, 9], peak: [8],
+        note: 'Hassa üzümü bölgenin tescilli lezzetidir. Ağustos ayı hem sofralık hem pekmezlik için zirve dönemdir.'
+    },
+    {
+        name: 'Nar', emoji: '🍎', category: 'Sebze & Sera', keyword: 'nar',
+        districts: ['Erzin', 'Dörtyol', 'Hassa', 'Kırıkhan'],
+        months: [9, 10, 11], peak: [10],
+        note: 'Hicaznar çeşidi öne çıkar. Nar ekşisi üreticileri için Ekim ayı toplu alım dönemidir.'
+    },
+    {
+        name: 'İncir', emoji: '🌿', category: 'Sebze & Sera', keyword: 'incir',
+        districts: ['Samandağ', 'Yayladağı', 'Altınözü', 'Belen'],
+        months: [7, 8, 9], peak: [8],
+        note: 'Taze incir çabuk bozulduğu için kısa mesafeli ve hızlı lojistik gerektirir.'
+    },
+    {
+        name: 'Muz (Örtüaltı)', emoji: '🍌', category: 'Sebze & Sera', keyword: 'muz',
+        districts: ['Samandağ', 'Arsuz', 'Erzin', 'Dörtyol'],
+        months: [9, 10, 11, 12, 1], peak: [11, 12],
+        note: 'Örtüaltı üretim yıl boyu sürer; kesim yoğunluğu sonbahar–kış aylarındadır.'
+    },
+    {
+        name: 'Avokado', emoji: '🥑', category: 'Sebze & Sera', keyword: 'avokado',
+        districts: ['Samandağ', 'Arsuz', 'Dörtyol', 'Erzin'],
+        months: [10, 11, 12, 1], peak: [11, 12],
+        note: 'Hass çeşidi hızla yaygınlaşıyor. E-ticaret satıcıları için yüksek katma değerli üründür.'
+    },
+    {
+        name: 'Karpuz & Kavun', emoji: '🍉', category: 'Sebze & Sera', keyword: 'karpuz',
+        districts: ['Erzin', 'Dörtyol', 'Payas', 'Kumlu'],
+        months: [6, 7, 8], peak: [7],
+        note: 'Erzin karpuzu tır bazlı toptan alımda yaz aylarının ana ürünüdür.'
+    },
+    {
+        name: 'Buğday & Arpa', emoji: '🌾', category: 'Bakliyat & Hububat', keyword: 'buğday',
+        districts: ['Reyhanlı', 'Kırıkhan', 'Kumlu', 'Hassa', 'Antakya'],
+        months: [6, 7], peak: [6],
+        note: 'Amik Ovası hasadı Haziran’da başlar. Un ve yem fabrikaları için ton bazlı alım dönemi.'
+    },
+    {
+        name: 'Dane Mısır (2. Ürün)', emoji: '🌽', category: 'Bakliyat & Hububat', keyword: 'mısır',
+        districts: ['Reyhanlı', 'Kumlu', 'Kırıkhan', 'Antakya'],
+        months: [9, 10], peak: [9],
+        note: 'Buğday sonrası ikinci ürün olarak ekilir; yem sanayii için sonbaharda tedarik edilir.'
+    },
+    {
+        name: 'Pamuk (Kütlü)', emoji: '🧵', category: 'Bakliyat & Hububat', keyword: 'pamuk',
+        districts: ['Reyhanlı', 'Kırıkhan', 'Kumlu'],
+        months: [9, 10], peak: [9],
+        note: 'Amik Ovası kütlü pamuğu çırçır tesisleri için Eylül–Ekim döneminde toplanır.'
+    },
+    {
+        name: 'Kuru Soğan & Sarımsak', emoji: '🧅', category: 'Bakliyat & Hububat', keyword: 'soğan',
+        districts: ['Kumlu', 'Reyhanlı', 'Antakya', 'Kırıkhan'],
+        months: [6, 7, 8], peak: [7],
+        note: 'Depolanabilir ürün; yaz hasadı sonrası kış boyunca toptan tedarik edilebilir.'
+    },
+    {
+        name: 'Defne Yaprağı', emoji: '🌿', category: 'Ev Yapımı Ürünler', keyword: 'defne',
+        districts: ['Belen', 'Yayladağı', 'Antakya', 'Samandağ', 'Altınözü'],
+        months: [6, 7, 8, 9], peak: [7, 8],
+        note: 'Türkiye ihracatının önemli bölümü bu bölgeden çıkar; ihracatçılar için kritik sezon.'
+    },
+    {
+        name: 'Kekik, Adaçayı & Kuru Bitki', emoji: '🌱', category: 'Ev Yapımı Ürünler', keyword: 'kekik',
+        districts: ['Yayladağı', 'Altınözü', 'Belen', 'Hassa'],
+        months: [5, 6, 7], peak: [6],
+        note: 'Çiçeklenme döneminde toplanır. Aktar ve baharat firmaları için ideal alım dönemi.'
+    },
+    {
+        name: 'Süzme Bal & Arı Ürünleri', emoji: '🍯', category: 'Ev Yapımı Ürünler', keyword: 'bal',
+        districts: ['Belen', 'Yayladağı', 'Hassa', 'Altınözü', 'Kırıkhan'],
+        months: [5, 6, 7, 8, 9], peak: [6, 7],
+        note: 'Narenciye balı ilkbaharda, yayla/çiçek balı yaz sonunda süzülür.'
+    },
+    {
+        name: 'Süt, Sürk & Tuzlu Yoğurt', emoji: '🐄', category: 'Canlı Hayvan & Süt', keyword: 'süt',
+        districts: ['Antakya', 'Altınözü', 'Kırıkhan', 'Reyhanlı', 'Yayladağı', 'Kumlu'],
+        months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], peak: [3, 4, 5],
+        note: 'Yıl boyu tedarik edilebilir; süt verimi ilkbaharda zirve yapar (Sürk/çökelek üretimi).'
+    },
+    {
+        name: 'Narenciye Fidanı & Sebze Fidesi', emoji: '🌱', category: 'Fide & Tohum', keyword: 'fide',
+        districts: ['Dörtyol', 'Erzin', 'Samandağ', 'Antakya', 'Arsuz'],
+        months: [1, 2, 3, 8, 9, 10], peak: [2, 9],
+        note: 'Dikim öncesi dönemlerde talep artar. Sera üreticileri için Ağustos–Eylül fide dönemidir.'
+    }
+];
+
+window.harvestSelectedMonth = new Date().getMonth() + 1;
+window.harvestSelectedDistrict = '';
+window.harvestSearchTerm = '';
+
+window.initHarvestCalendar = function () {
+    const monthsBox = document.getElementById('harvest-months');
+    if (!monthsBox) return;
+
+    // Ay çipleri
+    monthsBox.innerHTML = '';
+    const allChip = document.createElement('button');
+    allChip.type = 'button';
+    allChip.dataset.month = '0';
+    allChip.innerText = 'Tüm Yıl';
+    allChip.onclick = () => window.setHarvestMonth(0);
+    monthsBox.appendChild(allChip);
+
+    window.TR_MONTHS.forEach((m, idx) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.dataset.month = String(idx + 1);
+        chip.innerText = m;
+        chip.onclick = () => window.setHarvestMonth(idx + 1);
+        monthsBox.appendChild(chip);
+    });
+
+    // İlçe seçimi
+    const distSel = document.getElementById('harvest-district');
+    if (distSel && distSel.options.length <= 1) {
+        window.HATAY_DISTRICT_LIST.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.innerText = d;
+            distSel.appendChild(opt);
+        });
+    }
+
+    window.renderHarvestCalendar();
+};
+
+window.setHarvestMonth = function (month) {
+    window.harvestSelectedMonth = Number(month) || 0;
+    window.renderHarvestCalendar();
+};
+
+window.onHarvestFilterChange = function () {
+    const distSel = document.getElementById('harvest-district');
+    const searchEl = document.getElementById('harvest-search');
+    window.harvestSelectedDistrict = distSel ? distSel.value : '';
+    window.harvestSearchTerm = searchEl ? searchEl.value.toLocaleLowerCase('tr-TR') : '';
+    window.renderHarvestCalendar();
+};
+
+window.resetHarvestFilters = function () {
+    window.harvestSelectedMonth = new Date().getMonth() + 1;
+    window.harvestSelectedDistrict = '';
+    window.harvestSearchTerm = '';
+    const distSel = document.getElementById('harvest-district');
+    const searchEl = document.getElementById('harvest-search');
+    if (distSel) distSel.value = '';
+    if (searchEl) searchEl.value = '';
+    window.renderHarvestCalendar();
+};
+
+window.renderHarvestCalendar = function () {
+    const list = document.getElementById('harvest-list');
+    const summary = document.getElementById('harvest-summary');
+    const monthsBox = document.getElementById('harvest-months');
+    if (!list) return;
+
+    // Ay çiplerinin aktif görünümü
+    if (monthsBox) {
+        Array.from(monthsBox.children).forEach(btn => {
+            const isActive = Number(btn.dataset.month) === window.harvestSelectedMonth;
+            btn.className = isActive
+                ? 'bg-lux-dark text-lux-gold font-bold text-[11px] px-2.5 py-1.5 rounded-lg border border-lux-gold shadow-sm whitespace-nowrap transition'
+                : 'bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-medium text-[11px] px-2.5 py-1.5 rounded-lg border border-gray-200 whitespace-nowrap transition';
+        });
+    }
+
+    const month = window.harvestSelectedMonth;
+    const district = window.harvestSelectedDistrict;
+    const term = window.harvestSearchTerm;
+
+    let data = window.HATAY_HARVEST_DATA.filter(p => {
+        const matchesDistrict = !district || p.districts.includes(district);
+        const haystack = `${p.name} ${p.category} ${p.keyword} ${p.districts.join(' ')}`.toLocaleLowerCase('tr-TR');
+        const matchesTerm = !term || haystack.includes(term);
+        const matchesMonth = !month || p.months.includes(month);
+        return matchesDistrict && matchesTerm && matchesMonth;
+    });
+
+    // Seçili ayda zirve yapanlar üstte
+    if (month) {
+        data = data.sort((a, b) => (b.peak.includes(month) ? 1 : 0) - (a.peak.includes(month) ? 1 : 0));
+    } else {
+        data = data.sort((a, b) => a.months[0] - b.months[0]);
+    }
+
+    // Özet bandı
+    if (summary) {
+        const monthLabel = month ? `${window.TR_MONTHS[month - 1]} ayında` : 'Yıl boyunca';
+        const nextMonth = month ? (month === 12 ? 1 : month + 1) : 0;
+        const upcoming = nextMonth
+            ? window.HATAY_HARVEST_DATA.filter(p =>
+                p.months.includes(nextMonth) && !p.months.includes(month) &&
+                (!district || p.districts.includes(district)))
+            : [];
+
+        summary.innerHTML = `
+            <div class="flex flex-wrap items-center gap-2 justify-between">
+                <p class="text-xs text-lux-dark font-semibold">
+                    <i class="fa-solid fa-tractor text-lux-gold mr-1"></i>
+                    ${district ? escapeHtml(district) + ' ilçesinde ' : 'Hatay genelinde '}${monthLabel}
+                    <b class="text-lux-olive">${data.length} ürün</b> hasat / tedarik sezonunda.
+                </p>
+                ${upcoming.length ? `<p class="text-[11px] text-gray-500"><i class="fa-solid fa-forward text-lux-olive mr-1"></i><b>${window.TR_MONTHS[nextMonth - 1]}</b> ayında başlayacaklar: ${upcoming.slice(0, 4).map(u => escapeHtml(u.name)).join(', ')}${upcoming.length > 4 ? ' …' : ''}</p>` : ''}
+            </div>
+        `;
+    }
+
+    list.innerHTML = '';
+
+    if (data.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 text-xs text-gray-400 bg-lux-bg/30 rounded-xl border border-dashed border-gray-300">
+            Bu ay / ilçe / arama kriterinde hasat kaydı bulunamadı. "Tüm Yıl" seçeneğini deneyin.
+        </div>`;
+        return;
+    }
+
+    data.forEach(p => {
+        const isPeakNow = month && p.peak.includes(month);
+        const listingCount = (window.listings || []).filter(l =>
+            l.category === p.category &&
+            (`${l.title} ${l.desc || ''}`.toLocaleLowerCase('tr-TR').includes(p.keyword.toLocaleLowerCase('tr-TR')))
+        ).length;
+
+        const row = document.createElement('div');
+        row.className = `bg-white border ${isPeakNow ? 'border-lux-gold shadow-sm' : 'border-gray-200'} rounded-xl p-3.5 hover:border-lux-olive transition`;
+
+        let monthBar = '<div class="grid grid-cols-12 gap-[2px] mt-2.5">';
+        for (let m = 1; m <= 12; m++) {
+            const isActive = p.months.includes(m);
+            const isPeak = p.peak.includes(m);
+            const isSelected = month === m;
+            let cellClass = 'bg-gray-100 text-gray-400';
+            if (isActive) cellClass = isPeak ? 'bg-lux-gold text-lux-dark font-extrabold' : 'bg-lux-sage/60 text-lux-dark font-semibold';
+            monthBar += `<div title="${window.TR_MONTHS[m - 1]}${isPeak ? ' (Rekolte zirvesi)' : (isActive ? ' (Hasat var)' : ' (Sezon dışı)')}"
+                class="text-center text-[8px] leading-none py-1.5 rounded ${cellClass} ${isSelected ? 'ring-2 ring-lux-dark' : ''}">
+                ${window.TR_MONTHS_SHORT[m - 1]}
+            </div>`;
+        }
+        monthBar += '</div>';
+
+        row.innerHTML = `
+            <div class="flex justify-between items-start gap-3 flex-wrap">
+                <div class="min-w-0">
+                    <span class="font-bold text-lux-dark text-xs">
+                        ${p.emoji} ${escapeHtml(p.name)}
+                        ${isPeakNow ? '<span class="bg-lux-gold text-lux-dark text-[8px] font-extrabold px-1.5 py-0.5 rounded ml-1 align-middle">REKOLTE ZİRVESİ</span>' : ''}
+                    </span>
+                    <span class="block text-[10px] text-gray-500 mt-0.5">
+                        <i class="fa-solid fa-location-dot text-lux-gold"></i> ${p.districts.map(d => escapeHtml(d)).join(' · ')}
+                    </span>
+                    <span class="inline-block text-[9px] bg-lux-bg text-lux-dark font-semibold px-1.5 py-0.5 rounded mt-1 border border-gray-200">
+                        ${categoryEmojis[p.category] || '📦'} ${escapeHtml(p.category)}
+                    </span>
+                    ${listingCount > 0 ? `<span class="inline-block text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded mt-1 border border-emerald-200 ml-1">Vitrinde ${listingCount} ilan</span>` : ''}
+                </div>
+                <div class="flex gap-1.5 shrink-0">
+                    <button onclick="window.harvestSearchListings('${escapeHtml(p.category)}', '${escapeHtml(p.keyword)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                        <i class="fa-solid fa-magnifying-glass mr-0.5"></i> İlanları Gör
+                    </button>
+                    <button onclick="window.harvestCreateRequest('${escapeHtml(p.category)}', '${escapeHtml(p.name)}')" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                        <i class="fa-solid fa-cart-shopping mr-0.5"></i> Alım Talebi Aç
+                    </button>
+                </div>
+            </div>
+            ${monthBar}
+            <p class="text-[10px] text-gray-500 mt-2 leading-relaxed"><i class="fa-solid fa-circle-info text-lux-sage mr-1"></i>${escapeHtml(p.note)}</p>
+        `;
+        list.appendChild(row);
+    });
+};
+
+/* Takvimden vitrine köprü */
+window.harvestSearchListings = function (category, keyword) {
+    const catFilter = document.getElementById('category-filter');
+    const searchInput = document.getElementById('search-input');
+    const distFilter = document.getElementById('district-filter');
+
+    if (catFilter) {
+        const hasOption = Array.from(catFilter.options).some(o => o.value === category);
+        catFilter.value = hasOption ? category : '';
+    }
+    if (searchInput) searchInput.value = keyword || '';
+    if (distFilter && window.harvestSelectedDistrict) distFilter.value = window.harvestSelectedDistrict;
+
+    window.filterListings();
+    window.showToast(`🔎 "${keyword}" için vitrin ilanları listelendi.`, "success");
+    const target = document.getElementById('filter-section');
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+/* Takvimden alım talebine köprü */
+window.harvestCreateRequest = function (category, productName) {
+    const districts = window.harvestSelectedDistrict ? [window.harvestSelectedDistrict] : ['Tüm Hatay'];
+    const monthText = window.harvestSelectedMonth ? ` (${window.TR_MONTHS[window.harvestSelectedMonth - 1]} teslim)` : '';
+    window.openBuyRequestForm({
+        category: category,
+        title: `${productName} alınacaktır${monthText}`,
+        districts: districts
+    });
+};
+
+/* =========================================================================================
+   BAŞLATMA
+   ========================================================================================= */
+
+window.startBuyRequestsListener();
+window.initHarvestCalendar();
+window.renderBrDistrictChips();
+
+/* Hesabım modalı açıldığında alım taleplerini de tazele */
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.initHarvestCalendar === 'function') window.initHarvestCalendar();
+});
