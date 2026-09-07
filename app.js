@@ -3,14 +3,14 @@ import { getDatabase, ref, push, onValue, off, remove, update, get, runTransacti
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
-    authDomain: "orontes-886a3.firebaseapp.com",
-    databaseURL: "https://orontes-886a3-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "orontes-886a3",
-    storageBucket: "orontes-886a3.appspot.com",
-    messagingSenderId: "220241708945",
-    appId: "1:220241708945:web:1a638ad256a7872282fc30",
-    measurementId: "G-WP8LYJG7N9"
+    apiKey: "AIzaSyAtOgpco-AvbSTpXnktU5SO2oNmocuY_0g",
+    authDomain: "orontes-886a3.firebaseapp.com",
+    databaseURL: "https://orontes-886a3-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "orontes-886a3",
+    storageBucket: "orontes-886a3.appspot.com",
+    messagingSenderId: "220241708945",
+    appId: "1:220241708945:web:1a638ad256a7872282fc30",
+    measurementId: "G-WP8LYJG7N9"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -23,58 +23,58 @@ window.globalMapInstance = null;
 window.markerClusterGroup = null;
 
 window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad Request)") {
-    document.body.innerHTML = `
-        <div style="height:100vh; width:100vw; display:flex; flex-direction:column; justify-content:center; align-items:center; background-color:#f8f9fa; color:#1a1a1a; font-family:sans-serif; text-align:center; padding:20px; z-index:999999; position:fixed; top:0; left:0;">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size: 60px; color:#dc2626; margin-bottom: 20px;"></i>
-            <h1 style="font-size: 80px; margin:0; color:#dc2626; font-weight: 900; line-height: 1;">${statusCode}</h1>
-            <h2 style="font-size: 24px; margin-top:10px; font-weight: bold;">${message}</h2>
-            <p style="color:#666; margin-top:15px; max-width:400px; font-size: 15px;">Sistem isteğinizi işleyemedi veya geçersiz bir veri gönderildi. Lütfen sayfayı yenileyerek tekrar deneyin.</p>
-            <button onclick="window.location.reload()" style="margin-top:25px; padding:12px 24px; background:#10b981; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); transition: transform 0.2s;">
-                <i class="fa-solid fa-rotate-right" style="margin-right: 8px;"></i> Sayfayı Yenile
-            </button>
-        </div>
-    `;
+    document.body.innerHTML = `
+        <div style="height:100vh; width:100vw; display:flex; flex-direction:column; justify-content:center; align-items:center; background-color:#f8f9fa; color:#1a1a1a; font-family:sans-serif; text-align:center; padding:20px; z-index:999999; position:fixed; top:0; left:0;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 60px; color:#dc2626; margin-bottom: 20px;"></i>
+            <h1 style="font-size: 80px; margin:0; color:#dc2626; font-weight: 900; line-height: 1;">${statusCode}</h1>
+            <h2 style="font-size: 24px; margin-top:10px; font-weight: bold;">${message}</h2>
+            <p style="color:#666; margin-top:15px; max-width:400px; font-size: 15px;">Sistem isteğinizi işleyemedi veya geçersiz bir veri gönderildi. Lütfen sayfayı yenileyerek tekrar deneyin.</p>
+            <button onclick="window.location.reload()" style="margin-top:25px; padding:12px 24px; background:#10b981; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:bold; font-size: 16px; box-shadow: 0 4px 6px rgba(16,185,129,0.3); transition: transform 0.2s;">
+                <i class="fa-solid fa-rotate-right" style="margin-right: 8px;"></i> Sayfayı Yenile
+            </button>
+        </div>
+    `;
 };
 
 window.showToast = function(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
-        <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : (type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-check')}"></i>
-        <span>${message}</span>
-    </div>`;
-    toast.style.position = 'fixed';
-    toast.style.bottom = '20px';
-    toast.style.right = '20px';
-    toast.style.padding = '14px 24px';
-    toast.style.borderRadius = '12px';
-    toast.style.color = '#fff';
-    toast.style.fontWeight = '500';
-    toast.style.fontFamily = 'inherit';
-    toast.style.fontSize = '14px';
-    toast.style.zIndex = '99999';
-    toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
-    toast.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-    toast.style.transform = 'translateY(100px)';
-    toast.style.opacity = '0';
-    toast.style.maxWidth = '350px';
-    toast.style.lineHeight = '1.4';
-    
-    if (type === 'error') toast.style.backgroundColor = '#ef4444';
-    else if (type === 'warning') toast.style.backgroundColor = '#f59e0b';
-    else toast.style.backgroundColor = '#10b981';
+    const toast = document.createElement('div');
+    toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
+        <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : (type === 'warning' ? 'fa-triangle-exclamation' : 'fa-circle-check')}"></i>
+        <span>${message}</span>
+    </div>`;
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.right = '20px';
+    toast.style.padding = '14px 24px';
+    toast.style.borderRadius = '12px';
+    toast.style.color = '#fff';
+    toast.style.fontWeight = '500';
+    toast.style.fontFamily = 'inherit';
+    toast.style.fontSize = '14px';
+    toast.style.zIndex = '99999';
+    toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+    toast.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+    toast.style.transform = 'translateY(100px)';
+    toast.style.opacity = '0';
+    toast.style.maxWidth = '350px';
+    toast.style.lineHeight = '1.4';
+    
+    if (type === 'error') toast.style.backgroundColor = '#ef4444';
+    else if (type === 'warning') toast.style.backgroundColor = '#f59e0b';
+    else toast.style.backgroundColor = '#10b981';
 
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.transform = 'translateY(0)';
-        toast.style.opacity = '1';
-    }, 10);
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+    }, 10);
 
-    setTimeout(() => {
-        toast.style.transform = 'translateY(20px)';
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 400);
-    }, 5000);
+    setTimeout(() => {
+        toast.style.transform = 'translateY(20px)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, 5000);
 };
 
 window.db = db;
@@ -116,162 +116,162 @@ window.catModalItemsPerPage = 5;
 window.currentCategoryModalData = [];
 
 window.sanitizeUsernameKey = function(name) {
-    return String(name || '').trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_');
+    return String(name || '').trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, '_');
 };
 
 window.MAX_IMAGE_SIZE_MB = 8;
 
 window.checkFileSize = function(inputEl) {
-    const file = inputEl.files && inputEl.files[0];
-    if (!file) return;
-    const sizeMb = file.size / (1024 * 1024);
-    if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
-        window.showToast(`Seçtiğiniz görsel ${sizeMb.toFixed(1)}MB — izin verilen en fazla ${window.MAX_IMAGE_SIZE_MB}MB.`, 'error');
-        inputEl.value = '';
-    }
+    const file = inputEl.files && inputEl.files[0];
+    if (!file) return;
+    const sizeMb = file.size / (1024 * 1024);
+    if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
+        window.showToast(`Seçtiğiniz görsel ${sizeMb.toFixed(1)}MB — izin verilen en fazla ${window.MAX_IMAGE_SIZE_MB}MB.`, 'error');
+        inputEl.value = '';
+    }
 };
 
 window.compressImage = function(file) {
-    return new Promise((resolve, reject) => {
-        if (!file || !file.type || !file.type.startsWith('image/')) {
-            reject(new Error('Lütfen geçerli bir görsel dosyası seçin.'));
-            return;
-        }
-        const sizeMb = file.size / (1024 * 1024);
-        if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
-            reject(new Error(`Görsel çok büyük (${sizeMb.toFixed(1)}MB). Maksimum ${window.MAX_IMAGE_SIZE_MB}MB olmalıdır.`));
-            return;
-        }
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Dosya okunamadı. Lütfen tekrar deneyin.'));
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onerror = () => reject(new Error('Görsel işlenemedi. Lütfen başka bir dosya deneyin.'));
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
+    return new Promise((resolve, reject) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+            reject(new Error('Lütfen geçerli bir görsel dosyası seçin.'));
+            return;
+        }
+        const sizeMb = file.size / (1024 * 1024);
+        if (sizeMb > window.MAX_IMAGE_SIZE_MB) {
+            reject(new Error(`Görsel çok büyük (${sizeMb.toFixed(1)}MB). Maksimum ${window.MAX_IMAGE_SIZE_MB}MB olmalıdır.`));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Dosya okunamadı. Lütfen tekrar deneyin.'));
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('Görsel işlenemedi. Lütfen başka bir dosya deneyin.'));
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
 
-                if (width > height && width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
-                } else if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
-                }
+                if (width > height && width > MAX_WIDTH) {
+                    height *= MAX_WIDTH / width;
+                    width = MAX_WIDTH;
+                } else if (height > MAX_HEIGHT) {
+                    width *= MAX_HEIGHT / height;
+                    height = MAX_HEIGHT;
+                }
 
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
-            };
-        };
-    });
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+            };
+        };
+    });
 };
 
 onAuthStateChanged(auth, async (user) => {
-    if (user && !user.emailVerified) {
-        window.currentUser = null;
-        const loggedOutBox = document.getElementById('auth-logged-out');
-        const loggedInBox = document.getElementById('auth-logged-in');
-        if (loggedOutBox) loggedOutBox.classList.remove('hidden');
-        if (loggedInBox) loggedInBox.classList.add('hidden');
-        return;
-    }
+    if (user && !user.emailVerified) {
+        window.currentUser = null;
+        const loggedOutBox = document.getElementById('auth-logged-out');
+        const loggedInBox = document.getElementById('auth-logged-in');
+        if (loggedOutBox) loggedOutBox.classList.remove('hidden');
+        if (loggedInBox) loggedInBox.classList.add('hidden');
+        return;
+    }
 
-    window.currentUser = user;
-    const loggedOutBox = document.getElementById('auth-logged-out');
-    const loggedInBox = document.getElementById('auth-logged-in');
+    window.currentUser = user;
+    const loggedOutBox = document.getElementById('auth-logged-out');
+    const loggedInBox = document.getElementById('auth-logged-in');
 
-    if (window.activeOffersListener && window.activeOffersQuery) {
-        off(window.activeOffersQuery, 'value', window.activeOffersListener);
-        window.activeOffersListener = null;
-    }
-    
-    if (window.activeOutgoingOffersListener && window.activeOutgoingOffersQuery) {
-        off(window.activeOutgoingOffersQuery, 'value', window.activeOutgoingOffersListener);
-        window.activeOutgoingOffersListener = null;
-    }
+    if (window.activeOffersListener && window.activeOffersQuery) {
+        off(window.activeOffersQuery, 'value', window.activeOffersListener);
+        window.activeOffersListener = null;
+    }
+    
+    if (window.activeOutgoingOffersListener && window.activeOutgoingOffersQuery) {
+        off(window.activeOutgoingOffersQuery, 'value', window.activeOutgoingOffersListener);
+        window.activeOutgoingOffersListener = null;
+    }
 
-    if (user) {
-        if (loggedOutBox) loggedOutBox.classList.add('hidden');
-        if (loggedInBox) loggedInBox.classList.remove('hidden');
-        
-        window.loginSessionTime = Date.now();
-        
-        const userRef = ref(db, 'users/' + user.uid);
-        try {
-            const snap = await get(userRef);
-            if (snap.exists()) {
-                window.userExtraData = snap.val();
-                if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
-            } else {
-                window.userExtraData = { favorites: {}, avatar: '' };
-            }
-        } catch(err) {
-            console.error("Kullanıcı verisi çekilemedi:", err);
-            window.userExtraData = { favorites: {}, avatar: '' };
-        }
+    if (user) {
+        if (loggedOutBox) loggedOutBox.classList.add('hidden');
+        if (loggedInBox) loggedInBox.classList.remove('hidden');
+        
+        window.loginSessionTime = Date.now();
+        
+        const userRef = ref(db, 'users/' + user.uid);
+        try {
+            const snap = await get(userRef);
+            if (snap.exists()) {
+                window.userExtraData = snap.val();
+                if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
+            } else {
+                window.userExtraData = { favorites: {}, avatar: '' };
+            }
+        } catch(err) {
+            console.error("Kullanıcı verisi çekilemedi:", err);
+            window.userExtraData = { favorites: {}, avatar: '' };
+        }
 
-        window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
-        window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
-            let count = 0;
-            let newlyAdded = false;
-            
-            snapshot.forEach(child => {
-                const offer = child.val();
-                if(offer.status === 'Beklemede') {
-                    count++;
-                    if (offer.date > window.loginSessionTime && (Date.now() - offer.date) < 10000) {
-                        newlyAdded = true;
-                    }
-                }
-            });
+        window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
+        window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
+            let count = 0;
+            let newlyAdded = false;
+            
+            snapshot.forEach(child => {
+                const offer = child.val();
+                if(offer.status === 'Beklemede') {
+                    count++;
+                    if (offer.date > window.loginSessionTime && (Date.now() - offer.date) < 10000) {
+                        newlyAdded = true;
+                    }
+                }
+            });
 
-            window.pendingOffersCount = count;
-            window.updateNotificationBadge();
+            window.pendingOffersCount = count;
+            window.updateNotificationBadge();
 
-            if (newlyAdded) window.showToast("🔔 Yeni bir teklif aldınız! Gelen kutunuzu kontrol edin.", "success");
+            if (newlyAdded) window.showToast("🔔 Yeni bir teklif aldınız! Gelen kutunuzu kontrol edin.", "success");
 
-            const offersTabContent = document.getElementById('tab-content-offers');
-            if (offersTabContent && !offersTabContent.classList.contains('hidden')) window.loadIncomingOffers();
-        });
+            const offersTabContent = document.getElementById('tab-content-offers');
+            if (offersTabContent && !offersTabContent.classList.contains('hidden')) window.loadIncomingOffers();
+        });
 
-        window.activeOutgoingOffersQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(user.uid));
-        window.activeOutgoingOffersListener = onValue(window.activeOutgoingOffersQuery, (snapshot) => {
-            const offersTabContent = document.getElementById('tab-content-offers');
-            if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
-                window.loadIncomingOffers();
-            }
-        });
+        window.activeOutgoingOffersQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(user.uid));
+        window.activeOutgoingOffersListener = onValue(window.activeOutgoingOffersQuery, (snapshot) => {
+            const offersTabContent = document.getElementById('tab-content-offers');
+            if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
+                window.loadIncomingOffers();
+            }
+        });
 
-    } else {
-        if (loggedOutBox) loggedOutBox.classList.remove('hidden');
-        if (loggedInBox) loggedInBox.classList.add('hidden');
-        window.userExtraData = { favorites: {}, avatar: '' };
-        window.pendingOffersCount = 0;
-        window.updateNotificationBadge();
-    }
-    window.filterListings();
+    } else {
+        if (loggedOutBox) loggedOutBox.classList.remove('hidden');
+        if (loggedInBox) loggedInBox.classList.add('hidden');
+        window.userExtraData = { favorites: {}, avatar: '' };
+        window.pendingOffersCount = 0;
+        window.updateNotificationBadge();
+    }
+    window.filterListings();
 });
 
 window.updateNotificationBadge = function() {
-    const badge = document.getElementById('notification-badge');
-    if (badge) {
-        if (window.pendingOffersCount > 0) {
-            badge.innerText = window.pendingOffersCount > 99 ? '99+' : window.pendingOffersCount;
-            badge.classList.remove('hidden');
-            badge.style.display = 'flex';
-        } else {
-            badge.classList.add('hidden');
-            badge.style.display = 'none';
-        }
-    }
+    const badge = document.getElementById('notification-badge');
+    if (badge) {
+        if (window.pendingOffersCount > 0) {
+            badge.innerText = window.pendingOffersCount > 99 ? '99+' : window.pendingOffersCount;
+            badge.classList.remove('hidden');
+            badge.style.display = 'flex';
+        } else {
+            badge.classList.add('hidden');
+            badge.style.display = 'none';
+        }
+    }
 };
 
 window.activeDbListener = null;
@@ -279,2023 +279,2025 @@ window.activeQuery = null;
 window.lastFetchedCategory = null;
 
 window.triggerDatabaseFilter = function(category = '') {
-    let q;
-    if (category) {
-        q = query(ref(db, 'listings'), orderByChild('category'), equalTo(category), limitToLast(150));
-    } else {
-        q = query(ref(db, 'listings'), orderByChild('date'), limitToLast(60));
-    }
+    let q;
+    if (category) {
+        q = query(ref(db, 'listings'), orderByChild('category'), equalTo(category), limitToLast(150));
+    } else {
+        q = query(ref(db, 'listings'), orderByChild('date'), limitToLast(60));
+    }
 
-    if (window.activeQuery && window.activeDbListener) {
-        off(window.activeQuery, 'value', window.activeDbListener);
-    }
+    if (window.activeQuery && window.activeDbListener) {
+        off(window.activeQuery, 'value', window.activeDbListener);
+    }
 
-    window.activeQuery = q;
-    window.activeDbListener = onValue(q, (snapshot) => {
-        const items = [];
-        snapshot.forEach((childSnapshot) => {
-            items.push({ id: childSnapshot.key, ...childSnapshot.val() });
-        });
-        
-        if (window.currentUser && window.userExtraData && window.userExtraData.favorites) {
-            items.forEach(item => {
-                if (window.userExtraData.favorites[item.id] && item.priceHistory && item.priceHistory.length > 0) {
-                    const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-                    if (item.price !== oldPrice && !window.notifiedPriceDrops.has(item.id)) {
-                        const isDrop = item.price < oldPrice;
-                        const msgType = isDrop ? "success" : "warning";
-                        const verb = isDrop ? "düştü" : "yükseldi";
-                        window.showToast(`İlgilendiğiniz "${item.title}" ilanında fiyat ${verb}! (${oldPrice} TL ➔ ${item.price} TL)`, msgType);
-                        window.notifiedPriceDrops.add(item.id);
-                    }
-                }
-            });
-        }
+    window.activeQuery = q;
+    window.activeDbListener = onValue(q, (snapshot) => {
+        const items = [];
+        snapshot.forEach((childSnapshot) => {
+            items.push({ id: childSnapshot.key, ...childSnapshot.val() });
+        });
+        
+        if (window.currentUser && window.userExtraData && window.userExtraData.favorites) {
+            items.forEach(item => {
+                if (window.userExtraData.favorites[item.id] && item.priceHistory && item.priceHistory.length > 0) {
+                    const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+                    if (item.price !== oldPrice && !window.notifiedPriceDrops.has(item.id)) {
+                        const isDrop = item.price < oldPrice;
+                        const msgType = isDrop ? "success" : "warning";
+                        const verb = isDrop ? "düştü" : "yükseldi";
+                        window.showToast(`İlgilendiğiniz "${item.title}" ilanında fiyat ${verb}! (${oldPrice} TL ➔ ${item.price} TL)`, msgType);
+                        window.notifiedPriceDrops.add(item.id);
+                    }
+                }
+            });
+        }
 
-        window.listings = items;
-        window.executeLocalFilters();
-        window.updateMarqueeData(); 
-        
-        if(typeof window.renderGlobalMap === 'function') {
-            window.renderGlobalMap();
-        }
-    });
+        window.listings = items;
+        window.executeLocalFilters();
+        window.updateMarqueeData(); 
+        
+        if(typeof window.renderGlobalMap === 'function') {
+            window.renderGlobalMap();
+        }
+    });
 };
 
 window.filterListings = function() {
-    const categoryFilter = document.getElementById('category-filter');
-    const currentCategory = categoryFilter ? categoryFilter.value : '';
+    const categoryFilter = document.getElementById('category-filter');
+    const currentCategory = categoryFilter ? categoryFilter.value : '';
 
-    if (currentCategory !== window.lastFetchedCategory) {
-        window.lastFetchedCategory = currentCategory;
-        window.triggerDatabaseFilter(currentCategory);
-        return;
-    }
-    window.executeLocalFilters();
+    if (currentCategory !== window.lastFetchedCategory) {
+        window.lastFetchedCategory = currentCategory;
+        window.triggerDatabaseFilter(currentCategory);
+        return;
+    }
+    window.executeLocalFilters();
 };
 
 window.executeLocalFilters = function() {
-    const searchInput = document.getElementById('search-input');
-    const districtFilter = document.getElementById('district-filter');
-    const sortFilter = document.getElementById('sort-filter');
-    const minPriceFilter = document.getElementById('min-price-filter');
-    const maxPriceFilter = document.getElementById('max-price-filter');
-    const intentFilter = document.getElementById('intent-filter');
+    const searchInput = document.getElementById('search-input');
+    const districtFilter = document.getElementById('district-filter');
+    const sortFilter = document.getElementById('sort-filter');
+    const minPriceFilter = document.getElementById('min-price-filter');
+    const maxPriceFilter = document.getElementById('max-price-filter');
+    const intentFilter = document.getElementById('intent-filter'); // YENİ: Alım Talebi Filtresi
 
-    const search = searchInput ? searchInput.value.toLowerCase() : '';
-    const district = districtFilter ? districtFilter.value : '';
-    const sort = sortFilter ? sortFilter.value : 'newest';
-    const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
-    const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
-    const intentVal = intentFilter ? intentFilter.value : '';
+    const search = searchInput ? searchInput.value.toLowerCase() : '';
+    const district = districtFilter ? districtFilter.value : '';
+    const sort = sortFilter ? sortFilter.value : 'newest';
+    const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
+    const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
+    const intentVal = intentFilter ? intentFilter.value : '';
 
-    window.filteredListings = (window.listings || []).filter(item => {
-        const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
-        const matchesDistrict = district === "" || item.district === district;
-        const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
-        
-        const itemIntent = item.intent || 'sell';
-        const matchesIntent = (intentVal === '' || intentVal === 'all') ? true : (itemIntent === intentVal);
+    window.filteredListings = (window.listings || []).filter(item => {
+        const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
+        const matchesDistrict = district === "" || item.district === district;
+        const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
+        
+        // YENİ: Satılık / Alınık ayrımı kontrolü
+        const itemIntent = item.intent || 'sell';
+        const matchesIntent = (intentVal === '' || intentVal === 'all') ? true : (itemIntent === intentVal);
 
-        return matchesSearch && matchesDistrict && matchesPrice && matchesIntent;
-    });
+        return matchesSearch && matchesDistrict && matchesPrice && matchesIntent;
+    });
 
-    if (window.nearbyModeActive && window.userGeoLocation) {
-        window.filteredListings.forEach(item => {
-            item._distanceKm = (item.lat && item.lng)
-                ? window.haversineKm(window.userGeoLocation.lat, window.userGeoLocation.lng, item.lat, item.lng)
-                : null;
-        });
-        window.filteredListings.sort((a, b) => {
-            if (a._distanceKm === null) return 1;
-            if (b._distanceKm === null) return -1;
-            return a._distanceKm - b._distanceKm;
-        });
-    } else if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
-    else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
-    else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
-    else window.filteredListings.sort((a, b) => b.date - a.date);
+    if (window.nearbyModeActive && window.userGeoLocation) {
+        window.filteredListings.forEach(item => {
+            item._distanceKm = (item.lat && item.lng)
+                ? window.haversineKm(window.userGeoLocation.lat, window.userGeoLocation.lng, item.lat, item.lng)
+                : null;
+        });
+        window.filteredListings.sort((a, b) => {
+            if (a._distanceKm === null) return 1;
+            if (b._distanceKm === null) return -1;
+            return a._distanceKm - b._distanceKm;
+        });
+    } else if (sort === 'price-low') window.filteredListings.sort((a, b) => a.price - b.price);
+    else if (sort === 'price-high') window.filteredListings.sort((a, b) => b.price - a.price);
+    else if (sort === 'oldest') window.filteredListings.sort((a, b) => a.date - b.date);
+    else window.filteredListings.sort((a, b) => b.date - a.date);
 
-    window.currentPage = 1;
-    renderListings();
-    
-    if(typeof window.renderGlobalMap === 'function') {
-        window.renderGlobalMap();
-    }
+    window.currentPage = 1;
+    renderListings();
+    
+    if(typeof window.renderGlobalMap === 'function') {
+        window.renderGlobalMap();
+    }
 };
 
 setTimeout(() => { window.filterListings(); }, 300);
 
 window.handleLogout = async function() {
-    try {
-        await signOut(auth);
-        window.showToast("Başarıyla çıkış yapıldı.", "success");
-        if (typeof closeAccountModal === 'function') closeAccountModal();
-        if (typeof closeDetailModal === 'function') closeDetailModal();
-        if (typeof closeFormModal === 'function') closeFormModal();
-    } catch(err) {
-        window.showToast("Çıkış yapılamadı: " + err.message, "error");
-    }
+    try {
+        await signOut(auth);
+        window.showToast("Başarıyla çıkış yapıldı.", "success");
+        if (typeof closeAccountModal === 'function') closeAccountModal();
+        if (typeof closeDetailModal === 'function') closeDetailModal();
+        if (typeof closeFormModal === 'function') closeFormModal();
+    } catch(err) {
+        window.showToast("Çıkış yapılamadı: " + err.message, "error");
+    }
 };
 
 window.handleAuthSubmit = async function(e) {
-    e.preventDefault();
-    const mode = document.getElementById('auth-mode').value;
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-password').value;
-    const username = document.getElementById('auth-username').value.trim();
-    const phone = document.getElementById('auth-phone').value.trim();
-    const btn = document.getElementById('auth-submit-btn');
+    e.preventDefault();
+    const mode = document.getElementById('auth-mode').value;
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const username = document.getElementById('auth-username').value.trim();
+    const phone = document.getElementById('auth-phone').value.trim();
+    const btn = document.getElementById('auth-submit-btn');
 
-    btn.disabled = true;
-    btn.innerText = "İşlem yapılıyor...";
+    btn.disabled = true;
+    btn.innerText = "İşlem yapılıyor...";
 
-    try {
-       if (mode === 'login') {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            
-            if (!userCredential.user.emailVerified) {
-                window.showToast("Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "warning");
-                btn.disabled = false;
-                btn.innerText = "Giriş Yap";
-                
-                let resendBtn = document.getElementById('resend-verification-btn');
-                if (!resendBtn) {
-                    resendBtn = document.createElement('button');
-                    resendBtn.id = 'resend-verification-btn';
-                    resendBtn.type = 'button';
-                    resendBtn.className = 'w-full bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3';
-                    const form = document.querySelector('#auth-modal form');
-                    if(form) form.appendChild(resendBtn);
-                }
-                resendBtn.innerText = "Doğrulama Kodunu Tekrar Gönder";
-                resendBtn.classList.remove('hidden');
-                
-                resendBtn.onclick = async () => {
-                    resendBtn.disabled = true;
-                    resendBtn.innerText = "Gönderiliyor...";
-                    try {
-                        await sendEmailVerification(userCredential.user);
-                        window.showToast("Doğrulama e-postası başarıyla gönderildi! Lütfen gereksiz/spam kutunuzu da kontrol edin.", "success");
-                        resendBtn.classList.add('hidden');
-                    } catch(err) {
-                        if(err.code === 'auth/too-many-requests') {
-                            window.showToast("Çok fazla istek yaptınız. Lütfen biraz bekleyip tekrar deneyin.", "error");
-                        } else {
-                            window.showToast("E-posta gönderilemedi: " + err.message, "error");
-                        }
-                    } finally {
-                        resendBtn.disabled = false;
-                        resendBtn.innerText = "Doğrulama Kodunu Tekrar Gönder";
-                        await signOut(auth);
-                    }
-                };
-                return; 
-            }
+    try {
+       if (mode === 'login') {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            
+            if (!userCredential.user.emailVerified) {
+                window.showToast("Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "warning");
+                btn.disabled = false;
+                btn.innerText = "Giriş Yap";
+                
+                let resendBtn = document.getElementById('resend-verification-btn');
+                if (!resendBtn) {
+                    resendBtn = document.createElement('button');
+                    resendBtn.id = 'resend-verification-btn';
+                    resendBtn.type = 'button';
+                    resendBtn.className = 'w-full bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3';
+                    const form = document.querySelector('#auth-modal form');
+                    if(form) form.appendChild(resendBtn);
+                }
+                resendBtn.innerText = "Doğrulama Kodunu Tekrar Gönder";
+                resendBtn.classList.remove('hidden');
+                
+                resendBtn.onclick = async () => {
+                    resendBtn.disabled = true;
+                    resendBtn.innerText = "Gönderiliyor...";
+                    try {
+                        await sendEmailVerification(userCredential.user);
+                        window.showToast("Doğrulama e-postası başarıyla gönderildi! Lütfen gereksiz/spam kutunuzu da kontrol edin.", "success");
+                        resendBtn.classList.add('hidden');
+                    } catch(err) {
+                        if(err.code === 'auth/too-many-requests') {
+                            window.showToast("Çok fazla istek yaptınız. Lütfen biraz bekleyip tekrar deneyin.", "error");
+                        } else {
+                            window.showToast("E-posta gönderilemedi: " + err.message, "error");
+                        }
+                    } finally {
+                        resendBtn.disabled = false;
+                        resendBtn.innerText = "Doğrulama Kodunu Tekrar Gönder";
+                        await signOut(auth);
+                    }
+                };
+                return; 
+            }
 
-            window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
-            const resendBtn = document.getElementById('resend-verification-btn');
-            if (resendBtn) resendBtn.classList.add('hidden');
-            closeAuthModal();
-        } else {
-            if (!username) {
-                window.showToast("Lütfen bir kullanıcı adı belirleyin.", "error");
-                throw new Error("UI_VALIDATION");
-            }
-            if (password.length < 6) {
-                window.showToast("Şifreniz en az 6 karakter olmalıdır.", "error");
-                throw new Error("UI_VALIDATION");
-            }
-            
-            const cleanPhone = phone.replace(/[^0-9]/g, '');
-            if (!cleanPhone || cleanPhone.length < 10) {
-                window.showToast("Lütfen geçerli bir telefon numarası girin (Örn: 5554443322).", "error");
-                throw new Error("UI_VALIDATION");
-            }
+            window.showToast("Giriş başarılı, yönlendiriliyorsunuz...", "success");
+            const resendBtn = document.getElementById('resend-verification-btn');
+            if (resendBtn) resendBtn.classList.add('hidden');
+            closeAuthModal();
+        } else {
+            if (!username) {
+                window.showToast("Lütfen bir kullanıcı adı belirleyin.", "error");
+                throw new Error("UI_VALIDATION");
+            }
+            if (password.length < 6) {
+                window.showToast("Şifreniz en az 6 karakter olmalıdır.", "error");
+                throw new Error("UI_VALIDATION");
+            }
+            
+            const cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (!cleanPhone || cleanPhone.length < 10) {
+                window.showToast("Lütfen geçerli bir telefon numarası girin (Örn: 5554443322).", "error");
+                throw new Error("UI_VALIDATION");
+            }
 
-            const usernameKey = window.sanitizeUsernameKey(username);
-            let isUsernameTaken = false;
-            
-            try {
-                const usernameSnap = await get(ref(db, 'usernames/' + usernameKey));
-                isUsernameTaken = usernameSnap.exists();
-            } catch (checkErr) {
-                console.warn("Veritabanı Okuma Kuralları kısıtlı olabilir, kullanıcı adı kontrolü atlandı.");
-            }
+            const usernameKey = window.sanitizeUsernameKey(username);
+            let isUsernameTaken = false;
+            
+            try {
+                const usernameSnap = await get(ref(db, 'usernames/' + usernameKey));
+                isUsernameTaken = usernameSnap.exists();
+            } catch (checkErr) {
+                console.warn("Veritabanı Okuma Kuralları kısıtlı olabilir, kullanıcı adı kontrolü atlandı.");
+            }
 
-            if (isUsernameTaken) {
-                window.showToast("❌ Bu kullanıcı adı başkası tarafından alınmış!", "error");
-                throw new Error("UI_VALIDATION");
-            }
+            if (isUsernameTaken) {
+                window.showToast("❌ Bu kullanıcı adı başkası tarafından alınmış!", "error");
+                throw new Error("UI_VALIDATION");
+            }
 
-            const res = await createUserWithEmailAndPassword(auth, email, password);
-            
-            try {
-                await sendEmailVerification(res.user);
-            } catch (emailErr) {}
+            const res = await createUserWithEmailAndPassword(auth, email, password);
+            
+            try {
+                await sendEmailVerification(res.user);
+            } catch (emailErr) {}
 
-            try { await updateProfile(res.user, { displayName: username }); } catch(e) {}
-            
-            try {
-                await update(ref(db, 'users/' + res.user.uid), {
-                    username: username,
-                    phone: phone,
-                    email: email,
-                    joinedAt: Date.now()
-                });
-                await update(ref(db, 'publicProfiles/' + res.user.uid), {
-                    username: username,
-                    joinedAt: Date.now()
-                });
-                await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
-            } catch (dbErr) {
-                window.showToast("Kayıt başarılı ancak Firebase kuralları veri kaydını engelledi.", "warning");
-            }
+            try { await updateProfile(res.user, { displayName: username }); } catch(e) {}
+            
+            try {
+                await update(ref(db, 'users/' + res.user.uid), {
+                    username: username,
+                    phone: phone,
+                    email: email,
+                    joinedAt: Date.now()
+                });
+                await update(ref(db, 'publicProfiles/' + res.user.uid), {
+                    username: username,
+                    joinedAt: Date.now()
+                });
+                await update(ref(db, 'usernames/' + usernameKey), { uid: res.user.uid });
+            } catch (dbErr) {
+                window.showToast("Kayıt başarılı ancak Firebase kuralları veri kaydını engelledi.", "warning");
+            }
 
-            await signOut(auth);
-            window.showToast("Kayıt tamamlandı! Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "success");
-            toggleAuthMode();
-        }
-    } catch (err) {
-        if (err.message === "UI_VALIDATION") {
-        } else if (err.code === 'auth/email-already-in-use') {
-            window.showToast("Bu e-posta adresi zaten kayıtlı!", "error");
-        } else if (err.code === 'auth/invalid-email') {
-            window.showToast("Lütfen geçerli bir e-posta adresi yazın.", "error");
-        } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-            window.showToast("E-posta adresiniz veya şifreniz hatalı.", "error");
-        } else {
-            window.showToast("Bir hata oluştu: " + err.message, "error");
-        }
-    } finally {
-        btn.disabled = false;
-        btn.innerText = mode === 'login' ? "Giriş Yap" : "Kayıt Ol";
-    }
+            await signOut(auth);
+            window.showToast("Kayıt tamamlandı! Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "success");
+            toggleAuthMode();
+        }
+    } catch (err) {
+        if (err.message === "UI_VALIDATION") {
+        } else if (err.code === 'auth/email-already-in-use') {
+            window.showToast("Bu e-posta adresi zaten kayıtlı!", "error");
+        } else if (err.code === 'auth/invalid-email') {
+            window.showToast("Lütfen geçerli bir e-posta adresi yazın.", "error");
+        } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            window.showToast("E-posta adresiniz veya şifreniz hatalı.", "error");
+        } else {
+            window.showToast("Bir hata oluştu: " + err.message, "error");
+        }
+    } finally {
+        btn.disabled = false;
+        btn.innerText = mode === 'login' ? "Giriş Yap" : "Kayıt Ol";
+    }
 };
 
 window.handleForgotPassword = async function(e) {
-    if (e && typeof e.preventDefault === 'function') {
-        e.preventDefault();
-    }
-    
-    const emailInput = document.getElementById('auth-email');
-    const email = emailInput ? emailInput.value.trim() : '';
-    
-    if (!email) {
-        window.showToast("Lütfen e-posta alanına kayıtlı adresinizi yazın.", "warning");
-        return;
-    }
+    if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+    }
+    
+    const emailInput = document.getElementById('auth-email');
+    const email = emailInput ? emailInput.value.trim() : '';
+    
+    if (!email) {
+        window.showToast("Lütfen e-posta alanına kayıtlı adresinizi yazın.", "warning");
+        return;
+    }
 
-    try {
-        window.showToast("İstek gönderiliyor, lütfen bekleyin...", "warning");
-        await sendPasswordResetEmail(auth, email);
-        window.showToast("Şifre sıfırlama bağlantısı gönderildi! (Gereksiz/Spam kutusunu da kontrol edin)", "success");
-    } catch(err) {
-        console.error("Sıfırlama Hatası Detayı:", err);
-        if (err.code === 'auth/user-not-found') {
-            window.showToast("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.", "error");
-        } else if (err.code === 'auth/invalid-email') {
-            window.showToast("Geçersiz bir e-posta formatı girdiniz.", "error");
-        } else {
-            window.showToast("Bir hata oluştu: " + err.message, "error");
-        }
-    }
+    try {
+        window.showToast("İstek gönderiliyor, lütfen bekleyin...", "warning");
+        await sendPasswordResetEmail(auth, email);
+        window.showToast("Şifre sıfırlama bağlantısı gönderildi! (Gereksiz/Spam kutusunu da kontrol edin)", "success");
+    } catch(err) {
+        console.error("Sıfırlama Hatası Detayı:", err);
+        if (err.code === 'auth/user-not-found') {
+            window.showToast("Bu e-posta adresiyle kayıtlı bir hesap bulunamadı.", "error");
+        } else if (err.code === 'auth/invalid-email') {
+            window.showToast("Geçersiz bir e-posta formatı girdiniz.", "error");
+        } else {
+            window.showToast("Bir hata oluştu: " + err.message, "error");
+        }
+    }
 };
 
 window.togglePasswordVisibility = function(inputId, iconId) {
-    const input = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    if (!input || !icon) return;
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
-    } else {
-        input.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
-    }
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    if (!input || !icon) return;
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
 };
 
 window.toggleFavorite = async function(id) {
-    if (!window.currentUser) {
-        window.showToast("Favorilere eklemek için giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
+    if (!window.currentUser) {
+        window.showToast("Favorilere eklemek için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
 
-    const favRef = ref(db, `users/${window.currentUser.uid}/favorites/${id}`);
-    if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
-        await remove(favRef);
-        delete window.userExtraData.favorites[id];
-        window.showToast("İlan favorilerinizden çıkarıldı.", "success");
-    } else {
-        await update(ref(db, `users/${window.currentUser.uid}/favorites`), { [id]: true });
-        if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
-        window.userExtraData.favorites[id] = true;
-        window.showToast("İlan favorilerinize eklendi!", "success");
-    }
-    renderListings();
-    updateFavBtnStyle(id);
+    const favRef = ref(db, `users/${window.currentUser.uid}/favorites/${id}`);
+    if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
+        await remove(favRef);
+        delete window.userExtraData.favorites[id];
+        window.showToast("İlan favorilerinizden çıkarıldı.", "success");
+    } else {
+        await update(ref(db, `users/${window.currentUser.uid}/favorites`), { [id]: true });
+        if(!window.userExtraData.favorites) window.userExtraData.favorites = {};
+        window.userExtraData.favorites[id] = true;
+        window.showToast("İlan favorilerinize eklendi!", "success");
+    }
+    renderListings();
+    updateFavBtnStyle(id);
 };
 
 window.submitPriceOffer = async function() {
-    if (!window.currentUser) {
-        window.showToast("Teklif vermek/İletişime geçmek için giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
-    const price = document.getElementById('offer-price-input').value;
-    const note = document.getElementById('offer-note-input').value;
+    if (!window.currentUser) {
+        window.showToast("Teklif vermek/İletişime geçmek için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+    const price = document.getElementById('offer-price-input').value;
+    const note = document.getElementById('offer-note-input').value;
 
-    if (!price) {
-        window.showToast("Lütfen bir teklif veya bütçe tutarı girin.", "warning");
-        return;
-    }
+    if (!price) {
+        window.showToast("Lütfen bir teklif veya bütçe tutarı girin.", "warning");
+        return;
+    }
 
-    const item = window.listings.find(l => l.id === window.activeListingId);
-    if (!item) return;
+    const item = window.listings.find(l => l.id === window.activeListingId);
+    if (!item) return;
 
-    if (item.uid === window.currentUser.uid) {
-        window.showToast("Kendi ilanınıza teklif gönderemezsiniz.", "error");
-        return;
-    }
+    if (item.uid === window.currentUser.uid) {
+        window.showToast("Kendi ilanınıza teklif gönderemezsiniz.", "error");
+        return;
+    }
 
-    try {
-        await push(ref(db, 'offers'), {
-            listingId: item.id,
-            listingTitle: item.title,
-            sellerUid: item.uid,
-            buyerUid: window.currentUser.uid,
-            buyerName: window.userExtraData.username || window.currentUser.displayName || window.currentUser.email,
-            buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
-            offeredPrice: price,
-            note: note,
-            status: 'Beklemede',
-            date: Date.now()
-        });
-        window.showToast("İletişim/Teklif talebiniz başarıyla iletildi!", "success");
-        document.getElementById('offer-price-input').value = '';
-        document.getElementById('offer-note-input').value = '';
-    } catch (err) {
-        window.showToast("Talep iletilemedi: " + err.message, "error");
-    }
+    try {
+        await push(ref(db, 'offers'), {
+            listingId: item.id,
+            listingTitle: item.title,
+            sellerUid: item.uid,
+            buyerUid: window.currentUser.uid,
+            buyerName: window.userExtraData.username || window.currentUser.displayName || window.currentUser.email,
+            buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
+            offeredPrice: price,
+            note: note,
+            status: 'Beklemede',
+            date: Date.now()
+        });
+        window.showToast("İletişim/Teklif talebiniz başarıyla iletildi!", "success");
+        document.getElementById('offer-price-input').value = '';
+        document.getElementById('offer-note-input').value = '';
+    } catch (err) {
+        window.showToast("Talep iletilemedi: " + err.message, "error");
+    }
 };
 
 window.handleFormSubmit = async function(e) {
-    e.preventDefault();
-    if (!window.currentUser) {
-        window.showToast("İlan vermek için giriş yapmalısınız.", "warning");
-        return;
-    }
+    e.preventDefault();
+    if (!window.currentUser) {
+        window.showToast("İlan vermek için giriş yapmalısınız.", "warning");
+        return;
+    }
 
-    const editId = document.getElementById('edit-listing-id').value;
-    let existingItem = null;
-    if (editId) {
-        existingItem = (window.listings || []).find(l => l.id === editId);
-        if (!existingItem || existingItem.uid !== window.currentUser.uid) {
-            window.showToast("Bu ilanı düzenleme yetkiniz yok.", "error");
-            return;
-        }
-    }
+    const editId = document.getElementById('edit-listing-id').value;
+    let existingItem = null;
+    if (editId) {
+        existingItem = (window.listings || []).find(l => l.id === editId);
+        if (!existingItem || existingItem.uid !== window.currentUser.uid) {
+            window.showToast("Bu ilanı düzenleme yetkiniz yok.", "error");
+            return;
+        }
+    }
 
-    const submitBtn = document.getElementById('submit-btn');
-    submitBtn.disabled = true;
-    submitBtn.innerText = "Kaydediliyor...";
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerText = "Kaydediliyor...";
 
-    try {
-        let imageUrl = document.getElementById('form-image').value;
-        const fileInput = document.getElementById('form-file');
-        
-        if (fileInput.files && fileInput.files[0]) {
-            const file = fileInput.files[0];
-            imageUrl = await window.compressImage(file);
-        }
+    try {
+        let imageUrl = document.getElementById('form-image').value;
+        const fileInput = document.getElementById('form-file');
+        
+        if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            imageUrl = await window.compressImage(file);
+        }
 
-        const category = document.getElementById('form-category').value;
-        const newPrice = Number(document.getElementById('form-price').value);
-        
-        const lTypeEl = document.getElementById('form-listing-type');
-        const listingType = lTypeEl ? lTypeEl.value : 'tarim';
-        
-        const customEl = document.getElementById('form-customizable');
-        const isCustomizable = customEl ? customEl.checked : false;
+        const category = document.getElementById('form-category').value;
+        const newPrice = Number(document.getElementById('form-price').value);
+        
+        const lTypeEl = document.getElementById('form-listing-type');
+        const listingType = lTypeEl ? lTypeEl.value : 'tarim';
+        
+        const customEl = document.getElementById('form-customizable');
+        const isCustomizable = customEl ? customEl.checked : false;
 
-        const intentRadio = document.querySelector('input[name="form-intent"]:checked');
-        const intentSelect = document.getElementById('form-intent');
-        const listingIntent = intentRadio ? intentRadio.value : (intentSelect ? intentSelect.value : 'sell');
+        // YENİ: Alım veya Satım Talebi Seçimi Kontrolü
+        const intentRadio = document.querySelector('input[name="form-intent"]:checked');
+        const intentSelect = document.getElementById('form-intent');
+        const listingIntent = intentRadio ? intentRadio.value : (intentSelect ? intentSelect.value : 'sell');
 
-        let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
-        if (existingItem && existingItem.price !== newPrice) {
-            priceHistory.push({ price: existingItem.price, date: Date.now() });
-        }
+        let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
+        if (existingItem && existingItem.price !== newPrice) {
+            priceHistory.push({ price: existingItem.price, date: Date.now() });
+        }
 
-        let isFirst100 = false;
-        if (!editId) {
-            const counterRef = ref(db, 'listingCounter');
-            const result = await runTransaction(counterRef, (currentData) => {
-                let count = (currentData && currentData.count) || 0;
-                isFirst100 = (count < 100);
-                return { count: count + 1 };
-            });
-            if (!result.committed) throw new Error('Sayaç güncellenemedi.');
-        }
+        let isFirst100 = false;
+        if (!editId) {
+            const counterRef = ref(db, 'listingCounter');
+            const result = await runTransaction(counterRef, (currentData) => {
+                let count = (currentData && currentData.count) || 0;
+                isFirst100 = (count < 100);
+                return { count: count + 1 };
+            });
+            if (!result.committed) throw new Error('Sayaç güncellenemedi.');
+        }
 
-        const userVipChoice = document.getElementById('form-vip').checked;
-        const finalVip = (!editId && isFirst100) ? true : userVipChoice;
-        const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
+        const userVipChoice = document.getElementById('form-vip').checked;
+        const finalVip = (!editId && isFirst100) ? true : userVipChoice;
+        const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
 
-        let finalExpireDate = null;
-        if (finalVip) {
-            if (existingItem && existingItem.isVip && existingItem.vipExpireDate) {
-                finalExpireDate = existingItem.vipExpireDate;
-            } else {
-                finalExpireDate = Date.now() + threeMonthsInMs;
-            }
-        }
+        let finalExpireDate = null;
+        if (finalVip) {
+            if (existingItem && existingItem.isVip && existingItem.vipExpireDate) {
+                finalExpireDate = existingItem.vipExpireDate;
+            } else {
+                finalExpireDate = Date.now() + threeMonthsInMs;
+            }
+        }
 
-        const isOutside = !!window.locationOutsideHatay;
+        const isOutside = !!window.locationOutsideHatay;
 
-        const listingData = {
-            uid: window.currentUser.uid,
-            userEmail: window.currentUser.email,
-            title: document.getElementById('form-title').value,
-            intent: listingIntent,
-            category: category,
-            listingType: listingType,          
-            isCustomizable: isCustomizable,    
-            harvestDate: document.getElementById('form-harvest-date') ? document.getElementById('form-harvest-date').value : null,
-            district: document.getElementById('form-district').value,
-            address: document.getElementById('form-address').value || null,
-            outsideHatay: isOutside,
-            realProvince: isOutside ? window.locationOutsideHatay.province : null,
-            realDistrict: isOutside ? window.locationOutsideHatay.district : null,
-            lat: Number(document.getElementById('form-lat').value) || null,
-            lng: Number(document.getElementById('form-lng').value) || null,
-            price: newPrice,
-            priceHistory: priceHistory,
-            unit: document.getElementById('form-unit').value || 'KG',
-            seller: document.getElementById('form-seller').value,
-            phone: document.getElementById('form-phone').value,
-            desc: document.getElementById('form-desc').value,
-            businessType: document.getElementById('form-business-type').value,
-            minOrderQty: document.getElementById('form-business-type').value === 'Toptancı'
-                ? (document.getElementById('form-min-order').value || null)
-                : null,
-            image: imageUrl || window.getDefaultImage(category),
-            isVip: finalVip,
-            vipExpireDate: finalExpireDate,
-            isUrgent: document.getElementById('form-urgent').checked,
-            isDiscount: document.getElementById('form-discount').checked,
-            date: existingItem ? existingItem.date : Date.now()
-        };
+        const listingData = {
+            uid: window.currentUser.uid,
+            userEmail: window.currentUser.email,
+            title: document.getElementById('form-title').value,
+            intent: listingIntent, // YENİ: sell veya buy
+            category: category,
+            listingType: listingType,          
+            isCustomizable: isCustomizable,    
+            harvestDate: document.getElementById('form-harvest-date') ? document.getElementById('form-harvest-date').value : null,
+            district: document.getElementById('form-district').value,
+            address: document.getElementById('form-address').value || null,
+            outsideHatay: isOutside,
+            realProvince: isOutside ? window.locationOutsideHatay.province : null,
+            realDistrict: isOutside ? window.locationOutsideHatay.district : null,
+            lat: Number(document.getElementById('form-lat').value) || null,
+            lng: Number(document.getElementById('form-lng').value) || null,
+            price: newPrice,
+            priceHistory: priceHistory,
+            unit: document.getElementById('form-unit').value || 'KG',
+            seller: document.getElementById('form-seller').value,
+            phone: document.getElementById('form-phone').value,
+            desc: document.getElementById('form-desc').value,
+            businessType: document.getElementById('form-business-type').value,
+            minOrderQty: document.getElementById('form-business-type').value === 'Toptancı'
+                ? (document.getElementById('form-min-order').value || null)
+                : null,
+            image: imageUrl || window.getDefaultImage(category),
+            isVip: finalVip,
+            vipExpireDate: finalExpireDate,
+            isUrgent: document.getElementById('form-urgent').checked,
+            isDiscount: document.getElementById('form-discount').checked,
+            date: existingItem ? existingItem.date : Date.now()
+        };
 
-        if (editId) {
-            await update(ref(db, 'listings/' + editId), listingData);
-            window.showToast('Kayıt başarıyla güncellendi!', "success");
-        } else {
-            await push(ref(db, 'listings'), listingData);
-            if (isFirst100) {
-                window.showToast('🚀 İlan/Talep yayınlandı! İlk 100 ilana özel 3 AYLIK ÜCRETSİZ VIP tanımlandı.', "success");
-            } else {
-                window.showToast('Kaydınız yayına alındı!', "success");
-            }
-        }
-        closeFormModal();
-        closeDetailModal();
-    } catch (err) {
-        window.showToast('İlan kaydedilemedi. Geçersiz veri girilmiş olabilir.', "error");
-        window.showErrorPage(400, "Form Gönderim Hatası");
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerText = "İlanı Kaydet";
-    }
+        if (editId) {
+            await update(ref(db, 'listings/' + editId), listingData);
+            window.showToast('Kayıt başarıyla güncellendi!', "success");
+        } else {
+            await push(ref(db, 'listings'), listingData);
+            if (isFirst100) {
+                window.showToast('🚀 İlan/Talep yayınlandı! İlk 100 ilana özel 3 AYLIK ÜCRETSİZ VIP tanımlandı.', "success");
+            } else {
+                window.showToast('Kaydınız yayına alındı!', "success");
+            }
+        }
+        closeFormModal();
+        closeDetailModal();
+    } catch (err) {
+        window.showToast('İlan kaydedilemedi. Geçersiz veri girilmiş olabilir.', "error");
+        window.showErrorPage(400, "Form Gönderim Hatası");
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = "İlanı Kaydet";
+    }
 };
 
 window.updateAccountDetails = async function() {
-    if (!window.currentUser) return;
-    const newUsername = document.getElementById('update-username').value.trim();
-    const newPhone = document.getElementById('update-phone').value.trim();
-    const newPass = document.getElementById('update-new-password').value;
-    const currentPass = document.getElementById('update-current-password').value;
-    const btn = document.getElementById('update-acc-btn');
-    
-    const avatarInputEl = document.getElementById('update-avatar-base64');
-    const newAvatar = avatarInputEl ? avatarInputEl.value : '';
+    if (!window.currentUser) return;
+    const newUsername = document.getElementById('update-username').value.trim();
+    const newPhone = document.getElementById('update-phone').value.trim();
+    const newPass = document.getElementById('update-new-password').value;
+    const currentPass = document.getElementById('update-current-password').value;
+    const btn = document.getElementById('update-acc-btn');
+    
+    const avatarInputEl = document.getElementById('update-avatar-base64');
+    const newAvatar = avatarInputEl ? avatarInputEl.value : '';
 
-    if (!currentPass) {
-        window.showToast("Lütfen mevcut şifrenizi girin.", "warning");
-        return;
-    }
+    if (!currentPass) {
+        window.showToast("Lütfen mevcut şifrenizi girin.", "warning");
+        return;
+    }
 
-    btn.disabled = true;
-    btn.innerText = "Güncelleniyor...";
+    btn.disabled = true;
+    btn.innerText = "Güncelleniyor...";
 
-    try {
-        const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
-        await window.reauthenticateWithCredential(window.currentUser, credential);
+    try {
+        const credential = EmailAuthProvider.credential(window.currentUser.email, currentPass);
+        await window.reauthenticateWithCredential(window.currentUser, credential);
 
-        if (newUsername !== window.userExtraData.username) {
-            const newUsernameKey = window.sanitizeUsernameKey(newUsername);
-            const oldUsernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
-            
-            const usernameSnap = await get(ref(db, 'usernames/' + newUsernameKey));
-            if (usernameSnap.exists()) {
-                window.showToast("❌ Bu kullanıcı adı başkası tarafından alınmış!", "error");
-                btn.disabled = false;
-                btn.innerText = "Değişiklikleri Kaydet";
-                return;
-            }
-            
-            await update(ref(db, 'usernames/' + newUsernameKey), { uid: window.currentUser.uid });
-            if (window.userExtraData.username) {
-                await remove(ref(db, 'usernames/' + oldUsernameKey));
-            }
-        }
+        if (newUsername !== window.userExtraData.username) {
+            const newUsernameKey = window.sanitizeUsernameKey(newUsername);
+            const oldUsernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
+            
+            const usernameSnap = await get(ref(db, 'usernames/' + newUsernameKey));
+            if (usernameSnap.exists()) {
+                window.showToast("❌ Bu kullanıcı adı başkası tarafından alınmış!", "error");
+                btn.disabled = false;
+                btn.innerText = "Değişiklikleri Kaydet";
+                return;
+            }
+            
+            await update(ref(db, 'usernames/' + newUsernameKey), { uid: window.currentUser.uid });
+            if (window.userExtraData.username) {
+                await remove(ref(db, 'usernames/' + oldUsernameKey));
+            }
+        }
 
-        let userUpdatePayload = {
-            username: newUsername,
-            phone: newPhone
-        };
-        let publicProfilePayload = {
-            username: newUsername
-        };
+        let userUpdatePayload = {
+            username: newUsername,
+            phone: newPhone
+        };
+        let publicProfilePayload = {
+            username: newUsername
+        };
 
-        if (newAvatar) {
-            userUpdatePayload.avatar = newAvatar;
-            publicProfilePayload.avatar = newAvatar;
-        }
+        if (newAvatar) {
+            userUpdatePayload.avatar = newAvatar;
+            publicProfilePayload.avatar = newAvatar;
+        }
 
-        await update(ref(db, 'users/' + window.currentUser.uid), userUpdatePayload);
-        await update(ref(db, 'publicProfiles/' + window.currentUser.uid), publicProfilePayload);
-        await updateProfile(window.currentUser, { displayName: newUsername });
+        await update(ref(db, 'users/' + window.currentUser.uid), userUpdatePayload);
+        await update(ref(db, 'publicProfiles/' + window.currentUser.uid), publicProfilePayload);
+        await updateProfile(window.currentUser, { displayName: newUsername });
 
-        if (newPass.trim() !== "") {
-            if (newPass.length < 6) {
-                window.showToast("Yeni şifre en az 6 karakter olmalıdır.", "error");
-                btn.disabled = false;
-                btn.innerText = "Değişiklikleri Kaydet";
-                return;
-            }
-            await updatePassword(window.currentUser, newPass);
-            window.showToast("Şifreniz ve profiliniz güncellendi!", "success");
-        } else {
-            window.showToast("Profil bilgileriniz başarıyla güncellendi!", "success");
-        }
+        if (newPass.trim() !== "") {
+            if (newPass.length < 6) {
+                window.showToast("Yeni şifre en az 6 karakter olmalıdır.", "error");
+                btn.disabled = false;
+                btn.innerText = "Değişiklikleri Kaydet";
+                return;
+            }
+            await updatePassword(window.currentUser, newPass);
+            window.showToast("Şifreniz ve profiliniz güncellendi!", "success");
+        } else {
+            window.showToast("Profil bilgileriniz başarıyla güncellendi!", "success");
+        }
 
-        window.userExtraData.username = newUsername;
-        window.userExtraData.phone = newPhone;
-        if (newAvatar) {
-            window.userExtraData.avatar = newAvatar;
-        }
-        
-        document.getElementById('update-current-password').value = '';
-        document.getElementById('update-new-password').value = '';
-        closeAccountModal();
-    } catch (err) {
-        window.showToast("Hata: Mevcut şifreniz yanlış veya işlem başarısız.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Değişiklikleri Kaydet";
-    }
+        window.userExtraData.username = newUsername;
+        window.userExtraData.phone = newPhone;
+        if (newAvatar) {
+            window.userExtraData.avatar = newAvatar;
+        }
+        
+        document.getElementById('update-current-password').value = '';
+        document.getElementById('update-new-password').value = '';
+        closeAccountModal();
+    } catch (err) {
+        window.showToast("Hata: Mevcut şifreniz yanlış veya işlem başarısız.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Değişiklikleri Kaydet";
+    }
 };
 
 window.deleteUserAccount = async function() {
-    if (!window.currentUser) return;
-    const confirmDelete = confirm("⚠️ DİKKAT: Hesabınızı kalıcı olarak kapatmak istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinir.");
-    if (!confirmDelete) return;
+    if (!window.currentUser) return;
+    const confirmDelete = confirm("⚠️ DİKKAT: Hesabınızı kalıcı olarak kapatmak istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinir.");
+    if (!confirmDelete) return;
 
-    const password = prompt("Hesabınızı silmek için lütfen mevcut şifrenizi girin:");
-    if (!password) return;
+    const password = prompt("Hesabınızı silmek için lütfen mevcut şifrenizi girin:");
+    if (!password) return;
 
-    try {
-        const credential = EmailAuthProvider.credential(window.currentUser.email, password);
-        await window.reauthenticateWithCredential(window.currentUser, credential);
+    try {
+        const credential = EmailAuthProvider.credential(window.currentUser.email, password);
+        await window.reauthenticateWithCredential(window.currentUser, credential);
 
-        const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
-        for (const listing of myListings) {
-            try { await remove(ref(db, 'listings/' + listing.id)); } catch(e) {}
-        }
+        const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
+        for (const listing of myListings) {
+            try { await remove(ref(db, 'listings/' + listing.id)); } catch(e) {}
+        }
 
-        try {
-            const usernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
-            await remove(ref(db, 'usernames/' + usernameKey));
-            await remove(ref(db, 'publicProfiles/' + window.currentUser.uid));
-        } catch(e) {}
+        try {
+            const usernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
+            await remove(ref(db, 'usernames/' + usernameKey));
+            await remove(ref(db, 'publicProfiles/' + window.currentUser.uid));
+        } catch(e) {}
 
-        await remove(ref(db, 'users/' + window.currentUser.uid));
-        await deleteUser(window.currentUser);
+        await remove(ref(db, 'users/' + window.currentUser.uid));
+        await deleteUser(window.currentUser);
 
-        window.showToast("Hesabınız kalıcı olarak silindi.", "success");
-        closeAccountModal();
-    } catch (err) {
-        window.showToast("Şifre yanlış veya işlem gerçekleştirilemedi.", "error");
-    }
+        window.showToast("Hesabınız kalıcı olarak silindi.", "success");
+        closeAccountModal();
+    } catch (err) {
+        window.showToast("Şifre yanlış veya işlem gerçekleştirilemedi.", "error");
+    }
 };
 
 window.deleteCurrentListing = async function(id) {
-    const targetId = id || window.activeListingId;
-    if (!targetId || !window.currentUser) return;
+    const targetId = id || window.activeListingId;
+    if (!targetId || !window.currentUser) return;
 
-    const target = (window.listings || []).find(l => l.id === targetId);
-    if (!target || target.uid !== window.currentUser.uid) {
-        window.showToast("Bu ilanı silme yetkiniz yok.", "error");
-        return;
-    }
+    const target = (window.listings || []).find(l => l.id === targetId);
+    if (!target || target.uid !== window.currentUser.uid) {
+        window.showToast("Bu ilanı silme yetkiniz yok.", "error");
+        return;
+    }
 
-    if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
-        try {
-            await remove(ref(db, 'listings/' + targetId));
-            window.showToast("İlan silindi.", "success");
-            closeDetailModal();
-            closeAccountModal();
-        } catch (err) {
-            window.showToast("Silinemedi: " + err.message, "error");
-        }
-    }
+    if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
+        try {
+            await remove(ref(db, 'listings/' + targetId));
+            window.showToast("İlan silindi.", "success");
+            closeDetailModal();
+            closeAccountModal();
+        } catch (err) {
+            window.showToast("Silinemedi: " + err.message, "error");
+        }
+    }
 };
 
 window.loadSellerProfileBox = async function(sellerUid) {
-    const joinedEl = document.getElementById('detail-seller-joined');
-    const ratingEl = document.getElementById('detail-seller-rating');
-    const rateBox = document.getElementById('rate-seller-box');
-    const starsEl = document.getElementById('rate-seller-stars');
+    const joinedEl = document.getElementById('detail-seller-joined');
+    const ratingEl = document.getElementById('detail-seller-rating');
+    const rateBox = document.getElementById('rate-seller-box');
+    const starsEl = document.getElementById('rate-seller-stars');
 
-    if (!joinedEl || !ratingEl) return;
+    if (!joinedEl || !ratingEl) return;
 
-    joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
-    ratingEl.innerText = "☆☆☆☆☆";
-    if (rateBox) rateBox.classList.add('hidden');
-    if (starsEl) starsEl.innerHTML = '';
+    joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
+    ratingEl.innerText = "☆☆☆☆☆";
+    if (rateBox) rateBox.classList.add('hidden');
+    if (starsEl) starsEl.innerHTML = '';
 
-    const listingCount = (window.listings || []).filter(l => l.uid === sellerUid).length;
+    const listingCount = (window.listings || []).filter(l => l.uid === sellerUid).length;
 
-    try {
-        const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
-        let joinedText = '';
-        if (profileSnap.exists() && profileSnap.val().joinedAt) {
-            const d = new Date(profileSnap.val().joinedAt);
-            joinedText = `Üye: ${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} · `;
-        }
-        joinedEl.innerText = `${joinedText}${listingCount} ilan`;
-    } catch (err) {
-        joinedEl.innerText = `${listingCount} ilan`;
-    }
+    try {
+        const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
+        let joinedText = '';
+        if (profileSnap.exists() && profileSnap.val().joinedAt) {
+            const d = new Date(profileSnap.val().joinedAt);
+            joinedText = `Üye: ${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} · `;
+        }
+        joinedEl.innerText = `${joinedText}${listingCount} ilan`;
+    } catch (err) {
+        joinedEl.innerText = `${listingCount} ilan`;
+    }
 
-    try {
-        const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
-        const ratingsData = ratingsSnap.val() || {};
-        const ratingsArray = Object.values(ratingsData);
-        const scores = ratingsArray.map(r => r.score).filter(s => typeof s === 'number');
-        const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
-        const roundedStars = Math.round(avg);
-        ratingEl.innerText = scores.length
-            ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
-            : 'Henüz değerlendirme yok';
+    try {
+        const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
+        const ratingsData = ratingsSnap.val() || {};
+        const ratingsArray = Object.values(ratingsData);
+        const scores = ratingsArray.map(r => r.score).filter(s => typeof s === 'number');
+        const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+        const roundedStars = Math.round(avg);
+        ratingEl.innerText = scores.length
+            ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
+            : 'Henüz değerlendirme yok';
 
-        if (window.currentUser && window.currentUser.uid !== sellerUid && rateBox) {
-            rateBox.classList.remove('hidden');
-            const myRatingData = ratingsData[window.currentUser.uid] || {};
-            const myRating = myRatingData.score || 0;
-            const myBadges = myRatingData.badges || [];
+        if (window.currentUser && window.currentUser.uid !== sellerUid && rateBox) {
+            rateBox.classList.remove('hidden');
+            const myRatingData = ratingsData[window.currentUser.uid] || {};
+            const myRating = myRatingData.score || 0;
+            const myBadges = myRatingData.badges || [];
 
-            starsEl.innerHTML = '';
-            
-            const starContainer = document.createElement('div');
-            starContainer.className = "flex space-x-1 mb-2";
-            let currentSelectedScore = myRating;
+            starsEl.innerHTML = '';
+            
+            const starContainer = document.createElement('div');
+            starContainer.className = "flex space-x-1 mb-2";
+            let currentSelectedScore = myRating;
 
-            for (let i = 1; i <= 5; i++) {
-                const star = document.createElement('span');
-                star.innerText = i <= myRating ? '★' : '☆';
-                star.style.color = i <= myRating ? '#bca879' : '#c7c7c7';
-                star.style.cursor = 'pointer';
-                star.style.fontSize = '20px';
-                star.onclick = () => {
-                    currentSelectedScore = i;
-                    Array.from(starContainer.children).forEach((s, idx) => {
-                        s.innerText = idx < currentSelectedScore ? '★' : '☆';
-                        s.style.color = idx < currentSelectedScore ? '#bca879' : '#c7c7c7';
-                    });
-                };
-                starContainer.appendChild(star);
-            }
-            starsEl.appendChild(starContainer);
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('span');
+                star.innerText = i <= myRating ? '★' : '☆';
+                star.style.color = i <= myRating ? '#bca879' : '#c7c7c7';
+                star.style.cursor = 'pointer';
+                star.style.fontSize = '20px';
+                star.onclick = () => {
+                    currentSelectedScore = i;
+                    Array.from(starContainer.children).forEach((s, idx) => {
+                        s.innerText = idx < currentSelectedScore ? '★' : '☆';
+                        s.style.color = idx < currentSelectedScore ? '#bca879' : '#c7c7c7';
+                    });
+                };
+                starContainer.appendChild(star);
+            }
+            starsEl.appendChild(starContainer);
 
-            const badgesContainer = document.createElement('div');
-            badgesContainer.className = "flex flex-wrap gap-1.5 my-2";
-            const selectedBadges = new Set(myBadges);
-            
-            window.AVAILABLE_REVIEW_BADGES.forEach(badge => {
-                const badgeEl = document.createElement('span');
-                badgeEl.innerText = badge;
-                const isSelected = selectedBadges.has(badge);
-                badgeEl.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium'}`;
-                
-                badgeEl.onclick = () => {
-                    if (selectedBadges.has(badge)) {
-                        selectedBadges.delete(badge);
-                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium";
-                    } else {
-                        selectedBadges.add(badge);
-                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-dark text-lux-gold border-lux-gold font-bold";
-                    }
-                };
-                badgesContainer.appendChild(badgeEl);
-            });
-            starsEl.appendChild(badgesContainer);
+            const badgesContainer = document.createElement('div');
+            badgesContainer.className = "flex flex-wrap gap-1.5 my-2";
+            const selectedBadges = new Set(myBadges);
+            
+            window.AVAILABLE_REVIEW_BADGES.forEach(badge => {
+                const badgeEl = document.createElement('span');
+                badgeEl.innerText = badge;
+                const isSelected = selectedBadges.has(badge);
+                badgeEl.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium'}`;
+                
+                badgeEl.onclick = () => {
+                    if (selectedBadges.has(badge)) {
+                        selectedBadges.delete(badge);
+                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium";
+                    } else {
+                        selectedBadges.add(badge);
+                        badgeEl.className = "cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all bg-lux-dark text-lux-gold border-lux-gold font-bold";
+                    }
+                };
+                badgesContainer.appendChild(badgeEl);
+            });
+            starsEl.appendChild(badgesContainer);
 
-            const submitBtn = document.createElement('button');
-            submitBtn.innerText = "Puanla & Gönder";
-            submitBtn.className = "bg-lux-gold text-lux-dark font-bold text-xs px-3 py-1.5 rounded-lg w-full hover:bg-yellow-500 transition shadow-sm mt-1";
-            submitBtn.onclick = () => {
-                if(currentSelectedScore === 0) {
-                    window.showToast("Lütfen önce bir yıldız seçin.", "warning");
-                    return;
-                }
-                window.submitRating(sellerUid, currentSelectedScore, Array.from(selectedBadges));
-            };
-            starsEl.appendChild(submitBtn);
-        }
-    } catch (err) {
-        ratingEl.innerText = 'Puanlar yüklenemedi';
-    }
+            const submitBtn = document.createElement('button');
+            submitBtn.innerText = "Puanla & Gönder";
+            submitBtn.className = "bg-lux-gold text-lux-dark font-bold text-xs px-3 py-1.5 rounded-lg w-full hover:bg-yellow-500 transition shadow-sm mt-1";
+            submitBtn.onclick = () => {
+                if(currentSelectedScore === 0) {
+                    window.showToast("Lütfen önce bir yıldız seçin.", "warning");
+                    return;
+                }
+                window.submitRating(sellerUid, currentSelectedScore, Array.from(selectedBadges));
+            };
+            starsEl.appendChild(submitBtn);
+        }
+    } catch (err) {
+        ratingEl.innerText = 'Puanlar yüklenemedi';
+    }
 };
 
 window.submitRating = async function(sellerUid, score, badges = []) {
-    if (!window.currentUser) {
-        window.showToast("Değerlendirme yapmak için giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
-    if (window.currentUser.uid === sellerUid) {
-        window.showToast("Kendi ilanınıza puan veremezsiniz.", "error");
-        return;
-    }
-    try {
-        await update(ref(db, `ratings/${sellerUid}/${window.currentUser.uid}`), {
-            score: score,
-            badges: badges,
-            date: Date.now()
-        });
-        window.showToast("Değerlendirme başarıyla kaydedildi!", "success");
-        window.loadSellerProfileBox(sellerUid);
-        const sellerModal = document.getElementById('seller-profile-modal');
-        if (sellerModal && !sellerModal.classList.contains('hidden')) {
-            window.openSellerProfileModal(sellerUid);
-        }
-    } catch (err) {
-        window.showToast("Değerlendirme kaydedilemedi.", "error");
-    }
+    if (!window.currentUser) {
+        window.showToast("Değerlendirme yapmak için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+    if (window.currentUser.uid === sellerUid) {
+        window.showToast("Kendi ilanınıza puan veremezsiniz.", "error");
+        return;
+    }
+    try {
+        await update(ref(db, `ratings/${sellerUid}/${window.currentUser.uid}`), {
+            score: score,
+            badges: badges,
+            date: Date.now()
+        });
+        window.showToast("Değerlendirme başarıyla kaydedildi!", "success");
+        window.loadSellerProfileBox(sellerUid);
+        const sellerModal = document.getElementById('seller-profile-modal');
+        if (sellerModal && !sellerModal.classList.contains('hidden')) {
+            window.openSellerProfileModal(sellerUid);
+        }
+    } catch (err) {
+        window.showToast("Değerlendirme kaydedilemedi.", "error");
+    }
 };
 
 window.openSellerProfileModal = async function(sellerUid) {
-    if (!sellerUid) return;
+    if (!sellerUid) return;
 
-    const nameEl = document.getElementById('seller-profile-name');
-    const avatarTextEl = document.getElementById('seller-profile-avatar-text');
-    const avatarImgEl = document.getElementById('seller-profile-avatar-img');
-    const joinedEl = document.getElementById('seller-profile-joined');
-    const ratingEl = document.getElementById('seller-profile-rating');
-    const countEl = document.getElementById('seller-profile-count');
-    const listingsEl = document.getElementById('seller-profile-listings');
-    const badgesDOM = document.getElementById('seller-profile-badges');
+    const nameEl = document.getElementById('seller-profile-name');
+    const avatarTextEl = document.getElementById('seller-profile-avatar-text');
+    const avatarImgEl = document.getElementById('seller-profile-avatar-img');
+    const joinedEl = document.getElementById('seller-profile-joined');
+    const ratingEl = document.getElementById('seller-profile-rating');
+    const countEl = document.getElementById('seller-profile-count');
+    const listingsEl = document.getElementById('seller-profile-listings');
+    const badgesDOM = document.getElementById('seller-profile-badges');
 
-    const sellerListings = (window.listings || []).filter(l => l.uid === sellerUid).sort((a,b) => b.date - a.date);
-    const displayName = sellerListings.length ? sellerListings[0].seller : 'Kullanıcı';
+    const sellerListings = (window.listings || []).filter(l => l.uid === sellerUid).sort((a,b) => b.date - a.date);
+    const displayName = sellerListings.length ? sellerListings[0].seller : 'Kullanıcı';
 
-    nameEl.innerText = displayName;
-    if(avatarTextEl) {
-        avatarTextEl.innerText = (displayName || 'U').charAt(0).toUpperCase();
-        avatarTextEl.classList.remove('hidden');
-    }
-    if(avatarImgEl) {
-        avatarImgEl.classList.add('hidden');
-        avatarImgEl.src = '';
-    }
-    
-    joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
-    ratingEl.innerText = "☆☆☆☆☆";
-    countEl.innerText = `${sellerListings.length} kayıt`;
-    listingsEl.innerHTML = '';
-    if(badgesDOM) badgesDOM.innerHTML = '';
+    nameEl.innerText = displayName;
+    if(avatarTextEl) {
+        avatarTextEl.innerText = (displayName || 'U').charAt(0).toUpperCase();
+        avatarTextEl.classList.remove('hidden');
+    }
+    if(avatarImgEl) {
+        avatarImgEl.classList.add('hidden');
+        avatarImgEl.src = '';
+    }
+    
+    joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
+    ratingEl.innerText = "☆☆☆☆☆";
+    countEl.innerText = `${sellerListings.length} kayıt`;
+    listingsEl.innerHTML = '';
+    if(badgesDOM) badgesDOM.innerHTML = '';
 
-    document.getElementById('seller-profile-modal').classList.remove('hidden');
+    document.getElementById('seller-profile-modal').classList.remove('hidden');
 
-    try {
-        const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
-        if (profileSnap.exists()) {
-            const pData = profileSnap.val();
-            
-            if (pData.joinedAt) {
-                const d = new Date(pData.joinedAt);
-                const now = Date.now();
-                const years = Math.floor((now - pData.joinedAt) / (365 * 24 * 60 * 60 * 1000));
-                const sinceText = years >= 1 ? `${years} yıldır üye` : `${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} tarihinden beri üye`;
-                joinedEl.innerText = sinceText;
-            } else {
-                joinedEl.innerText = "Üyelik tarihi bilinmiyor";
-            }
-            
-            if (pData.avatar && avatarImgEl && avatarTextEl) {
-                avatarImgEl.src = pData.avatar;
-                avatarImgEl.classList.remove('hidden');
-                avatarTextEl.classList.add('hidden');
-            }
-        } else {
-            joinedEl.innerText = "Üyelik tarihi bilinmiyor";
-        }
-    } catch (err) {
-        joinedEl.innerText = "Üyelik tarihi bilinmiyor";
-    }
+    try {
+        const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
+        if (profileSnap.exists()) {
+            const pData = profileSnap.val();
+            
+            if (pData.joinedAt) {
+                const d = new Date(pData.joinedAt);
+                const now = Date.now();
+                const years = Math.floor((now - pData.joinedAt) / (365 * 24 * 60 * 60 * 1000));
+                const sinceText = years >= 1 ? `${years} yıldır üye` : `${d.toLocaleDateString('tr-TR', { year:'numeric', month:'long' })} tarihinden beri üye`;
+                joinedEl.innerText = sinceText;
+            } else {
+                joinedEl.innerText = "Üyelik tarihi bilinmiyor";
+            }
+            
+            if (pData.avatar && avatarImgEl && avatarTextEl) {
+                avatarImgEl.src = pData.avatar;
+                avatarImgEl.classList.remove('hidden');
+                avatarTextEl.classList.add('hidden');
+            }
+        } else {
+            joinedEl.innerText = "Üyelik tarihi bilinmiyor";
+        }
+    } catch (err) {
+        joinedEl.innerText = "Üyelik tarihi bilinmiyor";
+    }
 
-    try {
-        const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
-        const ratingsData = ratingsSnap.val() || {};
-        const ratingsArray = Object.values(ratingsData);
-        
-        const scores = ratingsArray.map(r => r.score).filter(s => typeof s === 'number');
-        const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
-        const roundedStars = Math.round(avg);
-        ratingEl.innerText = scores.length
-            ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
-            : 'Henüz değerlendirme yok';
-            
-        const badgeCounts = {};
-        ratingsArray.forEach(r => {
-            if (r.badges && Array.isArray(r.badges)) {
-                r.badges.forEach(b => {
-                    badgeCounts[b] = (badgeCounts[b] || 0) + 1;
-                });
-            }
-        });
-        
-        if (badgesDOM) {
-            const sortedBadges = Object.entries(badgeCounts).sort((a,b) => b[1] - a[1]);
-            if (sortedBadges.length > 0) {
-                sortedBadges.forEach(([badgeName, count]) => {
-                    const bSpan = document.createElement('span');
-                    bSpan.className = "bg-lux-dark text-lux-gold text-[10px] font-bold px-2.5 py-1 rounded-full mr-1.5 mb-1.5 inline-flex items-center border border-lux-gold shadow-sm";
-                    bSpan.innerHTML = `${badgeName} <span class="bg-lux-gold text-lux-dark rounded-full px-1.5 py-0.5 text-[9px] ml-1.5 font-extrabold">${count}</span>`;
-                    badgesDOM.appendChild(bSpan);
-                });
-            }
-        }
-    } catch (err) {
-        ratingEl.innerText = 'Puanlar yüklenemedi';
-    }
+    try {
+        const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
+        const ratingsData = ratingsSnap.val() || {};
+        const ratingsArray = Object.values(ratingsData);
+        
+        const scores = ratingsArray.map(r => r.score).filter(s => typeof s === 'number');
+        const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+        const roundedStars = Math.round(avg);
+        ratingEl.innerText = scores.length
+            ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
+            : 'Henüz değerlendirme yok';
+            
+        const badgeCounts = {};
+        ratingsArray.forEach(r => {
+            if (r.badges && Array.isArray(r.badges)) {
+                r.badges.forEach(b => {
+                    badgeCounts[b] = (badgeCounts[b] || 0) + 1;
+                });
+            }
+        });
+        
+        if (badgesDOM) {
+            const sortedBadges = Object.entries(badgeCounts).sort((a,b) => b[1] - a[1]);
+            if (sortedBadges.length > 0) {
+                sortedBadges.forEach(([badgeName, count]) => {
+                    const bSpan = document.createElement('span');
+                    bSpan.className = "bg-lux-dark text-lux-gold text-[10px] font-bold px-2.5 py-1 rounded-full mr-1.5 mb-1.5 inline-flex items-center border border-lux-gold shadow-sm";
+                    bSpan.innerHTML = `${badgeName} <span class="bg-lux-gold text-lux-dark rounded-full px-1.5 py-0.5 text-[9px] ml-1.5 font-extrabold">${count}</span>`;
+                    badgesDOM.appendChild(bSpan);
+                });
+            }
+        }
+    } catch (err) {
+        ratingEl.innerText = 'Puanlar yüklenemedi';
+    }
 
-    if (sellerListings.length === 0) {
-        listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Kullanıcının aktif ilanı yok.</p>`;
-    } else {
-        sellerListings.forEach(item => {
-            const isBuy = item.intent === 'buy';
-            const row = document.createElement('div');
-            row.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs cursor-pointer hover:bg-lux-sage/20 transition`;
-            row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
-            row.innerHTML = `
-                <div class="flex items-center gap-2 min-w-0">
-                    <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
-                    <div class="min-w-0">
-                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
-                        <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
-                    </div>
-                </div>
-            `;
-            listingsEl.appendChild(row);
-        });
-    }
+    if (sellerListings.length === 0) {
+        listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Kullanıcının aktif ilanı yok.</p>`;
+    } else {
+        sellerListings.forEach(item => {
+            const isBuy = item.intent === 'buy';
+            const row = document.createElement('div');
+            row.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs cursor-pointer hover:bg-lux-sage/20 transition`;
+            row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
+            row.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
+                    <div class="min-w-0">
+                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
+                        <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
+                    </div>
+                </div>
+            `;
+            listingsEl.appendChild(row);
+        });
+    }
 };
 
 function closeSellerProfileModal() { document.getElementById('seller-profile-modal').classList.add('hidden'); }
 
 window.loadIncomingOffers = async function() {
-    const container = document.getElementById('tab-content-offers');
-    container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+    const container = document.getElementById('tab-content-offers');
+    container.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
 
-    try {
-        const incomingQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
-        const outgoingQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(window.currentUser.uid));
-        
-        const [inSnap, outSnap] = await Promise.all([get(incomingQuery), get(outgoingQuery)]);
-        
-        const incomingData = inSnap.val() || {};
-        const outgoingData = outSnap.val() || {};
+    try {
+        const incomingQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
+        const outgoingQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(window.currentUser.uid));
+        
+        const [inSnap, outSnap] = await Promise.all([get(incomingQuery), get(outgoingQuery)]);
+        
+        const incomingData = inSnap.val() || {};
+        const outgoingData = outSnap.val() || {};
 
-        const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
-        const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
+        const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
+        const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
-        const priceAlerts = [];
-        if (window.userExtraData && window.userExtraData.favorites) {
-            Object.keys(window.userExtraData.favorites).forEach(favId => {
-                const item = (window.listings || []).find(l => l.id === favId);
-                if (item && item.priceHistory && item.priceHistory.length > 0) {
-                    const lastHistory = item.priceHistory[item.priceHistory.length - 1];
-                    if (item.price !== lastHistory.price) {
-                        priceAlerts.push({
-                            id: 'alert_' + item.id,
-                            type: 'price_alert',
-                            listingId: item.id,
-                            listingTitle: item.title,
-                            oldPrice: lastHistory.price,
-                            newPrice: item.price,
-                            date: lastHistory.date,
-                            isDrop: item.price < lastHistory.price
-                        });
-                    }
-                }
-            });
-        }
+        const priceAlerts = [];
+        if (window.userExtraData && window.userExtraData.favorites) {
+            Object.keys(window.userExtraData.favorites).forEach(favId => {
+                const item = (window.listings || []).find(l => l.id === favId);
+                if (item && item.priceHistory && item.priceHistory.length > 0) {
+                    const lastHistory = item.priceHistory[item.priceHistory.length - 1];
+                    if (item.price !== lastHistory.price) {
+                        priceAlerts.push({
+                            id: 'alert_' + item.id,
+                            type: 'price_alert',
+                            listingId: item.id,
+                            listingTitle: item.title,
+                            oldPrice: lastHistory.price,
+                            newPrice: item.price,
+                            date: lastHistory.date,
+                            isDrop: item.price < lastHistory.price
+                        });
+                    }
+                }
+            });
+        }
 
-        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
+        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
 
-        container.innerHTML = '';
+        container.innerHTML = '';
 
-        if (allOffers.length === 0) {
-            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız, gönderdiğiniz teklif veya favori bildiriminiz bulunmuyor.</p>`;
-            return;
-        }
+        if (allOffers.length === 0) {
+            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız, gönderdiğiniz teklif veya favori bildiriminiz bulunmuyor.</p>`;
+            return;
+        }
 
-        allOffers.forEach(o => {
-            const div = document.createElement('div');
-            
-            if (o.type === 'price_alert') {
-                div.className = "bg-blue-50 p-3 rounded-xl border border-blue-200 text-xs space-y-2 mb-2";
-                const trendColor = o.isDrop ? "text-emerald-600" : "text-red-600";
-                const trendIcon = o.isDrop ? "fa-arrow-trend-down" : "fa-arrow-trend-up";
-                const trendBg = o.isDrop ? "bg-emerald-100" : "bg-red-100";
-                
-                div.innerHTML = `
-                    <div class="flex justify-between items-center font-bold text-blue-900 border-b border-blue-200/50 pb-1 mb-1">
-                        <span class="text-[10px] bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded"><i class="fa-solid fa-star text-amber-500 mr-1"></i> FAVORİ BİLDİRİMİ</span>
-                        <span class="${trendColor}"><i class="fa-solid ${trendIcon}"></i> ${window.escapeHtml(String(o.newPrice))} TL</span>
-                    </div>
-                    <p class="font-bold cursor-pointer hover:text-blue-700" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle)} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
-                    <div class="flex justify-between items-center mt-2">
-                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${trendBg} ${trendColor}">
-                            Eski: ${o.oldPrice} TL ➔ Yeni: ${o.newPrice} TL
-                        </span>
-                        <button onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm transition">İlanı İncele</button>
-                    </div>
-                `;
-            } else {
-                const isIncoming = o.type === 'incoming';
-                div.className = isIncoming 
-                    ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
-                    : "bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-2 mb-2";
+        allOffers.forEach(o => {
+            const div = document.createElement('div');
+            
+            if (o.type === 'price_alert') {
+                div.className = "bg-blue-50 p-3 rounded-xl border border-blue-200 text-xs space-y-2 mb-2";
+                const trendColor = o.isDrop ? "text-emerald-600" : "text-red-600";
+                const trendIcon = o.isDrop ? "fa-arrow-trend-down" : "fa-arrow-trend-up";
+                const trendBg = o.isDrop ? "bg-emerald-100" : "bg-red-100";
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-center font-bold text-blue-900 border-b border-blue-200/50 pb-1 mb-1">
+                        <span class="text-[10px] bg-blue-200 text-blue-800 px-1.5 py-0.5 rounded"><i class="fa-solid fa-star text-amber-500 mr-1"></i> FAVORİ BİLDİRİMİ</span>
+                        <span class="${trendColor}"><i class="fa-solid ${trendIcon}"></i> ${window.escapeHtml(String(o.newPrice))} TL</span>
+                    </div>
+                    <p class="font-bold cursor-pointer hover:text-blue-700" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle)} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${trendBg} ${trendColor}">
+                            Eski: ${o.oldPrice} TL ➔ Yeni: ${o.newPrice} TL
+                        </span>
+                        <button onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm transition">İlanı İncele</button>
+                    </div>
+                `;
+            } else {
+                const isIncoming = o.type === 'incoming';
+                div.className = isIncoming 
+                    ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
+                    : "bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-2 mb-2";
 
-                const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
+                const statusColor = o.status === 'Onaylandı' ? 'text-emerald-700 bg-emerald-100' : (o.status === 'Reddedildi' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100');
 
-                if (isIncoming) {
-                    let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
-                    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" talebi/ilanı için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
-                    const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
+                if (isIncoming) {
+                    let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
+                    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" talebi/ilanı için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
+                    const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
-                    div.innerHTML = `
-                        <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
-                            <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>
-                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
-                        </div>
-                        <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
-                        <p class="text-[10px] text-gray-600">Gönderen: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
-                            <div class="space-x-1">
-                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
-                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
-                            </div>
-                        </div>
-                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
-                        ${cleanPhone ? `
-                            <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm mt-1">
-                                <i class="fa-brands fa-whatsapp text-sm"></i>
-                                <span>Kişiyle WhatsApp'tan Yazış</span>
-                            </a>
-                        ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
-                    `;
-                } else {
-                    div.innerHTML = `
-                        <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
-                            <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>
-                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
-                        </div>
-                        <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
-                        <div class="flex justify-between items-center mt-2">
-                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Karşı Taraf Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
-                            ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
-                        </div>
-                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
-                    `;
-                }
-            }
-            container.appendChild(div);
-        });
-    } catch(err) {
-        container.innerHTML = `<p class="text-xs text-red-400">Talepler yüklenirken hata oluştu.</p>`;
-    }
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
+                            <span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>
+                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
+                        </div>
+                        <p class="font-bold">📌 ${window.escapeHtml(o.listingTitle || 'İlan')}</p>
+                        <p class="text-[10px] text-gray-600">Gönderen: <b>${window.escapeHtml(o.buyerName || 'Belirtilmemiş')}</b> (${window.escapeHtml(o.buyerPhone || 'Belirtilmedi')})</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Durum: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                            <div class="space-x-1">
+                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Onaylandı')" class="bg-emerald-600 text-white px-2 py-1 rounded text-[10px]">Onayla</button>
+                                <button onclick="updateOfferStatus('${window.escapeHtml(o.id)}', 'Reddedildi')" class="bg-red-600 text-white px-2 py-1 rounded text-[10px]">Reddet</button>
+                            </div>
+                        </div>
+                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-amber-100/50 p-1.5 rounded">Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                        ${cleanPhone ? `
+                            <a href="${waUrl}" target="_blank" class="inline-flex items-center justify-center space-x-1 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[11px] transition shadow-sm mt-1">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                                <span>Kişiyle WhatsApp'tan Yazış</span>
+                            </a>
+                        ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
+                            <span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>
+                            <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
+                        </div>
+                        <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded ${statusColor}">Karşı Taraf Yanıtı: ${window.escapeHtml(o.status || 'Beklemede')}</span>
+                            ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
+                        </div>
+                        ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                    `;
+                }
+            }
+            container.appendChild(div);
+        });
+    } catch(err) {
+        container.innerHTML = `<p class="text-xs text-red-400">Talepler yüklenirken hata oluştu.</p>`;
+    }
 };
 
 window.updateOfferStatus = async function(offerId, status) {
-    try {
-        await update(ref(db, `offers/${offerId}`), { status: status });
-        window.showToast(`Talep durumu "${status}" olarak güncellendi.`, "success");
-        window.loadIncomingOffers();
-    } catch(err) {
-        window.showToast("Hata: " + err.message, "error");
-    }
+    try {
+        await update(ref(db, `offers/${offerId}`), { status: status });
+        window.showToast(`Talep durumu "${status}" olarak güncellendi.`, "success");
+        window.loadIncomingOffers();
+    } catch(err) {
+        window.showToast("Hata: " + err.message, "error");
+    }
 };
 
 window.escapeHtml = function(value) {
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({
-        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-    }[ch]));
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[ch]));
 };
 
 window.getListingLocationText = function(item) {
-    if (item.outsideHatay) {
-        if (item.realProvince && item.realDistrict) return `${item.realProvince} / ${item.realDistrict}`;
-        if (item.realProvince) return item.realProvince;
-        return 'Hatay Dışı';
-    }
-    return item.district || '';
+    if (item.outsideHatay) {
+        if (item.realProvince && item.realDistrict) return `${item.realProvince} / ${item.realDistrict}`;
+        if (item.realProvince) return item.realProvince;
+        return 'Hatay Dışı';
+    }
+    return item.district || '';
 };
 
 const categoryEmojis = {
-    "Zeytin & Yağ": "🫒",
-    "Narenciye": "🍊",
-    "Salça & Sos": "🌶️",
-    "Bakliyat & Hububat": "🌾",
-    "Sebze & Sera": "🥬",
-    "Canlı Hayvan & Süt": "🐄",
-    "Fide & Tohum": "🌱",
-    "El Sanatları": "🎨",
-    "Giyim & Aksesuar": "🧶",
-    "Ev Yapımı Ürünler": "🍯",
-    "Tadilat & Tamirat": "🛠️",
-    "Özel Ders": "📚",
-    "Temizlik": "🧹",
-    "Tarım İşçiliği": "🧑‍🌾",
-    "Nakliye & Lojistik": "🚛",
-    "Diğer": "📦"
+    "Zeytin & Yağ": "🫒",
+    "Narenciye": "🍊",
+    "Salça & Sos": "🌶️",
+    "Bakliyat & Hububat": "🌾",
+    "Sebze & Sera": "🥬",
+    "Canlı Hayvan & Süt": "🐄",
+    "Fide & Tohum": "🌱",
+    "El Sanatları": "🎨",
+    "Giyim & Aksesuar": "🧶",
+    "Ev Yapımı Ürünler": "🍯",
+    "Tadilat & Tamirat": "🛠️",
+    "Özel Ders": "📚",
+    "Temizlik": "🧹",
+    "Tarım İşçiliği": "🧑‍🌾",
+    "Nakliye & Lojistik": "🚛",
+    "Diğer": "📦"
 };
 
 window.getDefaultImage = function(category) {
-    switch(category) {
-        case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
-        case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
-        case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
-        case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
-        case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
-        case 'Nakliye & Lojistik': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
-        case 'El Sanatları': return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80';
-        case 'Giyim & Aksesuar': return 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?auto=format&fit=crop&w=600&q=80';
-        case 'Ev Yapımı Ürünler': return 'https://images.unsplash.com/photo-1589301773727-2c9388147d34?auto=format&fit=crop&w=600&q=80';
-        case 'Tadilat & Tamirat': return 'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?auto=format&fit=crop&w=600&q=80';
-        case 'Özel Ders': return 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=600&q=80';
-        case 'Temizlik': return 'https://images.unsplash.com/photo-1584820927498-cafe8c1c5a98?auto=format&fit=crop&w=600&q=80';
-        case 'Tarım İşçiliği': return 'https://images.unsplash.com/photo-1592982537447-6f2b6a066c0d?auto=format&fit=crop&w=600&q=80';
-        default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
-    }
+    switch(category) {
+        case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
+        case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
+        case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
+        case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
+        case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
+        case 'Nakliye & Lojistik': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
+        case 'El Sanatları': return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80';
+        case 'Giyim & Aksesuar': return 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?auto=format&fit=crop&w=600&q=80';
+        case 'Ev Yapımı Ürünler': return 'https://images.unsplash.com/photo-1589301773727-2c9388147d34?auto=format&fit=crop&w=600&q=80';
+        case 'Tadilat & Tamirat': return 'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?auto=format&fit=crop&w=600&q=80';
+        case 'Özel Ders': return 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=600&q=80';
+        case 'Temizlik': return 'https://images.unsplash.com/photo-1584820927498-cafe8c1c5a98?auto=format&fit=crop&w=600&q=80';
+        case 'Tarım İşçiliği': return 'https://images.unsplash.com/photo-1592982537447-6f2b6a066c0d?auto=format&fit=crop&w=600&q=80';
+        default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
+    }
 };
 
 const districtCoords = {
-    'Altınözü': [36.1176, 36.2472],
-    'Antakya': [36.2023, 36.1613],
-    'Arsuz': [36.4111, 35.8858],
-    'Defne': [36.1952, 36.1477],
-    'Dörtyol': [36.8528, 36.2239],
-    'Kumlu': [36.3627, 36.4511],
-    'Payas': [36.7500, 36.2170],
-    'Erzin': [36.9531, 36.2031],
-    'İskenderun': [36.5872, 36.1733],
-    'Kırıkhan': [36.4981, 36.3564],
-    'Samandağ': [36.0842, 35.9575],
-    'Reyhanlı': [36.2683, 36.5681],
-    'Hassa': [36.7972, 36.5186],
-    'Belen': [36.4889, 36.1944],
-    'Yayladağı': [35.9033, 36.0594]
+    'Altınözü': [36.1176, 36.2472],
+    'Antakya': [36.2023, 36.1613],
+    'Arsuz': [36.4111, 35.8858],
+    'Defne': [36.1952, 36.1477],
+    'Dörtyol': [36.8528, 36.2239],
+    'Kumlu': [36.3627, 36.4511],
+    'Payas': [36.7500, 36.2170],
+    'Erzin': [36.9531, 36.2031],
+    'İskenderun': [36.5872, 36.1733],
+    'Kırıkhan': [36.4981, 36.3564],
+    'Samandağ': [36.0842, 35.9575],
+    'Reyhanlı': [36.2683, 36.5681],
+    'Hassa': [36.7972, 36.5186],
+    'Belen': [36.4889, 36.1944],
+    'Yayladağı': [35.9033, 36.0594]
 };
 
 window.renderGlobalMap = function(containerId = 'global-map') {
-    const mapEl = document.getElementById(containerId);
-    if (!mapEl) return; 
+    const mapEl = document.getElementById(containerId);
+    if (!mapEl) return; 
 
-    if (window.globalMapInstance) {
-        window.globalMapInstance.remove();
-    }
+    if (window.globalMapInstance) {
+        window.globalMapInstance.remove();
+    }
 
-    window.globalMapInstance = L.map(containerId).setView([36.2023, 36.1613], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap'
-    }).addTo(window.globalMapInstance);
+    window.globalMapInstance = L.map(containerId).setView([36.2023, 36.1613], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+    }).addTo(window.globalMapInstance);
 
-    if (typeof L.markerClusterGroup === 'function') {
-        window.markerClusterGroup = L.markerClusterGroup({
-            chunkedLoading: true,
-            maxClusterRadius: 50
-        });
-    }
+    if (typeof L.markerClusterGroup === 'function') {
+        window.markerClusterGroup = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50
+        });
+    }
 
-    const items = window.filteredListings || [];
-    items.forEach(item => {
-        if (item.lat && item.lng) {
-            const isBuy = item.intent === 'buy';
-            const priceLabel = isBuy ? 'Hedef/Bütçe: ' : '';
-            const marker = L.marker([item.lat, item.lng])
-                .bindPopup(`
-                    <div style="text-align:center; min-width: 120px;">
-                        <img src="${escapeHtml(item.image)}" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
-                        <b style="font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)} ${isBuy ? '(ALIM)' : ''}</b>
-                        <span style="color:#10b981; font-weight:bold; font-size:11px;">${priceLabel}${item.price} TL</span><br>
-                        <button onclick="openDetailModal('${escapeHtml(item.id)}')" style="margin-top:6px; padding:4px 10px; background:#1a1a1a; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:10px; width:100%;">İncele</button>
-                    </div>
-                `);
-            
-            if (window.markerClusterGroup) {
-                window.markerClusterGroup.addLayer(marker);
-            } else {
-                marker.addTo(window.globalMapInstance);
-            }
-        }
-    });
+    const items = window.filteredListings || [];
+    items.forEach(item => {
+        if (item.lat && item.lng) {
+            const isBuy = item.intent === 'buy';
+            const priceLabel = isBuy ? 'Hedef/Bütçe: ' : '';
+            const marker = L.marker([item.lat, item.lng])
+                .bindPopup(`
+                    <div style="text-align:center; min-width: 120px;">
+                        <img src="${escapeHtml(item.image)}" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
+                        <b style="font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)} ${isBuy ? '(ALIM)' : ''}</b>
+                        <span style="color:#10b981; font-weight:bold; font-size:11px;">${priceLabel}${item.price} TL</span><br>
+                        <button onclick="openDetailModal('${escapeHtml(item.id)}')" style="margin-top:6px; padding:4px 10px; background:#1a1a1a; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:10px; width:100%;">İncele</button>
+                    </div>
+                `);
+            
+            if (window.markerClusterGroup) {
+                window.markerClusterGroup.addLayer(marker);
+            } else {
+                marker.addTo(window.globalMapInstance);
+            }
+        }
+    });
 
-    if (window.markerClusterGroup) {
-        window.globalMapInstance.addLayer(window.markerClusterGroup);
-    }
-    
-    setTimeout(() => {
-        if(window.globalMapInstance) window.globalMapInstance.invalidateSize();
-    }, 250);
+    if (window.markerClusterGroup) {
+        window.globalMapInstance.addLayer(window.markerClusterGroup);
+    }
+    
+    setTimeout(() => {
+        if(window.globalMapInstance) window.globalMapInstance.invalidateSize();
+    }, 250);
 };
 
 function renderMap(lat, lng, district) {
-    const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
-    if (window.mapInstance) {
-        window.mapInstance.remove();
-    }
+    const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
+    if (window.mapInstance) {
+        window.mapInstance.remove();
+    }
 
-    window.mapInstance = L.map('map').setView(coords, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap'
-    }).addTo(window.mapInstance);
+    window.mapInstance = L.map('map').setView(coords, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+    }).addTo(window.mapInstance);
 
-    L.marker(coords).addTo(window.mapInstance)
-        .bindPopup(`<b>ORONTES Konum</b><br>Hatay / ${escapeHtml(district)}`)
-        .openPopup();
-        
-    setTimeout(() => {
-        if(window.mapInstance) window.mapInstance.invalidateSize();
-    }, 250);
+    L.marker(coords).addTo(window.mapInstance)
+        .bindPopup(`<b>ORONTES Konum</b><br>Hatay / ${escapeHtml(district)}`)
+        .openPopup();
+        
+    setTimeout(() => {
+        if(window.mapInstance) window.mapInstance.invalidateSize();
+    }, 250);
 }
 
 function initFormMap(lat, lng, district) {
-    const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
-    if (window.formMapInstance) {
-        window.formMapInstance.remove();
-    }
-    window.formMarker = null;
+    const coords = (lat && lng) ? [lat, lng] : (districtCoords[district] || [36.2023, 36.1613]);
+    if (window.formMapInstance) {
+        window.formMapInstance.remove();
+    }
+    window.formMarker = null;
 
-    window.formMapInstance = L.map('form-map').setView(coords, 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap'
-    }).addTo(window.formMapInstance);
+    window.formMapInstance = L.map('form-map').setView(coords, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+    }).addTo(window.formMapInstance);
 
-    if (lat && lng) {
-        window.formMarker = L.marker([lat, lng]).addTo(window.formMapInstance);
-        document.getElementById('form-lat').value = lat;
-        document.getElementById('form-lng').value = lng;
-    }
+    if (lat && lng) {
+        window.formMarker = L.marker([lat, lng]).addTo(window.formMapInstance);
+        document.getElementById('form-lat').value = lat;
+        document.getElementById('form-lng').value = lng;
+    }
 
-    window.formMapInstance.on('click', function(e) {
-        const clickedLat = e.latlng.lat;
-        const clickedLng = e.latlng.lng;
+    window.formMapInstance.on('click', function(e) {
+        const clickedLat = e.latlng.lat;
+        const clickedLng = e.latlng.lng;
 
-        if (window.formMarker) {
-            window.formMarker.setLatLng([clickedLat, clickedLng]);
-        } else {
-            window.formMarker = L.marker([clickedLat, clickedLng]).addTo(window.formMapInstance);
-        }
+        if (window.formMarker) {
+            window.formMarker.setLatLng([clickedLat, clickedLng]);
+        } else {
+            window.formMarker = L.marker([clickedLat, clickedLng]).addTo(window.formMapInstance);
+        }
 
-        window.resolveLocation(clickedLat, clickedLng);
-    });
+        window.resolveLocation(clickedLat, clickedLng);
+    });
 
-    setTimeout(() => {
-        if(window.formMapInstance) window.formMapInstance.invalidateSize();
-    }, 250);
+    setTimeout(() => {
+        if(window.formMapInstance) window.formMapInstance.invalidateSize();
+    }, 250);
 }
 
 window.locationOutsideHatay = null;
 
 window.resolveLocation = async function(lat, lng) {
-    const banner = document.getElementById('outside-hatay-warning');
-    const districtSelect = document.getElementById('form-district');
-    window.locationOutsideHatay = null;
-    banner.classList.add('hidden');
+    const banner = document.getElementById('outside-hatay-warning');
+    const districtSelect = document.getElementById('form-district');
+    window.locationOutsideHatay = null;
+    banner.classList.add('hidden');
 
-    try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
-        if(!res.ok) throw new Error("Ağ hatası");
-        const data = await res.json();
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+        if(!res.ok) throw new Error("Ağ hatası");
+        const data = await res.json();
 
-        const waterTypes = ['water', 'sea', 'bay', 'strait', 'ocean', 'reef'];
-        const isSea = !data || data.error || !data.address || !data.address.country ||
-            waterTypes.includes(data.type) || waterTypes.includes(data.category);
+        const waterTypes = ['water', 'sea', 'bay', 'strait', 'ocean', 'reef'];
+        const isSea = !data || data.error || !data.address || !data.address.country ||
+            waterTypes.includes(data.type) || waterTypes.includes(data.category);
 
-        if (isSea) {
-            window.showToast("Seçtiğiniz nokta kara üzerinde değil. Lütfen karayı işaretleyin.", "error");
-            if (window.formMarker) {
-                window.formMapInstance.removeLayer(window.formMarker);
-                window.formMarker = null;
-            }
-            document.getElementById('form-lat').value = '';
-            document.getElementById('form-lng').value = '';
-            return;
-        }
+        if (isSea) {
+            window.showToast("Seçtiğiniz nokta kara üzerinde değil. Lütfen karayı işaretleyin.", "error");
+            if (window.formMarker) {
+                window.formMapInstance.removeLayer(window.formMarker);
+                window.formMarker = null;
+            }
+            document.getElementById('form-lat').value = '';
+            document.getElementById('form-lng').value = '';
+            return;
+        }
 
-        document.getElementById('form-lat').value = lat;
-        document.getElementById('form-lng').value = lng;
+        document.getElementById('form-lat').value = lat;
+        document.getElementById('form-lng').value = lng;
 
-        const addr = data.address;
-        const province = addr.province || addr.state || '';
-        const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
+        const addr = data.address;
+        const province = addr.province || addr.state || '';
+        const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
 
-        if (isInsideHatay) {
-            let matchedDistrict = null;
-            const addressValues = Object.values(addr).map(v => String(v).toLocaleLowerCase('tr-TR'));
-            
-            for (const districtName of Object.keys(districtCoords)) {
-                if (addressValues.some(val => val.includes(districtName.toLocaleLowerCase('tr-TR')))) {
-                    matchedDistrict = districtName;
-                    break;
-                }
-            }
+        if (isInsideHatay) {
+            let matchedDistrict = null;
+            const addressValues = Object.values(addr).map(v => String(v).toLocaleLowerCase('tr-TR'));
+            
+            for (const districtName of Object.keys(districtCoords)) {
+                if (addressValues.some(val => val.includes(districtName.toLocaleLowerCase('tr-TR')))) {
+                    matchedDistrict = districtName;
+                    break;
+                }
+            }
 
-            if (matchedDistrict) {
-                districtSelect.value = matchedDistrict;
-            } else {
-                window.showToast("Konum Hatay sınırlarında ancak ilçe tam tespit edilemedi. Lütfen listeden seçin.", "warning");
-            }
-        } else {
-            const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
-            districtSelect.value = 'Hatay Dışı';
-            window.locationOutsideHatay = { province, district: detectedTownOrDistrict };
-            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. Kayıt "Hatay Dışı" olarak işaretlenecek.`;
-            banner.classList.remove('hidden');
-        }
-    } catch (err) {
-        console.warn('Konum çözümlenemedi:', err);
-    }
+            if (matchedDistrict) {
+                districtSelect.value = matchedDistrict;
+            } else {
+                window.showToast("Konum Hatay sınırlarında ancak ilçe tam tespit edilemedi. Lütfen listeden seçin.", "warning");
+            }
+        } else {
+            const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
+            districtSelect.value = 'Hatay Dışı';
+            window.locationOutsideHatay = { province, district: detectedTownOrDistrict };
+            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. Kayıt "Hatay Dışı" olarak işaretlenecek.`;
+            banner.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.warn('Konum çözümlenemedi:', err);
+    }
 };
 
 window.geocodeAddress = async function() {
-    const addressInput = document.getElementById('form-address');
-    const queryStr = addressInput.value.trim();
-    if (!queryStr) {
-        window.showToast("Lütfen önce bir adres yazın.", "warning");
-        return;
-    }
-    const btn = document.getElementById('geocode-btn');
-    btn.disabled = true;
-    btn.innerText = "Aranıyor...";
+    const addressInput = document.getElementById('form-address');
+    const queryStr = addressInput.value.trim();
+    if (!queryStr) {
+        window.showToast("Lütfen önce bir adres yazın.", "warning");
+        return;
+    }
+    const btn = document.getElementById('geocode-btn');
+    btn.disabled = true;
+    btn.innerText = "Aranıyor...";
 
-    try {
-        const searchQuery = `${queryStr}, Hatay, Türkiye`;
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
-        if(!res.ok) { window.showErrorPage(400, "API Bağlantı Hatası"); return; }
-        const results = await res.json();
+    try {
+        const searchQuery = `${queryStr}, Hatay, Türkiye`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+        if(!res.ok) { window.showErrorPage(400, "API Bağlantı Hatası"); return; }
+        const results = await res.json();
 
-        if (!results || results.length === 0) {
-            window.showToast("Adres bulunamadı. Lütfen haritadan elle işaretleyin.", "error");
-            return;
-        }
+        if (!results || results.length === 0) {
+            window.showToast("Adres bulunamadı. Lütfen haritadan elle işaretleyin.", "error");
+            return;
+        }
 
-        const foundLat = parseFloat(results[0].lat);
-        const foundLng = parseFloat(results[0].lon);
+        const foundLat = parseFloat(results[0].lat);
+        const foundLng = parseFloat(results[0].lon);
 
-        if (window.formMapInstance) {
-            window.formMapInstance.setView([foundLat, foundLng], 14);
-            if (window.formMarker) {
-                window.formMarker.setLatLng([foundLat, foundLng]);
-            } else {
-                window.formMarker = L.marker([foundLat, foundLng]).addTo(window.formMapInstance);
-            }
-        }
+        if (window.formMapInstance) {
+            window.formMapInstance.setView([foundLat, foundLng], 14);
+            if (window.formMarker) {
+                window.formMarker.setLatLng([foundLat, foundLng]);
+            } else {
+                window.formMarker = L.marker([foundLat, foundLng]).addTo(window.formMapInstance);
+            }
+        }
 
-        await window.resolveLocation(foundLat, foundLng);
-    } catch (err) {
-        window.showToast("Adres aranırken hata oluştu.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Bul";
-    }
+        await window.resolveLocation(foundLat, foundLng);
+    } catch (err) {
+        window.showToast("Adres aranırken hata oluştu.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Bul";
+    }
 };
 
 window.toggleDynamicFields = function() {
-    const bType = document.getElementById('form-business-type');
-    const wholesaleBox = document.getElementById('wholesale-fields');
-    if (wholesaleBox && bType) {
-        wholesaleBox.classList.toggle('hidden', bType.value !== 'Toptancı');
-    }
+    const bType = document.getElementById('form-business-type');
+    const wholesaleBox = document.getElementById('wholesale-fields');
+    if (wholesaleBox && bType) {
+        wholesaleBox.classList.toggle('hidden', bType.value !== 'Toptancı');
+    }
 
-    const lTypeEl = document.getElementById('form-listing-type');
-    if (!lTypeEl) return;
-    const lType = lTypeEl.value;
+    const lTypeEl = document.getElementById('form-listing-type');
+    if (!lTypeEl) return;
+    const lType = lTypeEl.value;
 
-    const bTypeContainer = document.getElementById('business-type-container'); 
-    const customOrderBox = document.getElementById('custom-order-fields'); 
-    const harvestContainer = document.getElementById('harvest-date-container');
-    
-    if (lType === 'hizmet') {
-        if (bTypeContainer) bTypeContainer.classList.add('hidden'); 
-        if (customOrderBox) customOrderBox.classList.add('hidden'); 
-        if (harvestContainer) harvestContainer.classList.add('hidden');
-    } else if (lType === 'el_yapimi') {
-        if (bTypeContainer) bTypeContainer.classList.remove('hidden');
-        if (customOrderBox) customOrderBox.classList.remove('hidden'); 
-        if (harvestContainer) harvestContainer.classList.add('hidden');
-    } else { 
-        if (bTypeContainer) bTypeContainer.classList.remove('hidden');
-        if (customOrderBox) customOrderBox.classList.add('hidden');
-        if (harvestContainer) harvestContainer.classList.remove('hidden');
-    }
+    const bTypeContainer = document.getElementById('business-type-container'); 
+    const customOrderBox = document.getElementById('custom-order-fields'); 
+    const harvestContainer = document.getElementById('harvest-date-container');
+    
+    if (lType === 'hizmet') {
+        if (bTypeContainer) bTypeContainer.classList.add('hidden'); 
+        if (customOrderBox) customOrderBox.classList.add('hidden'); 
+        if (harvestContainer) harvestContainer.classList.add('hidden');
+    } else if (lType === 'el_yapimi') {
+        if (bTypeContainer) bTypeContainer.classList.remove('hidden');
+        if (customOrderBox) customOrderBox.classList.remove('hidden'); 
+        if (harvestContainer) harvestContainer.classList.add('hidden');
+    } else { 
+        if (bTypeContainer) bTypeContainer.classList.remove('hidden');
+        if (customOrderBox) customOrderBox.classList.add('hidden');
+        if (harvestContainer) harvestContainer.classList.remove('hidden');
+    }
 };
 window.toggleWholesaleFields = window.toggleDynamicFields;
 
 function updateFormMapCenter(district) {
-    const coords = districtCoords[district] || [36.2023, 36.1613];
-    if (window.formMapInstance) {
-        window.formMapInstance.setView(coords, 12);
-    }
+    const coords = districtCoords[district] || [36.2023, 36.1613];
+    if (window.formMapInstance) {
+        window.formMapInstance.setView(coords, 12);
+    }
 }
 
 function shareOnWhatsApp() {
-    const item = (window.listings || []).find(l => l.id === window.activeListingId);
-    if (!item) return;
-    const typeLabel = item.intent === 'buy' ? 'ALIM TALEBİ' : 'İLAN';
-    const text = `📌 ORONTES ${typeLabel}\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat/Bütçe: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİnceleyin: ${window.location.href}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    const item = (window.listings || []).find(l => l.id === window.activeListingId);
+    if (!item) return;
+    const typeLabel = item.intent === 'buy' ? 'ALIM TALEBİ' : 'İLAN';
+    const text = `📌 ORONTES ${typeLabel}\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat/Bütçe: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİnceleyin: ${window.location.href}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 }
 
 function updateFavBtnStyle(id) {
-    const btn = document.getElementById('detail-fav-btn');
-    if(!btn) return;
-    if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
-        btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center text-base shadow hover:scale-110 transition";
-    } else {
-        btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition";
-    }
+    const btn = document.getElementById('detail-fav-btn');
+    if(!btn) return;
+    if (window.userExtraData.favorites && window.userExtraData.favorites[id]) {
+        btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center text-base shadow hover:scale-110 transition";
+    } else {
+        btn.className = "absolute bottom-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm text-gray-600 flex items-center justify-center text-base shadow hover:scale-110 transition";
+    }
 }
 
 function switchAccountTab(tab) {
-    ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
-        const el = document.getElementById(`tab-content-${t}`);
-        const btnEl = document.getElementById(`tab-btn-${t}`);
-        if (el) el.classList.add('hidden');
-        if (btnEl) btnEl.className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
-    });
+    ['listings', 'favorites', 'offers', 'settings'].forEach(t => {
+        const el = document.getElementById(`tab-content-${t}`);
+        const btnEl = document.getElementById(`tab-btn-${t}`);
+        if (el) el.classList.add('hidden');
+        if (btnEl) btnEl.className = "pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark";
+    });
 
-    const activeEl = document.getElementById(`tab-content-${tab}`);
-    const activeBtnEl = document.getElementById(`tab-btn-${tab}`);
-    if (activeEl) activeEl.classList.remove('hidden');
-    if (activeBtnEl) activeBtnEl.className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
+    const activeEl = document.getElementById(`tab-content-${tab}`);
+    const activeBtnEl = document.getElementById(`tab-btn-${tab}`);
+    if (activeEl) activeEl.classList.remove('hidden');
+    if (activeBtnEl) activeBtnEl.className = "pb-2 px-3 border-b-2 border-lux-dark text-lux-dark";
 
-    if (tab === 'favorites') loadFavoriteListings();
-    if (tab === 'offers') window.loadIncomingOffers();
+    if (tab === 'favorites') loadFavoriteListings();
+    if (tab === 'offers') window.loadIncomingOffers();
 }
 
 window.openInboxTab = function() {
-    if (!window.currentUser) {
-        window.openAuthModal('login');
-        return;
-    }
-    openAccountModal();
-    switchAccountTab('offers');
+    if (!window.currentUser) {
+        window.openAuthModal('login');
+        return;
+    }
+    openAccountModal();
+    switchAccountTab('offers');
 };
 
 function loadFavoriteListings() {
-    const container = document.getElementById('tab-content-favorites');
-    if (!container) return;
-    const favIds = Object.keys(window.userExtraData.favorites || {});
-    const favItems = (window.listings || []).filter(l => favIds.includes(l.id));
+    const container = document.getElementById('tab-content-favorites');
+    if (!container) return;
+    const favIds = Object.keys(window.userExtraData.favorites || {});
+    const favItems = (window.listings || []).filter(l => favIds.includes(l.id));
 
-    container.innerHTML = '';
-    if (favItems.length === 0) {
-        container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz favori ilanınız bulunmuyor.</p>`;
-        return;
-    }
+    container.innerHTML = '';
+    if (favItems.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz favori ilanınız bulunmuyor.</p>`;
+        return;
+    }
 
-    favItems.forEach(item => {
-        const isBuy = item.intent === 'buy';
-        const div = document.createElement('div');
-        div.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs`;
-        
-        let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al / İncele' : 'İncele';
-        if(isBuy) primaryBtnText = 'Teklif Ver';
-        
-        div.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
-                <div>
-                    <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 rounded ml-1">ALIM</span>' : ''}</span>
-                    <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
-                </div>
-            </div>
-            <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded whitespace-nowrap">${primaryBtnText}</button>
-        `;
-        container.appendChild(div);
-    });
+    favItems.forEach(item => {
+        const isBuy = item.intent === 'buy';
+        const div = document.createElement('div');
+        div.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs`;
+        
+        let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al / İncele' : 'İncele';
+        if(isBuy) primaryBtnText = 'Teklif Ver';
+        
+        div.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
+                <div>
+                    <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 rounded ml-1">ALIM</span>' : ''}</span>
+                    <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
+                </div>
+            </div>
+            <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded whitespace-nowrap">${primaryBtnText}</button>
+        `;
+        container.appendChild(div);
+    });
 }
 
 function getTimeAgo(timestamp) {
-    if (!timestamp || isNaN(timestamp)) return 'Yeni';
-    const diff = Date.now() - Number(timestamp);
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+    if (!timestamp || isNaN(timestamp)) return 'Yeni';
+    const diff = Date.now() - Number(timestamp);
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
 
-    if (minutes < 60) return `${minutes <= 1 ? 'Az önce' : minutes + ' dk önce'}`;
-    if (hours < 24) return `${hours} saat önce`;
-    if (days < 30) return `${days} gün önce`;
-    return `${Math.floor(days / 30)} ay önce`;
+    if (minutes < 60) return `${minutes <= 1 ? 'Az önce' : minutes + ' dk önce'}`;
+    if (hours < 24) return `${hours} saat önce`;
+    if (days < 30) return `${days} gün önce`;
+    return `${Math.floor(days / 30)} ay önce`;
 }
 
 function updateMarqueeData() {
-    const container = document.getElementById('marquee-container');
-    if (!container) return;
-    const items = window.listings || [];
+    const container = document.getElementById('marquee-container');
+    if (!container) return;
+    const items = window.listings || [];
 
-    if (items.length === 0) {
-        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
-        return;
-    }
+    if (items.length === 0) {
+        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span></div>`;
+        return;
+    }
 
-    const categories = [
-        "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
-        "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye & Lojistik",
-        "El Sanatları", "Giyim & Aksesuar", "Ev Yapımı Ürünler", 
-        "Tadilat & Tamirat", "Özel Ders", "Temizlik", "Tarım İşçiliği", "Diğer"
-    ];
+    const categories = [
+        "Zeytin & Yağ", "Narenciye", "Salça & Sos", "Bakliyat & Hububat", 
+        "Sebze & Sera", "Canlı Hayvan & Süt", "Fide & Tohum", "Nakliye & Lojistik",
+        "El Sanatları", "Giyim & Aksesuar", "Ev Yapımı Ürünler", 
+        "Tadilat & Tamirat", "Özel Ders", "Temizlik", "Tarım İşçiliği", "Diğer"
+    ];
 
-    let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
-        <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Canlı Piyasa Endeksi:</span></span>`;
+    let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
+        <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Canlı Piyasa Endeksi:</span></span>`;
 
-    categories.forEach(cat => {
-        const catListings = items.filter(i => i.category === cat);
-        if (catListings.length > 0) {
-            let drops = 0; let rises = 0;
-            catListings.forEach(i => {
-                if (i.priceHistory && i.priceHistory.length > 0) {
-                    const oldPrice = i.priceHistory[i.priceHistory.length - 1].price;
-                    if (i.price < oldPrice) drops++;
-                    if (i.price > oldPrice) rises++;
-                }
-            });
-            
-            let trendIcon = '';
-            if (drops > rises) trendIcon = '<i class="fa-solid fa-arrow-trend-down text-emerald-400 ml-1.5" title="Fiyatlar Düşüşte"></i>';
-            else if (rises > drops) trendIcon = '<i class="fa-solid fa-arrow-trend-up text-red-400 ml-1.5" title="Fiyatlar Yükselişte"></i>';
+    categories.forEach(cat => {
+        const catListings = items.filter(i => i.category === cat);
+        if (catListings.length > 0) {
+            let drops = 0; let rises = 0;
+            catListings.forEach(i => {
+                if (i.priceHistory && i.priceHistory.length > 0) {
+                    const oldPrice = i.priceHistory[i.priceHistory.length - 1].price;
+                    if (i.price < oldPrice) drops++;
+                    if (i.price > oldPrice) rises++;
+                }
+            });
+            
+            let trendIcon = '';
+            if (drops > rises) trendIcon = '<i class="fa-solid fa-arrow-trend-down text-emerald-400 ml-1.5" title="Fiyatlar Düşüşte"></i>';
+            else if (rises > drops) trendIcon = '<i class="fa-solid fa-arrow-trend-up text-red-400 ml-1.5" title="Fiyatlar Yükselişte"></i>';
 
-            const emoji = categoryEmojis[cat] || '📦';
-            contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
-                <span>${emoji}</span>
-                <span><b>${escapeHtml(cat)}</b> (${catListings.length} Kayıt) ${trendIcon}</span>
-            </button>`;
-        }
-    });
+            const emoji = categoryEmojis[cat] || '📦';
+            contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+                <span>${emoji}</span>
+                <span><b>${escapeHtml(cat)}</b> (${catListings.length} Kayıt) ${trendIcon}</span>
+            </button>`;
+        }
+    });
 
-    contentHTML += `</div>`;
-    container.innerHTML = contentHTML + contentHTML;
+    contentHTML += `</div>`;
+    container.innerHTML = contentHTML + contentHTML;
 }
 
 function openCategoryDetailModal(cat) {
-    window.currentCategoryModalData = (window.listings || [])
-        .filter(i => i.category === cat)
-        .sort((a, b) => b.date - a.date);
-    
-    window.catModalCurrentPage = 1;
-    
-    const emoji = categoryEmojis[cat] || '📦';
-    document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
-    document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif kayıt`;
+    window.currentCategoryModalData = (window.listings || [])
+        .filter(i => i.category === cat)
+        .sort((a, b) => b.date - a.date);
+    
+    window.catModalCurrentPage = 1;
+    
+    const emoji = categoryEmojis[cat] || '📦';
+    document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
+    document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif kayıt`;
 
-    renderCategoryModalContent();
-    document.getElementById('category-detail-modal').classList.remove('hidden');
+    renderCategoryModalContent();
+    document.getElementById('category-detail-modal').classList.remove('hidden');
 }
 
 function renderCategoryModalContent() {
-    const content = document.getElementById('cat-modal-content');
-    const paginationContainer = document.getElementById('cat-modal-pagination');
-    if (!content) return;
+    const content = document.getElementById('cat-modal-content');
+    const paginationContainer = document.getElementById('cat-modal-pagination');
+    if (!content) return;
 
-    content.innerHTML = '';
-    const items = window.currentCategoryModalData;
+    content.innerHTML = '';
+    const items = window.currentCategoryModalData;
 
-    if (items.length === 0) {
-        content.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Bu kategoride henüz kayıt yok.</p>`;
-        if (paginationContainer) paginationContainer.innerHTML = '';
-        return;
-    }
+    if (items.length === 0) {
+        content.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Bu kategoride henüz kayıt yok.</p>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+    }
 
-    const startIndex = (window.catModalCurrentPage - 1) * window.catModalItemsPerPage;
-    const paginatedItems = items.slice(startIndex, startIndex + window.catModalItemsPerPage);
+    const startIndex = (window.catModalCurrentPage - 1) * window.catModalItemsPerPage;
+    const paginatedItems = items.slice(startIndex, startIndex + window.catModalItemsPerPage);
 
-    paginatedItems.forEach(item => {
-        const isBuy = item.intent === 'buy';
-        const emoji = categoryEmojis[item.category] || '📦';
-        
-        let priceHistoryBadge = '';
-        if (item.priceHistory && item.priceHistory.length > 0) {
-            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-            const isDrop = item.price < oldPrice;
-            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-600 bg-emerald-100' : 'text-red-600 bg-red-100'} px-1.5 rounded mt-0.5 inline-block font-bold">
-                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i> Eski: ${oldPrice}
-            </div>`;
-        }
+    paginatedItems.forEach(item => {
+        const isBuy = item.intent === 'buy';
+        const emoji = categoryEmojis[item.category] || '📦';
+        
+        let priceHistoryBadge = '';
+        if (item.priceHistory && item.priceHistory.length > 0) {
+            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+            const isDrop = item.price < oldPrice;
+            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-600 bg-emerald-100' : 'text-red-600 bg-red-100'} px-1.5 rounded mt-0.5 inline-block font-bold">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i> Eski: ${oldPrice}
+            </div>`;
+        }
 
-        const div = document.createElement('div');
-        div.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/80'} p-2.5 rounded-xl border text-xs cursor-pointer hover:bg-lux-sage/20 transition mb-2`;
-        div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
-        div.innerHTML = `
-            <div class="min-w-0 pr-2">
-                <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
-                <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
-            </div>
-            <div class="text-right shrink-0">
-                <span class="font-extrabold text-emerald-700 text-sm">${item.price} TL</span>
-                <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || '')}</span>
-                ${priceHistoryBadge}
-            </div>
-        `;
-        content.appendChild(div);
-    });
+        const div = document.createElement('div');
+        div.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/80'} p-2.5 rounded-xl border text-xs cursor-pointer hover:bg-lux-sage/20 transition mb-2`;
+        div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
+        div.innerHTML = `
+            <div class="min-w-0 pr-2">
+                <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
+                <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
+            </div>
+            <div class="text-right shrink-0">
+                <span class="font-extrabold text-emerald-700 text-sm">${item.price} TL</span>
+                <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || '')}</span>
+                ${priceHistoryBadge}
+            </div>
+        `;
+        content.appendChild(div);
+    });
 
-    renderCategoryModalPaginationControls();
+    renderCategoryModalPaginationControls();
 }
 
 function renderCategoryModalPaginationControls() {
-    const container = document.getElementById('cat-modal-pagination');
-    if (!container) return;
-    
-    const totalPages = Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage);
-    if (totalPages <= 1) { container.innerHTML = ''; return; }
+    const container = document.getElementById('cat-modal-pagination');
+    if (!container) return;
+    
+    const totalPages = Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage);
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
 
-    let html = `<button onclick="changeCategoryModalPage(${window.catModalCurrentPage - 1})" ${window.catModalCurrentPage === 1 ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
-    for (let i = 1; i <= totalPages; i++) {
-        html += `<button onclick="changeCategoryModalPage(${i})" class="px-2.5 py-1 rounded-lg text-xs font-bold ${i === window.catModalCurrentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
-    }
-    html += `<button onclick="changeCategoryModalPage(${window.catModalCurrentPage + 1})" ${window.catModalCurrentPage === totalPages ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
-    container.innerHTML = html;
+    let html = `<button onclick="changeCategoryModalPage(${window.catModalCurrentPage - 1})" ${window.catModalCurrentPage === 1 ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="changeCategoryModalPage(${i})" class="px-2.5 py-1 rounded-lg text-xs font-bold ${i === window.catModalCurrentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+    }
+    html += `<button onclick="changeCategoryModalPage(${window.catModalCurrentPage + 1})" ${window.catModalCurrentPage === totalPages ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+    container.innerHTML = html;
 }
 
 window.changeCategoryModalPage = function(page) {
-    const totalPages = Math.max(1, Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage));
-    window.catModalCurrentPage = Math.min(Math.max(1, page), totalPages);
-    renderCategoryModalContent();
+    const totalPages = Math.max(1, Math.ceil(window.currentCategoryModalData.length / window.catModalItemsPerPage));
+    window.catModalCurrentPage = Math.min(Math.max(1, page), totalPages);
+    renderCategoryModalContent();
 };
 
 function closeCategoryDetailModal() {
-    const modal = document.getElementById('category-detail-modal');
-    if (modal) modal.classList.add('hidden');
+    const modal = document.getElementById('category-detail-modal');
+    if (modal) modal.classList.add('hidden');
 }
 
 function openAccountModal() {
-    if (!window.currentUser) return;
+    if (!window.currentUser) return;
 
-    const name = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
-    document.getElementById('account-username').innerText = name;
-    document.getElementById('account-email').innerText = window.currentUser.email;
-    
-    const avatarImg = document.getElementById('account-avatar-img');
-    const avatarText = document.getElementById('account-avatar-text');
-    const settingsPreview = document.getElementById('settings-avatar-preview');
-    const settingsPlaceholder = document.getElementById('settings-avatar-placeholder');
-    
-    if (window.userExtraData.avatar) {
-        if (avatarImg) { avatarImg.src = window.userExtraData.avatar; avatarImg.classList.remove('hidden'); }
-        if (avatarText) avatarText.classList.add('hidden');
-        
-        if (settingsPreview) { settingsPreview.src = window.userExtraData.avatar; settingsPreview.classList.remove('hidden'); }
-        if (settingsPlaceholder) settingsPlaceholder.classList.add('hidden');
-    } else {
-        if (avatarImg) { avatarImg.src = ''; avatarImg.classList.add('hidden'); }
-        if (avatarText) { avatarText.innerText = name.charAt(0).toUpperCase(); avatarText.classList.remove('hidden'); }
-        
-        if (settingsPreview) { settingsPreview.src = ''; settingsPreview.classList.add('hidden'); }
-        if (settingsPlaceholder) settingsPlaceholder.classList.remove('hidden');
-    }
+    const name = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
+    document.getElementById('account-username').innerText = name;
+    document.getElementById('account-email').innerText = window.currentUser.email;
+    
+    const avatarImg = document.getElementById('account-avatar-img');
+    const avatarText = document.getElementById('account-avatar-text');
+    const settingsPreview = document.getElementById('settings-avatar-preview');
+    const settingsPlaceholder = document.getElementById('settings-avatar-placeholder');
+    
+    if (window.userExtraData.avatar) {
+        if (avatarImg) { avatarImg.src = window.userExtraData.avatar; avatarImg.classList.remove('hidden'); }
+        if (avatarText) avatarText.classList.add('hidden');
+        
+        if (settingsPreview) { settingsPreview.src = window.userExtraData.avatar; settingsPreview.classList.remove('hidden'); }
+        if (settingsPlaceholder) settingsPlaceholder.classList.add('hidden');
+    } else {
+        if (avatarImg) { avatarImg.src = ''; avatarImg.classList.add('hidden'); }
+        if (avatarText) { avatarText.innerText = name.charAt(0).toUpperCase(); avatarText.classList.remove('hidden'); }
+        
+        if (settingsPreview) { settingsPreview.src = ''; settingsPreview.classList.add('hidden'); }
+        if (settingsPlaceholder) settingsPlaceholder.classList.remove('hidden');
+    }
 
-    document.getElementById('update-username').value = name;
-    document.getElementById('update-phone').value = window.userExtraData.phone || '';
-    document.getElementById('update-new-password').value = '';
-    document.getElementById('update-current-password').value = '';
+    document.getElementById('update-username').value = name;
+    document.getElementById('update-phone').value = window.userExtraData.phone || '';
+    document.getElementById('update-new-password').value = '';
+    document.getElementById('update-current-password').value = '';
 
-    switchAccountTab('listings');
+    switchAccountTab('listings');
 
-    const myListingsContainer = document.getElementById('tab-content-listings');
-    const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
+    const myListingsContainer = document.getElementById('tab-content-listings');
+    const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
 
-    myListingsContainer.innerHTML = '';
-    if (myListings.length === 0) {
-        myListingsContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz verdiğiniz bir kayıt bulunmuyor.</p>`;
-    } else {
-        myListings.forEach(item => {
-            const isBuy = item.intent === 'buy';
-            const row = document.createElement('div');
-            row.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs`;
-            row.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
-                    <div>
-                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
-                        <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
-                    </div>
-                </div>
-                <div class="flex space-x-1">
-                    <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
-                    <button onclick="deleteCurrentListing('${escapeHtml(item.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
-                </div>
-            `;
-            myListingsContainer.appendChild(row);
-        });
-    }
+    myListingsContainer.innerHTML = '';
+    if (myListings.length === 0) {
+        myListingsContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz verdiğiniz bir kayıt bulunmuyor.</p>`;
+    } else {
+        myListings.forEach(item => {
+            const isBuy = item.intent === 'buy';
+            const row = document.createElement('div');
+            row.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs`;
+            row.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
+                    <div>
+                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
+                        <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
+                    </div>
+                </div>
+                <div class="flex space-x-1">
+                    <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
+                    <button onclick="deleteCurrentListing('${escapeHtml(item.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `;
+            myListingsContainer.appendChild(row);
+        });
+    }
 
-    document.getElementById('account-modal').classList.remove('hidden');
+    document.getElementById('account-modal').classList.remove('hidden');
 }
 
 function closeAccountModal() { document.getElementById('account-modal').classList.add('hidden'); }
 
-function openFormModal() { 
-    if (!window.currentUser) {
-        window.showToast("İlan eklemek için önce giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
-    const addForm = document.getElementById('add-listing-form');
-    if (addForm) addForm.reset();
-    
-    // YENİ: Varsayılan olarak "Satış" sekmesi seçili gelsin
-    const intentSell = document.getElementById('intent-sell');
-    if (intentSell) intentSell.checked = true;
+function openFormModal() { 
+    if (!window.currentUser) {
+        window.showToast("İlan eklemek için önce giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+    const addForm = document.getElementById('add-listing-form');
+    if (addForm) addForm.reset();
+    
+    // YENİ: Varsayılan olarak "Satış" sekmesi seçili gelsin
+    const intentSell = document.getElementById('intent-sell');
+    if (intentSell) intentSell.checked = true;
 
-    document.getElementById('edit-listing-id').value = '';
-    document.getElementById('form-lat').value = '';
-    document.getElementById('form-lng').value = '';
-    document.getElementById('form-address').value = '';
-    if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = '';
-    
-    const lTypeEl = document.getElementById('form-listing-type');
-    if(lTypeEl) lTypeEl.value = 'tarim';
-    
-    if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
+    document.getElementById('edit-listing-id').value = '';
+    document.getElementById('form-lat').value = '';
+    document.getElementById('form-lng').value = '';
+    document.getElementById('form-address').value = '';
+    if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = '';
+    
+    const lTypeEl = document.getElementById('form-listing-type');
+    if(lTypeEl) lTypeEl.value = 'tarim';
+    
+    if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
 
-    const customEl = document.getElementById('form-customizable');
-    if(customEl) customEl.checked = false;
+    const customEl = document.getElementById('form-customizable');
+    if(customEl) customEl.checked = false;
 
-    window.locationOutsideHatay = null;
-    const owBanner = document.getElementById('outside-hatay-warning');
-    if (owBanner) owBanner.classList.add('hidden');
-    document.getElementById('form-modal-title').innerText = "Yeni İlan / Talep Oluştur";
-    
-    const sellerInput = document.getElementById('form-seller');
-    const phoneInput = document.getElementById('form-phone');
-    
-    const latestName = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
-    const latestPhone = window.userExtraData.phone || '';
+    window.locationOutsideHatay = null;
+    const owBanner = document.getElementById('outside-hatay-warning');
+    if (owBanner) owBanner.classList.add('hidden');
+    document.getElementById('form-modal-title').innerText = "Yeni İlan / Talep Oluştur";
+    
+    const sellerInput = document.getElementById('form-seller');
+    const phoneInput = document.getElementById('form-phone');
+    
+    const latestName = window.userExtraData.username || window.currentUser.displayName || window.currentUser.email.split('@')[0];
+    const latestPhone = window.userExtraData.phone || '';
 
-    if (sellerInput) sellerInput.value = latestName;
-    if (phoneInput) phoneInput.value = latestPhone;
-    
-    const bType = document.getElementById('form-business-type');
-    if (bType) bType.value = 'Üretici';
-    const minOrd = document.getElementById('form-min-order');
-    if (minOrd) minOrd.value = '';
-    
-    window.toggleDynamicFields(); 
-    document.getElementById('form-modal').classList.remove('hidden'); 
-    
-    setTimeout(() => {
-        initFormMap(null, null, document.getElementById('form-district').value);
-    }, 200);
+    if (sellerInput) sellerInput.value = latestName;
+    if (phoneInput) phoneInput.value = latestPhone;
+    
+    const bType = document.getElementById('form-business-type');
+    if (bType) bType.value = 'Üretici';
+    const minOrd = document.getElementById('form-min-order');
+    if (minOrd) minOrd.value = '';
+    
+    window.toggleDynamicFields(); 
+    document.getElementById('form-modal').classList.remove('hidden'); 
+    
+    setTimeout(() => {
+        initFormMap(null, null, document.getElementById('form-district').value);
+    }, 200);
 }
 
 function openFormModalForEdit() {
-    const item = (window.listings || []).find(l => l.id === window.activeListingId);
-    if (!item) return;
+    const item = (window.listings || []).find(l => l.id === window.activeListingId);
+    if (!item) return;
 
-    document.getElementById('edit-listing-id').value = item.id;
-    document.getElementById('form-modal-title').innerText = "Kaydı Düzenle";
-    document.getElementById('form-title').value = item.title;
-    
-    // YENİ: Edit sırasında radio butonları doldur
-    const intentRadios = document.getElementsByName('form-intent');
-    if (intentRadios && intentRadios.length > 0) {
-        intentRadios.forEach(r => r.checked = (r.value === (item.intent || 'sell')));
-    } else {
-        const intentSelect = document.getElementById('form-intent');
-        if (intentSelect) intentSelect.value = item.intent || 'sell';
-    }
+    document.getElementById('edit-listing-id').value = item.id;
+    document.getElementById('form-modal-title').innerText = "Kaydı Düzenle";
+    document.getElementById('form-title').value = item.title;
+    
+    // YENİ: Edit sırasında radio butonları doldur
+    const intentRadios = document.getElementsByName('form-intent');
+    if (intentRadios && intentRadios.length > 0) {
+        intentRadios.forEach(r => r.checked = (r.value === (item.intent || 'sell')));
+    } else {
+        const intentSelect = document.getElementById('form-intent');
+        if (intentSelect) intentSelect.value = item.intent || 'sell';
+    }
 
-    const lTypeEl = document.getElementById('form-listing-type');
-    if(lTypeEl) lTypeEl.value = item.listingType || 'tarim';
-    
-    if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
-    
-    document.getElementById('form-category').value = item.category;
+    const lTypeEl = document.getElementById('form-listing-type');
+    if(lTypeEl) lTypeEl.value = item.listingType || 'tarim';
+    
+    if(typeof window.filterCategoryOptions === 'function') window.filterCategoryOptions();
+    
+    document.getElementById('form-category').value = item.category;
 
-    const customEl = document.getElementById('form-customizable');
-    if(customEl) customEl.checked = item.isCustomizable || false;
+    const customEl = document.getElementById('form-customizable');
+    if(customEl) customEl.checked = item.isCustomizable || false;
 
-    if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = item.harvestDate || '';
+    if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = item.harvestDate || '';
 
-    document.getElementById('form-district').value = item.district;
-    document.getElementById('form-address').value = item.address || '';
-    window.locationOutsideHatay = item.outsideHatay ? { province: item.realProvince, district: item.realDistrict } : null;
-    const editOwBanner = document.getElementById('outside-hatay-warning');
-    if (item.outsideHatay) {
-        editOwBanner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında görünüyor — ${item.realProvince || ''}${item.realDistrict ? ' / ' + item.realDistrict : ''}.`;
-        editOwBanner.classList.remove('hidden');
-    } else {
-        editOwBanner.classList.add('hidden');
-    }
-    document.getElementById('form-lat').value = item.lat || '';
-    document.getElementById('form-lng').value = item.lng || '';
-    document.getElementById('form-price').value = item.price;
-    document.getElementById('form-unit').value = item.unit || '';
-    document.getElementById('form-seller').value = item.seller;
-    document.getElementById('form-phone').value = item.phone;
-    document.getElementById('form-desc').value = item.desc || '';
-    document.getElementById('form-image').value = item.image;
-    document.getElementById('form-vip').checked = item.isVip || false;
-    document.getElementById('form-urgent').checked = item.isUrgent || false;
-    document.getElementById('form-discount').checked = item.isDiscount || false;
-    
-    const bType = document.getElementById('form-business-type');
-    if (bType) bType.value = item.businessType || 'Üretici';
-    
-    const minOrd = document.getElementById('form-min-order');
-    if (minOrd) minOrd.value = item.minOrderQty || '';
-    
-    window.toggleDynamicFields(); 
+    document.getElementById('form-district').value = item.district;
+    document.getElementById('form-address').value = item.address || '';
+    window.locationOutsideHatay = item.outsideHatay ? { province: item.realProvince, district: item.realDistrict } : null;
+    const editOwBanner = document.getElementById('outside-hatay-warning');
+    if (item.outsideHatay) {
+        editOwBanner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında görünüyor — ${item.realProvince || ''}${item.realDistrict ? ' / ' + item.realDistrict : ''}.`;
+        editOwBanner.classList.remove('hidden');
+    } else {
+        editOwBanner.classList.add('hidden');
+    }
+    document.getElementById('form-lat').value = item.lat || '';
+    document.getElementById('form-lng').value = item.lng || '';
+    document.getElementById('form-price').value = item.price;
+    document.getElementById('form-unit').value = item.unit || '';
+    document.getElementById('form-seller').value = item.seller;
+    document.getElementById('form-phone').value = item.phone;
+    document.getElementById('form-desc').value = item.desc || '';
+    document.getElementById('form-image').value = item.image;
+    document.getElementById('form-vip').checked = item.isVip || false;
+    document.getElementById('form-urgent').checked = item.isUrgent || false;
+    document.getElementById('form-discount').checked = item.isDiscount || false;
+    
+    const bType = document.getElementById('form-business-type');
+    if (bType) bType.value = item.businessType || 'Üretici';
+    
+    const minOrd = document.getElementById('form-min-order');
+    if (minOrd) minOrd.value = item.minOrderQty || '';
+    
+    window.toggleDynamicFields(); 
 
-    document.getElementById('detail-modal').classList.add('hidden');
-    document.getElementById('form-modal').classList.remove('hidden');
+    document.getElementById('detail-modal').classList.add('hidden');
+    document.getElementById('form-modal').classList.remove('hidden');
 
-    setTimeout(() => {
-        initFormMap(item.lat, item.lng, item.district);
-    }, 200);
+    setTimeout(() => {
+        initFormMap(item.lat, item.lng, item.district);
+    }, 200);
 }
 
 function openAuthModal(mode) {
-    document.getElementById('auth-mode').value = mode;
-    const regFields = document.getElementById('register-fields-box');
-    if (mode === 'login') {
-        document.getElementById('auth-modal-title').innerText = "Giriş Yap";
-        document.getElementById('auth-submit-btn').innerText = "Giriş Yap";
-        document.getElementById('auth-switch-btn').innerText = "Hesabın yok mu? Kayıt Ol";
-        if (regFields) regFields.classList.add('hidden');
-    } else {
-        document.getElementById('auth-modal-title').innerText = "Kayıt Ol";
-        document.getElementById('auth-submit-btn').innerText = "Kayıt Ol";
-        document.getElementById('auth-switch-btn').innerText = "Zaten hesabın var mı? Giriş Yap";
-        if (regFields) regFields.classList.remove('hidden');
-    }
-    document.getElementById('auth-modal').classList.remove('hidden');
+    document.getElementById('auth-mode').value = mode;
+    const regFields = document.getElementById('register-fields-box');
+    if (mode === 'login') {
+        document.getElementById('auth-modal-title').innerText = "Giriş Yap";
+        document.getElementById('auth-submit-btn').innerText = "Giriş Yap";
+        document.getElementById('auth-switch-btn').innerText = "Hesabın yok mu? Kayıt Ol";
+        if (regFields) regFields.classList.add('hidden');
+    } else {
+        document.getElementById('auth-modal-title').innerText = "Kayıt Ol";
+        document.getElementById('auth-submit-btn').innerText = "Kayıt Ol";
+        document.getElementById('auth-switch-btn').innerText = "Zaten hesabın var mı? Giriş Yap";
+        if (regFields) regFields.classList.remove('hidden');
+    }
+    document.getElementById('auth-modal').classList.remove('hidden');
 }
 
 function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
-window.toggleAuthMode = function() { 
-    const currentMode = document.getElementById('auth-mode').value;
-    const targetMode = currentMode === 'login' ? 'register' : 'login';
-    
-    document.getElementById('auth-username').value = '';
-    document.getElementById('auth-phone').value = '';
-    document.getElementById('auth-email').value = '';
-    document.getElementById('auth-password').value = '';
-    
-    const resendBtn = document.getElementById('resend-verification-btn');
-    if (resendBtn) resendBtn.classList.add('hidden');
-    
-    openAuthModal(targetMode);
+window.toggleAuthMode = function() { 
+    const currentMode = document.getElementById('auth-mode').value;
+    const targetMode = currentMode === 'login' ? 'register' : 'login';
+    
+    document.getElementById('auth-username').value = '';
+    document.getElementById('auth-phone').value = '';
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+    
+    const resendBtn = document.getElementById('resend-verification-btn');
+    if (resendBtn) resendBtn.classList.add('hidden');
+    
+    openAuthModal(targetMode);
 };
 
 function openTermsModal() { document.getElementById('terms-modal').classList.remove('hidden'); }
 function closeTermsModal() { document.getElementById('terms-modal').classList.add('hidden'); }
 
-function openReportModal() { 
-    if(!window.currentUser) {
-        window.showToast("Şikayet bildirimi için giriş yapmalısınız.", "warning");
-        openAuthModal('login');
-        return;
-    }
-    document.getElementById('report-modal').classList.remove('hidden'); 
+function openReportModal() { 
+    if(!window.currentUser) {
+        window.showToast("Şikayet bildirimi için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+    document.getElementById('report-modal').classList.remove('hidden'); 
 }
 function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
 
 async function handleReportSubmit(e) {
-    e.preventDefault();
-    try {
-        await window.push(window.ref(window.db, 'reports'), {
-            listingId: window.activeListingId,
-            reporterUid: window.currentUser.uid,
-            reason: document.getElementById('report-reason').value,
-            note: document.getElementById('report-note').value,
-            date: Date.now()
-        });
-        window.showToast("Şikayetiniz iletildi.", "success");
-        closeReportModal();
-    } catch(err) {
-        window.showToast("Hata: " + err.message, "error");
-        window.showErrorPage(400, "Şikayet Gönderilemedi");
-    }
+    e.preventDefault();
+    try {
+        await window.push(window.ref(window.db, 'reports'), {
+            listingId: window.activeListingId,
+            reporterUid: window.currentUser.uid,
+            reason: document.getElementById('report-reason').value,
+            note: document.getElementById('report-note').value,
+            date: Date.now()
+        });
+        window.showToast("Şikayetiniz iletildi.", "success");
+        closeReportModal();
+    } catch(err) {
+        window.showToast("Hata: " + err.message, "error");
+        window.showErrorPage(400, "Şikayet Gönderilemedi");
+    }
 }
 
 function renderListings() {
-    const grid = document.getElementById('listings-grid');
-    if (!grid) return;
-    const items = window.filteredListings || [];
-    grid.classList.toggle('list-mode', window.currentViewMode === 'list');
-    grid.className = window.currentViewMode === 'list'
-        ? 'list-mode'
-        : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
-    
-    const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} Kayıt Bulundu`;
-    grid.innerHTML = '';
+    const grid = document.getElementById('listings-grid');
+    if (!grid) return;
+    const items = window.filteredListings || [];
+    grid.classList.toggle('list-mode', window.currentViewMode === 'list');
+    grid.className = window.currentViewMode === 'list'
+        ? 'list-mode'
+        : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
+    
+    const countEl = document.getElementById('total-count');
+    if (countEl) countEl.innerText = `${items.length} Kayıt Bulundu`;
+    grid.innerHTML = '';
 
-    if (items.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun sonuç bulunamadı.</div>`;
-        const pagContainer = document.getElementById('pagination-container');
-        if (pagContainer) pagContainer.innerHTML = '';
-        return;
-    }
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun sonuç bulunamadı.</div>`;
+        const pagContainer = document.getElementById('pagination-container');
+        if (pagContainer) pagContainer.innerHTML = '';
+        return;
+    }
 
-    const startIndex = (window.currentPage - 1) * window.itemsPerPage;
-    const paginatedItems = items.slice(startIndex, startIndex + window.itemsPerPage);
+    const startIndex = (window.currentPage - 1) * window.itemsPerPage;
+    const paginatedItems = items.slice(startIndex, startIndex + window.itemsPerPage);
 
-    paginatedItems.forEach(item => {
-        const card = document.createElement('div');
-        const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
-        const isBuy = item.intent === 'buy';
+    paginatedItems.forEach(item => {
+        const card = document.createElement('div');
+        const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
+        const isBuy = item.intent === 'buy';
 
-        let cardStyle = 'border border-gray-200/70';
-        if (isVipActive) cardStyle = 'vip-card border-lux-gold/50 shadow-[0_0_15px_rgba(188,168,121,0.2)]';
-        else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
-        
-        if (isBuy) cardStyle += ' ring-2 ring-blue-300 shadow-blue-100 bg-blue-50/20'; // Alım talebine özel görünüm
+        let cardStyle = 'border border-gray-200/70';
+        if (isVipActive) cardStyle = 'vip-card border-lux-gold/50 shadow-[0_0_15px_rgba(188,168,121,0.2)]';
+        else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
+        
+        if (isBuy) cardStyle += ' ring-2 ring-blue-300 shadow-blue-100 bg-blue-50/20'; // Alım talebine özel görünüm
 
-        const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
-        const emoji = categoryEmojis[item.category] || '📦';
+        const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
+        const emoji = categoryEmojis[item.category] || '📦';
 
-        let priceHistoryBadge = '';
-        if (item.priceHistory && item.priceHistory.length > 0) {
-            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-            const isDrop = item.price < oldPrice;
-            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-500' : 'text-red-500'} font-bold flex items-center mt-1">
-                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'} mr-1"></i> Eski: ${oldPrice}
-            </div>`;
-        }
-        
-        let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al' : 'İncele';
-        if (isBuy) primaryBtnText = 'Teklif İlet'; // Alım talebi buton yazısı
+        let priceHistoryBadge = '';
+        if (item.priceHistory && item.priceHistory.length > 0) {
+            const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+            const isDrop = item.price < oldPrice;
+            priceHistoryBadge = `<div class="text-[9px] ${isDrop ? 'text-emerald-500' : 'text-red-500'} font-bold flex items-center mt-1">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'} mr-1"></i> Eski: ${oldPrice}
+            </div>`;
+        }
+        
+        let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al' : 'İncele';
+        if (isBuy) primaryBtnText = 'Teklif İlet'; // Alım talebi buton yazısı
 
-        card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
-        card.innerHTML = `
-            <div>
-                <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
-                    <img src="${escapeHtml(item.image)}" class="w-full h-full object-cover">
-                    <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
-                        <i class="fa-solid fa-heart"></i>
-                    </button>
-                    <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
-                        ${isBuy ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow animate-pulse">📢 ALIM TALEBİ</span>' : ''}
-                        ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded shadow">VIP</span>' : ''}
-                        ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse shadow">ACİL</span>' : ''}
-                        
-                        ${item.listingType === 'hizmet' ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🛠️ HİZMET</span>' : ''}
-                        ${item.listingType === 'el_yapimi' ? '<span class="bg-purple-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎨 EL YAPIMI</span>' : ''}
-                        ${item.isCustomizable ? '<span class="bg-pink-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">SİPARİŞ ÜZERİNE</span>' : ''}
-                        ${item.harvestDate ? '<span class="bg-orange-500 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🌱 ÖN SİPARİŞ</span>' : ''}
+        card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
+        card.innerHTML = `
+            <div>
+                <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
+                    <img src="${escapeHtml(item.image)}" class="w-full h-full object-cover">
+                    <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
+                        <i class="fa-solid fa-heart"></i>
+                    </button>
+                    <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                        ${isBuy ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow animate-pulse">📢 ALIM TALEBİ</span>' : ''}
+                        ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded shadow">VIP</span>' : ''}
+                        ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse shadow">ACİL</span>' : ''}
+                        
+                        ${item.listingType === 'hizmet' ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🛠️ HİZMET</span>' : ''}
+                        ${item.listingType === 'el_yapimi' ? '<span class="bg-purple-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎨 EL YAPIMI</span>' : ''}
+                        ${item.isCustomizable ? '<span class="bg-pink-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">SİPARİŞ ÜZERİNE</span>' : ''}
+                        ${item.harvestDate ? '<span class="bg-orange-500 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🌱 ÖN SİPARİŞ</span>' : ''}
 
-                        ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
-                        ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
-                    </div>
-                </div>
-                <div class="p-3.5">
-                    <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
-                        <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
-                        <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
-                    </div>
-                    <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
-                </div>
-            </div>
-            <div class="px-3.5 pb-3.5">
-                <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
-                    <div>
-                        <span class="text-[9px] text-gray-400 block">${isBuy ? 'Hedef / Bütçe' : escapeHtml(item.unit || 'Fiyat')}</span>
-                        <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
-                        ${priceHistoryBadge}
-                        ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">${isBuy ? 'Aranan' : 'Min'} Miktar: ${escapeHtml(item.minOrderQty)}</span>` : ''}
-                    </div>
-                    <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] ${isBuy ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-lux-bg text-lux-dark hover:bg-lux-sage/30'} font-semibold px-2.5 py-1.5 rounded-lg transition shadow-sm">${primaryBtnText}</button>
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
+                        ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
+                        ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
+                    </div>
+                </div>
+                <div class="p-3.5">
+                    <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
+                        <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
+                        <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
+                    </div>
+                    <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
+                </div>
+            </div>
+            <div class="px-3.5 pb-3.5">
+                <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
+                    <div>
+                        <span class="text-[9px] text-gray-400 block">${isBuy ? 'Hedef / Bütçe' : escapeHtml(item.unit || 'Fiyat')}</span>
+                        <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
+                        ${priceHistoryBadge}
+                        ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">${isBuy ? 'Aranan' : 'Min'} Miktar: ${escapeHtml(item.minOrderQty)}</span>` : ''}
+                    </div>
+                    <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] ${isBuy ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-lux-bg text-lux-dark hover:bg-lux-sage/30'} font-semibold px-2.5 py-1.5 rounded-lg transition shadow-sm">${primaryBtnText}</button>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
 
-    renderPaginationControls(items.length);
+    renderPaginationControls(items.length);
 }
 
 function renderPaginationControls(totalItems) {
-    const container = document.getElementById('pagination-container');
-    if (!container) return;
-    const totalPages = Math.ceil(totalItems / window.itemsPerPage);
-    if (totalPages <= 1) { container.innerHTML = ''; return; }
+    const container = document.getElementById('pagination-container');
+    if (!container) return;
+    const totalPages = Math.ceil(totalItems / window.itemsPerPage);
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
 
-    let html = `<button onclick="changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
-    for (let i = 1; i <= totalPages; i++) {
-        html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
-    }
-    html += `<button onclick="changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
-    container.innerHTML = html;
+    let html = `<button onclick="changePage(${window.currentPage - 1})" ${window.currentPage === 1 ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= totalPages; i++) {
+        html += `<button onclick="changePage(${i})" class="px-3 py-1 rounded-lg text-xs font-bold ${i === window.currentPage ? 'bg-lux-dark text-white' : 'bg-white border text-gray-700'}">${i}</button>`;
+    }
+    html += `<button onclick="changePage(${window.currentPage + 1})" ${window.currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg border bg-white text-xs disabled:opacity-40"><i class="fa-solid fa-chevron-right"></i></button>`;
+    container.innerHTML = html;
 }
 
 function changePage(page) {
-    const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
-    window.currentPage = Math.min(Math.max(1, page), totalPages);
-    renderListings();
-    window.scrollTo({ top: 400, behavior: 'smooth' });
+    const totalPages = Math.max(1, Math.ceil((window.filteredListings || []).length / window.itemsPerPage));
+    window.currentPage = Math.min(Math.max(1, page), totalPages);
+    renderListings();
+    window.scrollTo({ top: 400, behavior: 'smooth' });
 }
 
 window.haversineKm = function(lat1, lng1, lat2, lng2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 };
 
 window.nearbyModeActive = false;
 window.userGeoLocation = null;
 
 window.toggleNearbyMode = function() {
-    const btn = document.getElementById('nearby-btn');
-    if (window.nearbyModeActive) {
-        window.nearbyModeActive = false;
-        if (btn) btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
-        window.filterListings();
-        return;
-    }
-    if (!navigator.geolocation) {
-        window.showToast("Tarayıcınız konum özelliğini desteklemiyor.", "error");
-        return;
-    }
-    if (btn) btn.disabled = true;
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            window.userGeoLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            window.nearbyModeActive = true;
-            if (btn) {
-                btn.disabled = false;
-                btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
-            }
-            window.filterListings();
-        },
-        (err) => {
-            if (btn) btn.disabled = false;
-            window.showToast("Konumunuza erişilemedi. Tarayıcı izinlerini kontrol edin.", "error");
-        },
-        { enableHighAccuracy: false, timeout: 8000 }
-    );
+    const btn = document.getElementById('nearby-btn');
+    if (window.nearbyModeActive) {
+        window.nearbyModeActive = false;
+        if (btn) btn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+        window.filterListings();
+        return;
+    }
+    if (!navigator.geolocation) {
+        window.showToast("Tarayıcınız konum özelliğini desteklemiyor.", "error");
+        return;
+    }
+    if (btn) btn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            window.userGeoLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            window.nearbyModeActive = true;
+            if (btn) {
+                btn.disabled = false;
+                btn.className = "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs";
+            }
+            window.filterListings();
+        },
+        (err) => {
+            if (btn) btn.disabled = false;
+            window.showToast("Konumunuza erişilemedi. Tarayıcı izinlerini kontrol edin.", "error");
+        },
+        { enableHighAccuracy: false, timeout: 8000 }
+    );
 };
 
 function resetAllFilters() {
-    const searchEl = document.getElementById('search-input');
-    const catEl = document.getElementById('category-filter');
-    const distEl = document.getElementById('district-filter');
-    const sortEl = document.getElementById('sort-filter');
-    const minEl = document.getElementById('min-price-filter');
-    const maxEl = document.getElementById('max-price-filter');
-    const intentEl = document.getElementById('intent-filter');
+    const searchEl = document.getElementById('search-input');
+    const catEl = document.getElementById('category-filter');
+    const distEl = document.getElementById('district-filter');
+    const sortEl = document.getElementById('sort-filter');
+    const minEl = document.getElementById('min-price-filter');
+    const maxEl = document.getElementById('max-price-filter');
+    const intentEl = document.getElementById('intent-filter');
 
-    if (searchEl) searchEl.value = '';
-    if (catEl) catEl.value = '';
-    if (distEl) distEl.value = '';
-    if (sortEl) sortEl.value = 'newest';
-    if (minEl) minEl.value = '';
-    if (maxEl) maxEl.value = '';
-    if (intentEl) intentEl.value = '';
+    if (searchEl) searchEl.value = '';
+    if (catEl) catEl.value = '';
+    if (distEl) distEl.value = '';
+    if (sortEl) sortEl.value = 'newest';
+    if (minEl) minEl.value = '';
+    if (maxEl) maxEl.value = '';
+    if (intentEl) intentEl.value = '';
 
-    window.nearbyModeActive = false;
-    const nearbyBtn = document.getElementById('nearby-btn');
-    if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
-    window.filterListings();
+    window.nearbyModeActive = false;
+    const nearbyBtn = document.getElementById('nearby-btn');
+    if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+    window.filterListings();
 }
 
 function setViewMode(mode) { window.currentViewMode = mode; renderListings(); }
@@ -2303,264 +2305,128 @@ function closeFormModal() { document.getElementById('form-modal').classList.add(
 function closeDetailModal() { document.getElementById('detail-modal').classList.add('hidden'); window.activeListingId = null; }
 
 function openDetailModal(id) {
-    const item = (window.listings || []).find(l => l.id === id);
-    if (!item) return;
+    const item = (window.listings || []).find(l => l.id === id);
+    if (!item) return;
 
-    window.activeListingId = id;
-    window.activeSellerUid = item.uid;
-    const isBuy = item.intent === 'buy';
+    window.activeListingId = id;
+    window.activeSellerUid = item.uid;
+    const isBuy = item.intent === 'buy';
 
-    document.getElementById('detail-img').src = item.image;
-    
-    const badgeHTML = isBuy ? '<span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[10px] ml-2 align-middle shadow-sm">📢 ALIM TALEBİ</span>' : '';
-    document.getElementById('detail-title').innerHTML = escapeHtml(item.title) + badgeHTML;
-    
-    document.getElementById('detail-category').innerText = item.category;
-    
-    document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
-    const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
-    document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
-    
-    let priceHTML = isBuy 
-        ? `<span class="text-xs font-normal text-gray-500 block mb-0.5">Hedef Bütçe / Alım Fiyatı:</span> ${item.price} TL` 
-        : `${item.price} TL`;
+    document.getElementById('detail-img').src = item.image;
+    
+    const badgeHTML = isBuy ? '<span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[10px] ml-2 align-middle shadow-sm">📢 ALIM TALEBİ</span>' : '';
+    document.getElementById('detail-title').innerHTML = escapeHtml(item.title) + badgeHTML;
+    
+    document.getElementById('detail-category').innerText = item.category;
+    
+    document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
+    const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
+    document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
+    
+    let priceHTML = isBuy 
+        ? `<span class="text-xs font-normal text-gray-500 block mb-0.5">Hedef Bütçe / Alım Fiyatı:</span> ${item.price} TL` 
+        : `${item.price} TL`;
 
-    if (item.priceHistory && item.priceHistory.length > 0) {
-        const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-        const isDrop = item.price < oldPrice;
-        priceHTML += `
-            <div class="text-[11px] font-bold ${isDrop ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'} inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ml-3 shadow-sm border border-gray-100">
-                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i>
-                <span>Eski: ${oldPrice} TL</span>
-            </div>
-        `;
-    }
-    document.getElementById('detail-price').innerHTML = priceHTML;
-    document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
-    document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
-    document.getElementById('detail-seller').innerText = item.seller;
+    if (item.priceHistory && item.priceHistory.length > 0) {
+        const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
+        const isDrop = item.price < oldPrice;
+        priceHTML += `
+            <div class="text-[11px] font-bold ${isDrop ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'} inline-flex items-center gap-1.5 px-2 py-1 rounded-lg ml-3 shadow-sm border border-gray-100">
+                <i class="fa-solid ${isDrop ? 'fa-arrow-trend-down' : 'fa-arrow-trend-up'}"></i>
+                <span>Eski: ${oldPrice} TL</span>
+            </div>
+        `;
+    }
+    document.getElementById('detail-price').innerHTML = priceHTML;
+    document.getElementById('detail-unit').innerText = item.unit ? `/ ${item.unit}` : '';
+    document.getElementById('detail-desc').innerText = item.desc || "Açıklama girilmedi.";
+    document.getElementById('detail-seller').innerText = item.seller;
 
-    const wholesaleBox = document.getElementById('detail-wholesale-box');
-    if (item.businessType === 'Toptancı' && item.minOrderQty) {
-        document.getElementById('detail-min-order').innerText = item.minOrderQty;
-        wholesaleBox.classList.remove('hidden');
-    } else {
-        wholesaleBox.classList.add('hidden');
-    }
+    const wholesaleBox = document.getElementById('detail-wholesale-box');
+    if (item.businessType === 'Toptancı' && item.minOrderQty) {
+        document.getElementById('detail-min-order').innerText = item.minOrderQty;
+        wholesaleBox.classList.remove('hidden');
+    } else {
+        wholesaleBox.classList.add('hidden');
+    }
 
-    const customBox = document.getElementById('detail-custom-box');
-    if (customBox) {
-        if (item.isCustomizable) {
-            customBox.classList.remove('hidden');
-        } else {
-            customBox.classList.add('hidden');
-        }
-    }
-    
-    const harvestBox = document.getElementById('detail-harvest-box');
-    const harvestText = document.getElementById('detail-harvest-date');
-    if (harvestBox && harvestText) {
-        if (item.harvestDate) {
-            harvestText.innerText = item.harvestDate;
-            harvestBox.classList.remove('hidden');
-        } else {
-            harvestBox.classList.add('hidden');
-        }
-    }
+    const customBox = document.getElementById('detail-custom-box');
+    if (customBox) {
+        if (item.isCustomizable) {
+            customBox.classList.remove('hidden');
+        } else {
+            customBox.classList.add('hidden');
+        }
+    }
+    
+    const harvestBox = document.getElementById('detail-harvest-box');
+    const harvestText = document.getElementById('detail-harvest-date');
+    if (harvestBox && harvestText) {
+        if (item.harvestDate) {
+            harvestText.innerText = item.harvestDate;
+            harvestBox.classList.remove('hidden');
+        } else {
+            harvestBox.classList.add('hidden');
+        }
+    }
 
-    const outsideBox = document.getElementById('detail-outside-hatay-box');
-    if (item.outsideHatay) {
-        const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
-        const districtPart = item.realDistrict ? `, ${item.realDistrict} ilçesinde` : '';
-        document.getElementById('detail-outside-hatay-text').innerText = `Bu kayıt Hatay dışında — ${cityPart}${districtPart} bulunuyor.`;
-        outsideBox.classList.remove('hidden');
-    } else {
-        outsideBox.classList.add('hidden');
-    }
+    const outsideBox = document.getElementById('detail-outside-hatay-box');
+    if (item.outsideHatay) {
+        const cityPart = item.realProvince ? `${item.realProvince} şehrinde` : 'Hatay dışında bir şehirde';
+        const districtPart = item.realDistrict ? `, ${item.realDistrict} ilçesinde` : '';
+        document.getElementById('detail-outside-hatay-text').innerText = `Bu kayıt Hatay dışında — ${cityPart}${districtPart} bulunuyor.`;
+        outsideBox.classList.remove('hidden');
+    } else {
+        outsideBox.classList.add('hidden');
+    }
 
-    const detailWhatsAppBtn = document.getElementById('detail-whatsapp'); 
-    let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
-    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-    
-    if (item.listingType === 'hizmet' && detailWhatsAppBtn) {
-        detailWhatsAppBtn.innerHTML = `<i class="fa-solid fa-clipboard-list mr-1"></i> <span>Ücretsiz Keşif / Teklif</span>`;
-        detailWhatsAppBtn.onclick = (e) => {
-            e.preventDefault();
-            const noteInput = document.getElementById('offer-note-input');
-            if (noteInput) {
-                noteInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                noteInput.focus();
-                window.showToast("Lütfen keşif talebi veya teklif almak için notunuzu ekleyip gönderin.", "success");
-            }
-        };
-        detailWhatsAppBtn.href = "#";
-        detailWhatsAppBtn.target = "_self";
-        detailWhatsAppBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
-    } else if (detailWhatsAppBtn) {
-        const waMsg = isBuy
-            ? `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" alım talebiniz için size bir ürün/fiyat teklifim var.`
-            : `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
-        
-        detailWhatsAppBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
-        detailWhatsAppBtn.target = "_blank";
-        detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>${isBuy ? 'Teklif İlet' : 'İletişim'}</span>`;
-        detailWhatsAppBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
-        detailWhatsAppBtn.onclick = null;
-    }
+    const detailWhatsAppBtn = document.getElementById('detail-whatsapp'); 
+    let cleanPhone = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
+    if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
+    
+    if (item.listingType === 'hizmet' && detailWhatsAppBtn) {
+        detailWhatsAppBtn.innerHTML = `<i class="fa-solid fa-clipboard-list mr-1"></i> <span>Ücretsiz Keşif / Teklif</span>`;
+        detailWhatsAppBtn.onclick = (e) => {
+            e.preventDefault();
+            const noteInput = document.getElementById('offer-note-input');
+            if (noteInput) {
+                noteInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                noteInput.focus();
+                window.showToast("Lütfen keşif talebi veya teklif almak için notunuzu ekleyip gönderin.", "success");
+            }
+        };
+        detailWhatsAppBtn.href = "#";
+        detailWhatsAppBtn.target = "_self";
+        detailWhatsAppBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
+    } else if (detailWhatsAppBtn) {
+        const waMsg = isBuy
+            ? `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" alım talebiniz için size bir ürün/fiyat teklifim var.`
+            : `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
+        
+        detailWhatsAppBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+        detailWhatsAppBtn.target = "_blank";
+        detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>${isBuy ? 'Teklif İlet' : 'İletişim'}</span>`;
+        detailWhatsAppBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
+        detailWhatsAppBtn.onclick = null;
+    }
 
-    window.loadSellerProfileBox(item.uid);
+    window.loadSellerProfileBox(item.uid);
 
-    const deleteBtn = document.getElementById('delete-btn');
-    const editBtn = document.getElementById('edit-btn');
-    if (window.currentUser && item.uid === window.currentUser.uid) {
-        deleteBtn.classList.remove('hidden');
-        editBtn.classList.remove('hidden');
-    } else {
-        deleteBtn.classList.add('hidden');
-        editBtn.classList.add('hidden');
-    }
+    const deleteBtn = document.getElementById('delete-btn');
+    const editBtn = document.getElementById('edit-btn');
+    if (window.currentUser && item.uid === window.currentUser.uid) {
+        deleteBtn.classList.remove('hidden');
+        editBtn.classList.remove('hidden');
+    } else {
+        deleteBtn.classList.add('hidden');
+        editBtn.classList.add('hidden');
+    }
 
-    updateFavBtnStyle(id);
-    document.getElementById('detail-modal').classList.remove('hidden');
+    updateFavBtnStyle(id);
+    document.getElementById('detail-modal').classList.remove('hidden');
 
-    setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
+    setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
 }
-
-// Takvimdeki "Tedarikçi Bul" butonuna basıldığında ana listeyi filtreler
-window.filterByHarvest = function(district, category) {
-    window.closeHarvestCalendar();
-    
-    // Ana sayfadaki DOM elementlerini bul
-    const catFilter = document.getElementById('category-filter');
-    const distFilter = document.getElementById('district-filter');
-    const intentFilter = document.getElementById('intent-filter');
-    
-    // Filtreleri seçilen ürüne göre ayarla
-    if (catFilter) catFilter.value = category;
-    if (distFilter) distFilter.value = district;
-    if (intentFilter) intentFilter.value = 'all'; // Hem satılık ürünleri hem de alım taleplerini görsün
-    
-    // Senin yazmış olduğun ana filtreleme fonksiyonunu tetikle
-    window.filterListings();
-    
-    // İlanların olduğu bölüme yumuşak kaydırma yap
-    const gridContainer = document.getElementById('listings-grid');
-    if (gridContainer) {
-        const y = gridContainer.getBoundingClientRect().top + window.scrollY - 100;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-    
-    window.showToast(`${district} bölgesi ${category} kayıtları listeleniyor.`, "success");
-};
-
-// ==========================================
-// GÜNLÜK HAL FİYATLARI MOTORU
-// ==========================================
-
-window.cachedHalData = null;
-
-window.openHalPricesModal = async function() {
-    const modal = document.getElementById('hal-prices-modal');
-    if (modal) modal.classList.remove('hidden');
-
-    const tbody = document.getElementById('hal-prices-tbody');
-    if (!window.cachedHalData && tbody) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Güncel hal bülteni yükleniyor...</td></tr>`;
-    }
-
-    try {
-        const snap = await window.get(window.ref(window.db, 'marketPrices'));
-        if (snap.exists()) {
-            window.cachedHalData = snap.val();
-        }
-    } catch(err) {
-        console.warn("Hal bülteni Firebase üzerinden okunamadı:", err);
-    }
-
-    const items = window.cachedHalData ? window.cachedHalData.items : [];
-    window.renderHalPrices(items);
-};
-
-window.closeHalPricesModal = function() {
-    const modal = document.getElementById('hal-prices-modal');
-    if (modal) modal.classList.add('hidden');
-};
-
-window.renderHalPrices = function(items = []) {
-    const tbody = document.getElementById('hal-prices-tbody');
-    const dateEl = document.getElementById('hal-update-date');
-    const locationEl = document.getElementById('hal-location-name');
-
-    if (window.cachedHalData) {
-        if (dateEl) dateEl.innerText = `Bülten Tarihi: ${window.cachedHalData.date || 'Bugün'}`;
-        if (locationEl) locationEl.innerText = window.cachedHalData.market || 'Hatay Hali';
-    }
-
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (!items || items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400">Aranan kriterde ürün bulunamadı.</td></tr>`;
-        return;
-    }
-
-    items.forEach(item => {
-        let trendHtml = `<span class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-medium text-[10px]">Yatay</span>`;
-        if (item.change === 'up') {
-            trendHtml = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-arrow-trend-up mr-1"></i>Artış</span>`;
-        } else if (item.change === 'down') {
-            trendHtml = `<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-arrow-trend-down mr-1"></i>Düşüş</span>`;
-        }
-
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-gray-50/80 transition";
-        tr.innerHTML = `
-            <td class="p-3 font-bold text-lux-dark flex items-center gap-2">
-                <i class="fa-solid fa-tag text-[10px] text-lux-gold"></i>
-                <span>${window.escapeHtml(item.name)}</span>
-            </td>
-            <td class="p-3 text-center text-gray-500 font-medium">${window.escapeHtml(item.unit || 'KG')}</td>
-            <td class="p-3 text-center font-semibold text-gray-700">${item.min} TL</td>
-            <td class="p-3 text-center font-extrabold text-emerald-800 bg-emerald-50/50">${item.avg} TL</td>
-            <td class="p-3 text-center font-semibold text-gray-700">${item.max} TL</td>
-            <td class="p-3 text-center">${trendHtml}</td>
-            <td class="p-3 text-right">
-                <button onclick="window.searchHalProductInListings('${window.escapeHtml(item.name)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap">
-                    İlanları Gör <i class="fa-solid fa-arrow-right ml-1"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-};
-
-window.filterHalPrices = function() {
-    const q = (document.getElementById('hal-search-input').value || '').toLowerCase().trim();
-    if (!window.cachedHalData || !window.cachedHalData.items) return;
-
-    const filtered = window.cachedHalData.items.filter(item => 
-        item.name.toLowerCase().includes(q)
-    );
-    window.renderHalPrices(filtered);
-};
-
-window.searchHalProductInListings = function(productName) {
-    window.closeHalPricesModal();
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        // Ürün adındaki açıklayıcı parantezleri kaldır (Örn: "Limon (Mayer)" -> "Limon")
-        const baseName = productName.split('(')[0].trim();
-        searchInput.value = baseName;
-        window.filterListings();
-
-        const grid = document.getElementById('listings-grid');
-        if (grid) {
-            const pos = grid.getBoundingClientRect().top + window.scrollY - 120;
-            window.scrollTo({ top: pos, behavior: 'smooth' });
-        }
-        window.showToast(`Pazaryerinde "${baseName}" sonuçları listeleniyor.`, "success");
-    }
-};
 
 window.openFormModal = openFormModal;
 window.closeFormModal = closeFormModal;
@@ -2579,7 +2445,7 @@ window.openFormModalForEdit = openFormModalForEdit;
 window.setViewMode = setViewMode;
 window.changePage = changePage;
 window.shareOnWhatsApp = shareOnWhatsApp;
-window.openDetailModal = openDetailModal;                            
+window.openDetailModal = openDetailModal;                            
 window.closeDetailModal = closeDetailModal;
 window.filterListings = filterListings;
 window.executeLocalFilters = executeLocalFilters;
@@ -2597,3 +2463,245 @@ window.updateMarqueeData = updateMarqueeData;
 window.renderPaginationControls = renderPaginationControls;
 window.loadFavoriteListings = loadFavoriteListings;
 window.openInboxTab = openInboxTab;
+
+// ==========================================
+// HATAY İNTERAKTİF HASAT & SEZON TAKVİMİ
+// ==========================================
+
+// Hatay'ın stratejik tarım ürünleri veri tabanı
+window.hatayHarvestData = [
+    { product: "Zeytin (Yağlık/Sofralık)", district: "Altınözü", start: 10, end: 12, category: "Zeytin & Yağ", icon: "🫒", color: "bg-green-600" },
+    { product: "Narenciye (Portakal/Limon)", district: "Dörtyol", start: 10, end: 3, category: "Narenciye", icon: "🍊", color: "bg-orange-500" },
+    { product: "Narenciye (Mandalina)", district: "Erzin", start: 9, end: 2, category: "Narenciye", icon: "🍊", color: "bg-orange-400" },
+    { product: "Samandağ Biberi", district: "Samandağ", start: 5, end: 11, category: "Sebze & Sera", icon: "🌶️", color: "bg-red-500" },
+    { product: "Hassa Üzümü", district: "Hassa", start: 7, end: 10, category: "Sebze & Sera", icon: "🍇", color: "bg-purple-500" },
+    { product: "Havuç", district: "Kırıkhan", start: 11, end: 3, category: "Sebze & Sera", icon: "🥕", color: "bg-orange-600" },
+    { product: "Kavun (Kırkağaç Tipi)", district: "Kırıkhan", start: 6, end: 8, category: "Sebze & Sera", icon: "🍈", color: "bg-yellow-400" },
+    { product: "Muz", district: "Arsuz", start: 9, end: 1, category: "Sebze & Sera", icon: "🍌", color: "bg-yellow-500" },
+    { product: "Pamuk", district: "Kırıkhan", start: 9, end: 10, category: "Bakliyat & Hububat", icon: "☁️", color: "bg-gray-300" },
+    { product: "Maydanoz & Yeşillik", district: "Samandağ", start: 1, end: 12, category: "Sebze & Sera", icon: "🥬", color: "bg-emerald-400" } // Yıl boyu
+];
+
+window.openHarvestCalendar = function() {
+    document.getElementById('harvest-calendar-modal').classList.remove('hidden');
+    window.renderHarvestCalendar();
+};
+
+window.closeHarvestCalendar = function() {
+    document.getElementById('harvest-calendar-modal').classList.add('hidden');
+};
+
+window.renderHarvestCalendar = function() {
+    const container = document.getElementById('harvest-calendar-content');
+    if (!container) return;
+
+    const districtFilter = document.getElementById('harvest-district-filter').value;
+    const months = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+
+    let filteredData = window.hatayHarvestData;
+    if (districtFilter) {
+        filteredData = filteredData.filter(d => d.district === districtFilter);
+    }
+
+    let html = `
+        <div class="overflow-x-auto pb-4">
+            <table class="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                    <tr class="bg-lux-bg/40 text-lux-dark text-[10px] uppercase tracking-widest border-b border-lux-gold/30">
+                        <th class="p-3 font-extrabold w-[25%] rounded-tl-lg">Ürün & İlçe</th>
+                        ${months.map(m => `<th class="p-2 font-bold text-center w-[5%]">${m}</th>`).join('')}
+                        <th class="p-3 font-extrabold text-right w-[15%] rounded-tr-lg">Aksiyon</th>
+                    </tr>
+                </thead>
+                <tbody class="text-xs">
+    `;
+
+    filteredData.forEach(item => {
+        html += `
+            <tr class="border-b border-gray-100 hover:bg-gray-50/80 transition-colors group">
+                <td class="p-3">
+                    <div class="font-bold text-lux-dark flex items-center gap-1.5 text-[11px] md:text-xs">
+                        <span class="text-sm shadow-sm bg-white rounded-md px-1">${item.icon}</span> 
+                        ${item.product}
+                    </div>
+                    <div class="text-[9px] text-gray-500 mt-1 font-medium ml-7"><i class="fa-solid fa-location-dot text-lux-gold mr-0.5"></i> ${item.district}</div>
+                </td>
+        `;
+
+        for (let i = 1; i <= 12; i++) {
+            let isActive = false;
+            // Eğer bitiş ayı, başlangıç ayından küçükse (Örn: Kasım(11)'den Mart(3)'a kadar sarkıyorsa kış hasadı)
+            if (item.start <= item.end) {
+                isActive = i >= item.start && i <= item.end;
+            } else {
+                isActive = i >= item.start || i <= item.end;
+            }
+
+            html += `
+                <td class="p-1 text-center">
+                    <div class="w-full h-5 rounded-md transition-all duration-300 ${isActive ? item.color + ' opacity-90 shadow-[0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-110' : 'bg-gray-100/50'}"></div>
+                </td>
+            `;
+        }
+
+        html += `
+                <td class="p-3 text-right">
+                    <button onclick="window.filterByHarvest('${item.district}', '${item.category}')" class="bg-white border border-gray-200 text-lux-dark font-bold text-[9px] px-3 py-1.5 rounded-lg hover:border-lux-gold hover:text-lux-gold transition shadow-sm whitespace-nowrap">
+                        Tedarikçi Bul <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 p-3 md:p-4 bg-blue-50/50 border border-blue-200/50 rounded-xl text-xs text-blue-900 flex gap-3 items-start shadow-sm mx-3 md:mx-0">
+            <i class="fa-solid fa-circle-info mt-0.5 text-blue-600 text-base"></i>
+            <div>
+                <strong class="block mb-1 text-blue-700">Tedarikçi ve Alıcı İpucu:</strong>
+                <p class="leading-relaxed">Mevsimsel yağışlar ve iklim koşullarına göre hasat tarihleri <b>±15 gün</b> değişiklik gösterebilir. E-ticaret satıcıları ve toptancıların, takvimdeki başlangıç tarihinden en az <b>1 ay önce "Alım Talebi"</b> ilanlarını açmaları tavsiye edilir.</p>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+};
+
+// Takvimdeki "Tedarikçi Bul" butonuna basıldığında ana listeyi filtreler
+window.filterByHarvest = function(district, category) {
+    window.closeHarvestCalendar();
+    
+    // Ana sayfadaki DOM elementlerini bul
+    const catFilter = document.getElementById('category-filter');
+    const distFilter = document.getElementById('district-filter');
+    const intentFilter = document.getElementById('intent-filter');
+    
+    // Filtreleri seçilen ürüne göre ayarla
+    if (catFilter) catFilter.value = category;
+    if (distFilter) distFilter.value = district;
+    if (intentFilter) intentFilter.value = 'all'; // Hem satılık ürünleri hem de alım taleplerini görsün
+    
+    // Senin yazmış olduğun ana filtreleme fonksiyonunu tetikle
+    window.filterListings();
+    
+    // İlanların olduğu bölüme yumuşak kaydırma yap
+    const gridContainer = document.getElementById('listings-grid');
+    if (gridContainer) {
+        const y = gridContainer.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+    
+    window.showToast(`${district} bölgesi ${category} kayıtları listeleniyor.`, "success");
+
+    // ==========================================
+// GÜNLÜK HAL FİYATLARI MOTORU
+// ==========================================
+
+window.cachedHalData = null;
+
+window.openHalPricesModal = async function() {
+    const modal = document.getElementById('hal-prices-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    const tbody = document.getElementById('hal-prices-tbody');
+    if (!window.cachedHalData && tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Güncel hal bülteni yükleniyor...</td></tr>`;
+    }
+
+    try {
+        const snap = await window.get(window.ref(window.db, 'marketPrices'));
+        if (snap.exists()) {
+            window.cachedHalData = snap.val();
+        }
+    } catch(err) {
+        console.warn("Hal bülteni Firebase üzerinden okunamadı:", err);
+    }
+
+    const items = window.cachedHalData ? window.cachedHalData.items : [];
+    window.renderHalPrices(items);
+};
+
+window.closeHalPricesModal = function() {
+    const modal = document.getElementById('hal-prices-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.renderHalPrices = function(items = []) {
+    const tbody = document.getElementById('hal-prices-tbody');
+    const dateEl = document.getElementById('hal-update-date');
+    const locationEl = document.getElementById('hal-location-name');
+
+    if (window.cachedHalData) {
+        if (dateEl) dateEl.innerText = `Bülten Tarihi: ${window.cachedHalData.date || 'Bugün'}`;
+        if (locationEl) locationEl.innerText = window.cachedHalData.market || 'Hatay Hali';
+    }
+
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400">Aranan kriterde ürün bulunamadı.</td></tr>`;
+        return;
+    }
+
+    items.forEach(item => {
+        let trendHtml = `<span class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-medium text-[10px]">Yatay</span>`;
+        if (item.change === 'up') {
+            trendHtml = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-arrow-trend-up mr-1"></i>Artış</span>`;
+        } else if (item.change === 'down') {
+            trendHtml = `<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-arrow-trend-down mr-1"></i>Düşüş</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50/80 transition";
+        tr.innerHTML = `
+            <td class="p-3 font-bold text-lux-dark flex items-center gap-2">
+                <i class="fa-solid fa-tag text-[10px] text-lux-gold"></i>
+                <span>${window.escapeHtml(item.name)}</span>
+            </td>
+            <td class="p-3 text-center text-gray-500 font-medium">${window.escapeHtml(item.unit || 'KG')}</td>
+            <td class="p-3 text-center font-semibold text-gray-700">${item.min} TL</td>
+            <td class="p-3 text-center font-extrabold text-emerald-800 bg-emerald-50/50">${item.avg} TL</td>
+            <td class="p-3 text-center font-semibold text-gray-700">${item.max} TL</td>
+            <td class="p-3 text-center">${trendHtml}</td>
+            <td class="p-3 text-right">
+                <button onclick="window.searchHalProductInListings('${window.escapeHtml(item.name)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap">
+                    İlanları Gör <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+window.filterHalPrices = function() {
+    const q = (document.getElementById('hal-search-input').value || '').toLowerCase().trim();
+    if (!window.cachedHalData || !window.cachedHalData.items) return;
+
+    const filtered = window.cachedHalData.items.filter(item => 
+        item.name.toLowerCase().includes(q)
+    );
+    window.renderHalPrices(filtered);
+};
+
+window.searchHalProductInListings = function(productName) {
+    window.closeHalPricesModal();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        // Ürün adındaki açıklayıcı parantezleri kaldır (Örn: "Limon (Mayer)" -> "Limon")
+        const baseName = productName.split('(')[0].trim();
+        searchInput.value = baseName;
+        window.filterListings();
+
+        const grid = document.getElementById('listings-grid');
+        if (grid) {
+            const pos = grid.getBoundingClientRect().top + window.scrollY - 120;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+        window.showToast(`Pazaryerinde "${baseName}" sonuçları listeleniyor.`, "success");
+    }
+};
+};    
