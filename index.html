@@ -66,14 +66,6 @@
             </div>
 
             <div class="flex items-center space-x-1.5 sm:space-x-2 mt-2 sm:mt-0">
-                <button onclick="window.openHarvestCalendar()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1.5 shadow-sm">
-                    <i class="fa-regular fa-calendar-days text-sm"></i>
-                    <span class="hidden md:inline">Hasat Takvimi</span>
-                </button>
-                <button onclick="window.openHalPricesModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1.5 shadow-sm">
-                    <i class="fa-solid fa-scale-balanced text-sm"></i>
-                    <span class="hidden md:inline">Hal Fiyatları</span>
-                </button>
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
                     <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
@@ -178,12 +170,6 @@
                         <option value="price-high">Fiyat: Azalan</option>
                     </select>
 
-                    <select id="intent-filter" onchange="filterListings()" class="w-full sm:w-auto py-2 px-3 border border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 bg-blue-50 text-xs font-semibold text-blue-900 shadow-sm">
-                        <option value="all">Tümü (Satılık & Aranan)</option>
-                        <option value="sell">📦 Sadece Satılık / Hizmet</option>
-                        <option value="buy">📢 Sadece Alım Talepleri</option>
-                    </select>
-
                     <button id="nearby-btn" onclick="window.toggleNearbyMode()" title="Yakınımdaki İlanlar" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-location-crosshairs"></i>
                     </button>
@@ -278,6 +264,7 @@
             
             <div id="cat-modal-content" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
             
+            <!-- JavaScript Sayfalandırmasının Basılacağı Alan -->
             <div id="cat-modal-pagination" class="flex justify-center mt-4 gap-2"></div>
         </div>
     </div>
@@ -300,6 +287,7 @@
                 </div>
             </div>
 
+            <!-- SEKME BUTONLARI -->
             <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500 overflow-x-auto whitespace-nowrap">
                 <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark shrink-0">İlanlarım</button>
                 <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Favorilerim</button>
@@ -307,6 +295,7 @@
                 <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Profil Ayarları</button>
             </div>
 
+            <!-- SEKME İÇERİKLERİ -->
             <div id="tab-content-listings" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
             <div id="tab-content-favorites" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
             <div id="tab-content-offers" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
@@ -406,11 +395,13 @@
                     <div id="map"></div>
                 </div>
 
+                <!-- DİNAMİK ROZETLER -->
                 <div id="detail-custom-box" class="hidden bg-pink-50 border border-pink-200 text-pink-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-palette text-pink-500"></i>
                     <span>Bu ilan kişiye/siparişe özel üretilebilmektedir (Özelleştirilebilir).</span>
                 </div>
 
+                <!-- YENİ: Hasat Rozeti -->
                 <div id="detail-harvest-box" class="hidden bg-orange-50 border border-orange-300 text-orange-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-seedling"></i>
                     <span>Ön Sipariş / Hasat Tarihi: <span id="detail-harvest-date">-</span></span>
@@ -426,6 +417,7 @@
                     <span id="detail-outside-hatay-text">Bu ilan Hatay dışında bulunuyor.</span>
                 </div>
 
+                <!-- TEKLİF & İLETİŞİM ALANI -->
                 <div class="bg-amber-50/60 border border-amber-200/80 p-3 rounded-xl mb-4 space-y-2">
                     <span class="text-xs font-bold text-amber-900 block"><i class="fa-solid fa-handshake text-amber-600 mr-1"></i> Fiyat Teklifi / İletişim Talebi Gönder</span>
                     <div class="flex gap-2">
@@ -445,6 +437,7 @@
                     </div>
                     <div id="rate-seller-box" class="hidden pt-2 border-t border-gray-200/60 flex items-center justify-between gap-2 flex-wrap" onclick="event.stopPropagation()">
                         <span class="text-[10px] text-gray-500">Bu profili değerlendirin:</span>
+                        <!-- JS Tarafından Doldurulan Yıldızlar ve Rozetler Bu Alana Gelecek -->
                         <div id="rate-seller-stars" class="flex flex-col gap-1 w-full"></div>
                     </div>
                 </div>
@@ -477,6 +470,7 @@
         <div class="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative max-h-[90vh] overflow-y-auto">
             <button onclick="closeSellerProfileModal()" class="absolute top-3 right-3 bg-lux-dark/50 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
             <div class="bg-lux-dark text-white p-5">
+                <!-- Dinamik Avatar Alanı -->
                 <div class="w-14 h-14 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-xl uppercase mb-3 overflow-hidden relative" id="seller-profile-avatar-container">
                     <span id="seller-profile-avatar-text">U</span>
                     <img id="seller-profile-avatar-img" src="" class="hidden w-full h-full object-cover">
@@ -487,6 +481,8 @@
                     <span id="seller-profile-rating" class="font-bold text-lux-gold">☆☆☆☆☆</span>
                     <span id="seller-profile-count" class="text-lux-sage">0 ilan</span>
                 </div>
+                
+                <!-- YENİ: Satıcı Profil Rozetleri Container -->
                 <div id="seller-profile-badges" class="flex flex-wrap mt-3 gap-1.5"></div>
             </div>
             <div class="p-5">
@@ -520,6 +516,7 @@
 
                 <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
                 
+                <!-- EKLENEN DOĞRULAMA KODU BUTONU (JS tarafından yönetilecek) -->
                 <button type="button" id="resend-verification-btn" class="w-full bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3 hidden">Doğrulama Kodunu Tekrar Gönder</button>
             </form>
             
@@ -534,7 +531,7 @@
     <div id="form-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Yeni İlan / Talep Oluştur</h3>
+            <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Ücretsiz İlan Oluştur</h3>
              
             <div id="launch-vip-info" class="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs mb-3 flex items-center space-x-2">
                 <i class="fa-solid fa-gift text-lux-gold text-lg"></i>
@@ -546,20 +543,6 @@
                 <input type="hidden" id="form-lat" value="">
                 <input type="hidden" id="form-lng" value="">
 
-                <div class="mb-2 bg-blue-50/50 border border-blue-100 p-3 rounded-xl shadow-sm">
-                    <label class="block text-[11px] font-bold text-lux-dark uppercase mb-2">Ne Yapmak İstiyorsunuz?</label>
-                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="form-intent" id="intent-sell" value="sell" class="w-4 h-4 text-lux-dark border-gray-300 focus:ring-lux-dark" checked>
-                            <span class="ml-2 text-xs font-semibold text-gray-700">Satılık / Hizmet Veriyorum</span>
-                        </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="form-intent" id="intent-buy" value="buy" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
-                            <span class="ml-2 text-xs font-bold text-blue-700">Alım Talebi Oluştur (Arıyorum)</span>
-                        </label>
-                    </div>
-                </div>
-
                 <div class="grid grid-cols-2 gap-3">
                     <select id="form-listing-type" onchange="window.toggleDynamicFields(); filterCategoryOptions();" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none font-semibold text-lux-dark">
                         <option value="tarim">🌾 Tarım / Ürün</option>
@@ -569,6 +552,7 @@
 
                     <select id="form-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
                         <option value="" disabled selected>Kategori Seçin*</option>
+                        <!-- Tarım İçerikleri -->
                         <option value="Zeytin & Yağ" data-type="tarim">🫒 Zeytin & Yağ</option>
                         <option value="Narenciye" data-type="tarim">🍊 Narenciye</option>
                         <option value="Salça & Sos" data-type="tarim">🌶️ Salça & Sos</option>
@@ -576,19 +560,25 @@
                         <option value="Sebze & Sera" data-type="tarim">🥬 Sebze & Sera</option>
                         <option value="Canlı Hayvan & Süt" data-type="tarim">🐄 Hayvan & Süt</option>
                         <option value="Fide & Tohum" data-type="tarim">🌱 Fide & Tohum</option>
+                        
+                        <!-- El Sanatları İçerikleri -->
                         <option value="El Sanatları" data-type="el_yapimi">🎨 El Sanatları</option>
                         <option value="Giyim & Aksesuar" data-type="el_yapimi">🧶 Giyim & Aksesuar</option>
                         <option value="Ev Yapımı Ürünler" data-type="el_yapimi">🍯 Ev Yapımı Ürünler</option>
+                        
+                        <!-- Hizmet İçerikleri -->
                         <option value="Tadilat & Tamirat" data-type="hizmet">🛠️ Tadilat & Tamirat</option>
                         <option value="Özel Ders" data-type="hizmet">📚 Özel Ders</option>
                         <option value="Temizlik" data-type="hizmet">🧹 Temizlik</option>
                         <option value="Tarım İşçiliği" data-type="hizmet">🧑‍🌾 Tarım İşçiliği</option>
                         <option value="Nakliye & Lojistik" data-type="hizmet">🚛 Nakliye & Lojistik</option>
+                        
+                        <!-- Herkese Açık Kategori -->
                         <option value="Diğer" data-type="all">📦 Diğer</option>
                     </select>
                 </div>
 
-                <input type="text" id="form-title" required placeholder="İlan Başlığı (Örn: 2 Ton Limon Arıyorum / Boya Ustası)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                <input type="text" id="form-title" required placeholder="İlan Başlığı (Örn: Hakiki Zeytinyağı / Boya Ustası)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
 
                 <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2">
                     <label class="block text-[11px] font-semibold uppercase text-gray-500">📍 Konum</label>
@@ -623,7 +613,7 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="number" id="form-price" required min="0" step="0.01" placeholder="Fiyat / Bütçe (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="number" id="form-price" required min="0" step="0.01" placeholder="Fiyat (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="text" id="form-unit" placeholder="Birim (KG / Saatlik / Günlük)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -648,6 +638,7 @@
                     <input type="checkbox" id="form-customizable" class="accent-purple-600 cursor-pointer w-4 h-4">
                 </div>
 
+                <!-- YENİ: Hasat / Ön Sipariş Alanı -->
                 <div id="harvest-date-container" class="bg-orange-50/50 p-3 rounded-xl border border-orange-200 space-y-2.5">
                     <label class="block text-[11px] font-semibold uppercase text-orange-700">🌱 Hasat / Ön Sipariş Tarihi (İsteğe Bağlı)</label>
                     <input type="text" id="form-harvest-date" placeholder="Örn: Ekim Ayında Teslim, Gelecek Hafta Çıkacak..." class="w-full border border-orange-200 p-2 rounded-xl text-xs bg-white outline-none">
@@ -676,7 +667,7 @@
                     </div>
                 </div>
 
-              <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">Kaydet ve Yayınla</button>
+              <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">İlanı Kaydet</button>
             </form>
         </div>
     </div>
@@ -703,102 +694,10 @@
                     <option value="Ulaşılamıyor">Kişiye Ulaşılamıyor</option>
                     <option value="Uygunsuz İçerik">Uygunsuz İçerik</option>
                 </select>
-                <textarea id="report-note" rows="2" placeholder="Ek note..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                <textarea id="report-note" rows="2" placeholder="Ek not..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
                 <button type="submit" id="report-btn" class="w-full bg-red-600 text-white font-bold py-2 rounded-xl text-xs">Gönder</button>
          </form>
       </div>
-    </div>
-
-    <!-- HASAT & SEZON TAKVİMİ MODALI -->
-    <div id="harvest-calendar-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative animate-fade-in-up">
-            
-            <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-lux-bg/50">
-                <div>
-                    <h2 class="text-lg md:text-xl font-black text-lux-dark flex items-center gap-2">
-                        <i class="fa-regular fa-calendar-days text-lux-gold"></i> Hatay İnteraktif Hasat Takvimi
-                    </h2>
-                    <p class="text-[11px] text-gray-500 mt-1">İlçelere göre ürünlerin hasat dönemlerini inceleyin, sezon öncesi tedarikçilerle ön bağlantı kurun.</p>
-                </div>
-                <button onclick="window.closeHarvestCalendar()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-red-500 hover:text-white transition flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <div class="p-3 flex gap-3 border-b border-gray-100 bg-gray-50">
-                <div class="relative flex-1 max-w-xs">
-                    <i class="fa-solid fa-filter absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
-                    <select id="harvest-district-filter" onchange="window.renderHarvestCalendar()" class="w-full bg-white border border-gray-200 rounded-lg text-xs py-2.5 pl-8 pr-3 text-lux-dark focus:ring-1 focus:ring-lux-gold outline-none">
-                        <option value="">Tüm İlçeler (Hatay Geneli)</option>
-                        <option value="Altınözü">Altınözü</option>
-                        <option value="Arsuz">Arsuz</option>
-                        <option value="Dörtyol">Dörtyol</option>
-                        <option value="Erzin">Erzin</option>
-                        <option value="Hassa">Hassa</option>
-                        <option value="Kırıkhan">Kırıkhan</option>
-                        <option value="Samandağ">Samandağ</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="p-0 md:p-4 overflow-y-auto flex-1 bg-white" id="harvest-calendar-content"></div>
-        </div>
-    </div>
-
-    <!-- GÜNLÜK HAL FİYATLARI MODALI -->
-    <div id="hal-prices-modal" class="hidden fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative animate-fade-in-up">
-            
-            <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-lux-bg/50">
-                <div>
-                    <h2 class="text-lg md:text-xl font-black text-lux-dark flex items-center gap-2">
-                        <i class="fa-solid fa-scale-balanced text-lux-gold"></i> Hatay Günlük Hal Fiyatları Bülteni
-                    </h2>
-                    <p class="text-[11px] text-gray-500 mt-0.5" id="hal-update-date">Fiyatlar getiriliyor...</p>
-                </div>
-                <button onclick="window.closeHalPricesModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-red-500 hover:text-white transition flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <div class="p-3 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-2 justify-between items-center">
-                <div class="relative flex-1 min-w-[200px]">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" id="hal-search-input" onkeyup="window.filterHalPrices()" placeholder="Halde ürün ara (biber, zeytin, limon)..." class="w-full bg-white border border-gray-200 rounded-xl text-xs py-2 pl-8 pr-3 outline-none focus:border-lux-olive">
-                </div>
-                <div class="text-[11px] text-lux-dark font-medium bg-lux-gold/20 px-3 py-2 rounded-xl border border-lux-gold/30">
-                    <i class="fa-solid fa-location-dot text-lux-gold mr-1"></i> <span id="hal-location-name">Antakya & İskenderun Hali</span>
-                </div>
-            </div>
-
-            <div class="p-0 md:p-4 overflow-y-auto flex-1 bg-white">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[650px]">
-                        <thead>
-                            <tr class="bg-lux-bg/40 text-lux-dark text-[10px] uppercase tracking-widest border-b border-lux-gold/30">
-                                <th class="p-3 font-extrabold rounded-tl-lg">Ürün Adı</th>
-                                <th class="p-3 font-extrabold text-center">Birim</th>
-                                <th class="p-3 font-extrabold text-center">En Düşük</th>
-                                <th class="p-3 font-extrabold text-center">Ortalama</th>
-                                <th class="p-3 font-extrabold text-center">En Yüksek</th>
-                                <th class="p-3 font-extrabold text-center">Değişim</th>
-                                <th class="p-3 font-extrabold text-right rounded-tr-lg">Pazar Durumu</th>
-                            </tr>
-                        </thead>
-                        <tbody id="hal-prices-tbody" class="text-xs divide-y divide-gray-100">
-                            <!-- JS Tarafından Render Edilecek -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4 p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl text-xs text-amber-900 flex gap-2.5 items-start mx-3 md:mx-0">
-                    <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 text-sm"></i>
-                    <p class="leading-relaxed text-[11px]">
-                        Fiyatlar Hatay Büyükşehir Belediyesi Toptancı Halleri verileri doğrultusunda güncellenir. İlgilendiğiniz ürünün yanındaki <b>"İlanları Gör"</b> butonuna tıklayarak doğrudan üreticilerin ve toptancıların tekliflerini inceleyebilirsiniz.
-                    </p>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
