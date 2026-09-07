@@ -2704,4 +2704,4 @@ window.searchHalProductInListings = function(productName) {
         window.showToast(`Pazaryerinde "${baseName}" sonuçları listeleniyor.`, "success");
     }
 };
-};   
+};    
