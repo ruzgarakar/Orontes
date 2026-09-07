@@ -2595,4 +2595,113 @@ window.filterByHarvest = function(district, category) {
     }
     
     window.showToast(`${district} bölgesi ${category} kayıtları listeleniyor.`, "success");
+
+    // ==========================================
+// GÜNLÜK HAL FİYATLARI MOTORU
+// ==========================================
+
+window.cachedHalData = null;
+
+window.openHalPricesModal = async function() {
+    const modal = document.getElementById('hal-prices-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    const tbody = document.getElementById('hal-prices-tbody');
+    if (!window.cachedHalData && tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Güncel hal bülteni yükleniyor...</td></tr>`;
+    }
+
+    try {
+        const snap = await window.get(window.ref(window.db, 'marketPrices'));
+        if (snap.exists()) {
+            window.cachedHalData = snap.val();
+        }
+    } catch(err) {
+        console.warn("Hal bülteni Firebase üzerinden okunamadı:", err);
+    }
+
+    const items = window.cachedHalData ? window.cachedHalData.items : [];
+    window.renderHalPrices(items);
+};
+
+window.closeHalPricesModal = function() {
+    const modal = document.getElementById('hal-prices-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.renderHalPrices = function(items = []) {
+    const tbody = document.getElementById('hal-prices-tbody');
+    const dateEl = document.getElementById('hal-update-date');
+    const locationEl = document.getElementById('hal-location-name');
+
+    if (window.cachedHalData) {
+        if (dateEl) dateEl.innerText = `Bülten Tarihi: ${window.cachedHalData.date || 'Bugün'}`;
+        if (locationEl) locationEl.innerText = window.cachedHalData.market || 'Hatay Hali';
+    }
+
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!items || items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-gray-400">Aranan kriterde ürün bulunamadı.</td></tr>`;
+        return;
+    }
+
+    items.forEach(item => {
+        let trendHtml = `<span class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-medium text-[10px]">Yatay</span>`;
+        if (item.change === 'up') {
+            trendHtml = `<span class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-arrow-trend-up mr-1"></i>Artış</span>`;
+        } else if (item.change === 'down') {
+            trendHtml = `<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded font-bold text-[10px]"><i class="fa-solid fa-arrow-trend-down mr-1"></i>Düşüş</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-gray-50/80 transition";
+        tr.innerHTML = `
+            <td class="p-3 font-bold text-lux-dark flex items-center gap-2">
+                <i class="fa-solid fa-tag text-[10px] text-lux-gold"></i>
+                <span>${window.escapeHtml(item.name)}</span>
+            </td>
+            <td class="p-3 text-center text-gray-500 font-medium">${window.escapeHtml(item.unit || 'KG')}</td>
+            <td class="p-3 text-center font-semibold text-gray-700">${item.min} TL</td>
+            <td class="p-3 text-center font-extrabold text-emerald-800 bg-emerald-50/50">${item.avg} TL</td>
+            <td class="p-3 text-center font-semibold text-gray-700">${item.max} TL</td>
+            <td class="p-3 text-center">${trendHtml}</td>
+            <td class="p-3 text-right">
+                <button onclick="window.searchHalProductInListings('${window.escapeHtml(item.name)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-sm transition whitespace-nowrap">
+                    İlanları Gör <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+window.filterHalPrices = function() {
+    const q = (document.getElementById('hal-search-input').value || '').toLowerCase().trim();
+    if (!window.cachedHalData || !window.cachedHalData.items) return;
+
+    const filtered = window.cachedHalData.items.filter(item => 
+        item.name.toLowerCase().includes(q)
+    );
+    window.renderHalPrices(filtered);
+};
+
+window.searchHalProductInListings = function(productName) {
+    window.closeHalPricesModal();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        // Ürün adındaki açıklayıcı parantezleri kaldır (Örn: "Limon (Mayer)" -> "Limon")
+        const baseName = productName.split('(')[0].trim();
+        searchInput.value = baseName;
+        window.filterListings();
+
+        const grid = document.getElementById('listings-grid');
+        if (grid) {
+            const pos = grid.getBoundingClientRect().top + window.scrollY - 120;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+        window.showToast(`Pazaryerinde "${baseName}" sonuçları listeleniyor.`, "success");
+    }
+};
 };
