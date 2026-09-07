@@ -175,7 +175,6 @@ window.compressImage = function(file) {
 };
 
 onAuthStateChanged(auth, async (user) => {
-    // E-postası doğrulanmamış kullanıcıyı UI tarafında login yapmamak için kontrol
     if (user && !user.emailVerified) {
         window.currentUser = null;
         const loggedOutBox = document.getElementById('auth-logged-out');
@@ -341,18 +340,25 @@ window.executeLocalFilters = function() {
     const sortFilter = document.getElementById('sort-filter');
     const minPriceFilter = document.getElementById('min-price-filter');
     const maxPriceFilter = document.getElementById('max-price-filter');
+    const intentFilter = document.getElementById('intent-filter'); // YENİ: Alım Talebi Filtresi
 
     const search = searchInput ? searchInput.value.toLowerCase() : '';
     const district = districtFilter ? districtFilter.value : '';
     const sort = sortFilter ? sortFilter.value : 'newest';
     const minPrice = minPriceFilter ? (Number(minPriceFilter.value) || 0) : 0;
     const maxPrice = maxPriceFilter ? (Number(maxPriceFilter.value) || Infinity) : Infinity;
+    const intentVal = intentFilter ? intentFilter.value : '';
 
     window.filteredListings = (window.listings || []).filter(item => {
         const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
         const matchesDistrict = district === "" || item.district === district;
         const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
-        return matchesSearch && matchesDistrict && matchesPrice;
+        
+        // YENİ: Satılık / Alınık ayrımı kontrolü
+        const itemIntent = item.intent || 'sell';
+        const matchesIntent = (intentVal === '' || intentVal === 'all') ? true : (itemIntent === intentVal);
+
+        return matchesSearch && matchesDistrict && matchesPrice && matchesIntent;
     });
 
     if (window.nearbyModeActive && window.userGeoLocation) {
@@ -656,7 +662,7 @@ window.handleFormSubmit = async function(e) {
 
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
-    submitBtn.innerText = "İlan kaydediliyor...";
+    submitBtn.innerText = "Kaydediliyor...";
 
     try {
         let imageUrl = document.getElementById('form-image').value;
@@ -675,6 +681,11 @@ window.handleFormSubmit = async function(e) {
         
         const customEl = document.getElementById('form-customizable');
         const isCustomizable = customEl ? customEl.checked : false;
+
+        // YENİ: Alım veya Satım Talebi Seçimi Kontrolü
+        const intentRadio = document.querySelector('input[name="form-intent"]:checked');
+        const intentSelect = document.getElementById('form-intent');
+        const listingIntent = intentRadio ? intentRadio.value : (intentSelect ? intentSelect.value : 'sell');
 
         let priceHistory = existingItem ? (existingItem.priceHistory || []) : [];
         if (existingItem && existingItem.price !== newPrice) {
@@ -711,6 +722,7 @@ window.handleFormSubmit = async function(e) {
             uid: window.currentUser.uid,
             userEmail: window.currentUser.email,
             title: document.getElementById('form-title').value,
+            intent: listingIntent, // YENİ: sell veya buy
             category: category,
             listingType: listingType,          
             isCustomizable: isCustomizable,    
@@ -742,13 +754,13 @@ window.handleFormSubmit = async function(e) {
 
         if (editId) {
             await update(ref(db, 'listings/' + editId), listingData);
-            window.showToast('İlan başarıyla güncellendi!', "success");
+            window.showToast('Kayıt başarıyla güncellendi!', "success");
         } else {
             await push(ref(db, 'listings'), listingData);
             if (isFirst100) {
-                window.showToast('🚀 İlan yayınlandı! İlk 100 ilana özel 3 AYLIK ÜCRETSİZ VIP tanımlandı.', "success");
+                window.showToast('🚀 İlan/Talep yayınlandı! İlk 100 ilana özel 3 AYLIK ÜCRETSİZ VIP tanımlandı.', "success");
             } else {
-                window.showToast('İlanınız yayına alındı!', "success");
+                window.showToast('Kaydınız yayına alındı!', "success");
             }
         }
         closeFormModal();
@@ -1052,7 +1064,7 @@ window.openSellerProfileModal = async function(sellerUid) {
     const badgesDOM = document.getElementById('seller-profile-badges');
 
     const sellerListings = (window.listings || []).filter(l => l.uid === sellerUid).sort((a,b) => b.date - a.date);
-    const displayName = sellerListings.length ? sellerListings[0].seller : 'Satıcı/Hizmet Veren';
+    const displayName = sellerListings.length ? sellerListings[0].seller : 'Kullanıcı';
 
     nameEl.innerText = displayName;
     if(avatarTextEl) {
@@ -1066,7 +1078,7 @@ window.openSellerProfileModal = async function(sellerUid) {
     
     joinedEl.innerText = "Üyelik bilgisi yükleniyor...";
     ratingEl.innerText = "☆☆☆☆☆";
-    countEl.innerText = `${sellerListings.length} ilan`;
+    countEl.innerText = `${sellerListings.length} kayıt`;
     listingsEl.innerHTML = '';
     if(badgesDOM) badgesDOM.innerHTML = '';
 
@@ -1139,14 +1151,15 @@ window.openSellerProfileModal = async function(sellerUid) {
         listingsEl.innerHTML = `<p class="text-xs text-gray-400 italic">Kullanıcının aktif ilanı yok.</p>`;
     } else {
         sellerListings.forEach(item => {
+            const isBuy = item.intent === 'buy';
             const row = document.createElement('div');
-            row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs cursor-pointer hover:bg-lux-sage/20 transition";
+            row.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs cursor-pointer hover:bg-lux-sage/20 transition`;
             row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
             row.innerHTML = `
                 <div class="flex items-center gap-2 min-w-0">
                     <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
                     <div class="min-w-0">
-                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
                         <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
                     </div>
                 </div>
@@ -1174,14 +1187,12 @@ window.loadIncomingOffers = async function() {
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
         const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
-        // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (YENİ EKLENEN KISIM)
         const priceAlerts = [];
         if (window.userExtraData && window.userExtraData.favorites) {
             Object.keys(window.userExtraData.favorites).forEach(favId => {
                 const item = (window.listings || []).find(l => l.id === favId);
                 if (item && item.priceHistory && item.priceHistory.length > 0) {
                     const lastHistory = item.priceHistory[item.priceHistory.length - 1];
-                    // Eğer ilan fiyatı değiştiyse bunu diziye ekliyoruz
                     if (item.price !== lastHistory.price) {
                         priceAlerts.push({
                             id: 'alert_' + item.id,
@@ -1198,7 +1209,6 @@ window.loadIncomingOffers = async function() {
             });
         }
 
-        // Fiyat değişim bildirimleri ve teklifleri tarihe göre birleştir ve sırala
         const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
 
         container.innerHTML = '';
@@ -1212,7 +1222,6 @@ window.loadIncomingOffers = async function() {
             const div = document.createElement('div');
             
             if (o.type === 'price_alert') {
-                // FİYAT BİLDİRİM KARTI
                 div.className = "bg-blue-50 p-3 rounded-xl border border-blue-200 text-xs space-y-2 mb-2";
                 const trendColor = o.isDrop ? "text-emerald-600" : "text-red-600";
                 const trendIcon = o.isDrop ? "fa-arrow-trend-down" : "fa-arrow-trend-up";
@@ -1232,7 +1241,6 @@ window.loadIncomingOffers = async function() {
                     </div>
                 `;
             } else {
-                // MEVCUT TEKLİF KARTLARI (Gelen/Giden)
                 const isIncoming = o.type === 'incoming';
                 div.className = isIncoming 
                     ? "bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs space-y-2 mb-2"
@@ -1243,7 +1251,7 @@ window.loadIncomingOffers = async function() {
                 if (isIncoming) {
                     let cleanPhone = o.buyerPhone ? o.buyerPhone.replace(/[^0-9]/g, '') : '';
                     if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);
-                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" ilanım için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
+                    const waMsg = `Merhaba ${o.buyerName || 'Alıcı'}, "${o.listingTitle || 'İlan'}" talebi/ilanı için verdiğiniz ${o.offeredPrice || 'belirtilmemiş'} TL teklif/mesaj üzerine görüşmek istiyorum.`;
                     const waUrl = cleanPhone ? `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}` : '#';
 
                     div.innerHTML = `
@@ -1395,12 +1403,14 @@ window.renderGlobalMap = function(containerId = 'global-map') {
     const items = window.filteredListings || [];
     items.forEach(item => {
         if (item.lat && item.lng) {
+            const isBuy = item.intent === 'buy';
+            const priceLabel = isBuy ? 'Hedef/Bütçe: ' : '';
             const marker = L.marker([item.lat, item.lng])
                 .bindPopup(`
                     <div style="text-align:center; min-width: 120px;">
                         <img src="${escapeHtml(item.image)}" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
-                        <b style="font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</b>
-                        <span style="color:#10b981; font-weight:bold; font-size:11px;">${item.price} TL</span><br>
+                        <b style="font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)} ${isBuy ? '(ALIM)' : ''}</b>
+                        <span style="color:#10b981; font-weight:bold; font-size:11px;">${priceLabel}${item.price} TL</span><br>
                         <button onclick="openDetailModal('${escapeHtml(item.id)}')" style="margin-top:6px; padding:4px 10px; background:#1a1a1a; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:10px; width:100%;">İncele</button>
                     </div>
                 `);
@@ -1435,7 +1445,7 @@ function renderMap(lat, lng, district) {
     }).addTo(window.mapInstance);
 
     L.marker(coords).addTo(window.mapInstance)
-        .bindPopup(`<b>ORONTES İlan Konumu</b><br>Hatay / ${escapeHtml(district)}`)
+        .bindPopup(`<b>ORONTES Konum</b><br>Hatay / ${escapeHtml(district)}`)
         .openPopup();
         
     setTimeout(() => {
@@ -1536,7 +1546,7 @@ window.resolveLocation = async function(lat, lng) {
             const detectedTownOrDistrict = addr.town || addr.city_district || addr.county || addr.municipality || addr.suburb || '';
             districtSelect.value = 'Hatay Dışı';
             window.locationOutsideHatay = { province, district: detectedTownOrDistrict };
-            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. İlan "Hatay Dışı" olarak işaretlenecek.`;
+            banner.innerText = `⚠️ Dikkat: Bu konum Hatay dışında — ${province}${detectedTownOrDistrict ? ' / ' + detectedTownOrDistrict : ''}. Kayıt "Hatay Dışı" olarak işaretlenecek.`;
             banner.classList.remove('hidden');
         }
     } catch (err) {
@@ -1629,7 +1639,8 @@ function updateFormMapCenter(district) {
 function shareOnWhatsApp() {
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
-    const text = `📌 YEREL PAZAR & HİZMET AĞI\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+    const typeLabel = item.intent === 'buy' ? 'ALIM TALEBİ' : 'İLAN';
+    const text = `📌 ORONTES ${typeLabel}\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat/Bütçe: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİnceleyin: ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -1682,16 +1693,18 @@ function loadFavoriteListings() {
     }
 
     favItems.forEach(item => {
+        const isBuy = item.intent === 'buy';
         const div = document.createElement('div');
-        div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
+        div.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs`;
         
         let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al / İncele' : 'İncele';
+        if(isBuy) primaryBtnText = 'Teklif Ver';
         
         div.innerHTML = `
             <div class="flex items-center space-x-2">
                 <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                 <div>
-                    <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                    <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 rounded ml-1">ALIM</span>' : ''}</span>
                     <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
                 </div>
             </div>
@@ -1753,7 +1766,7 @@ function updateMarqueeData() {
             const emoji = categoryEmojis[cat] || '📦';
             contentHTML += `<button onclick="openCategoryDetailModal('${escapeHtml(cat)}')" class="hover:bg-lux-dark text-white font-medium px-2.5 py-1 rounded-lg bg-lux-dark/50 border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
                 <span>${emoji}</span>
-                <span><b>${escapeHtml(cat)}</b> (${catListings.length} İlan) ${trendIcon}</span>
+                <span><b>${escapeHtml(cat)}</b> (${catListings.length} Kayıt) ${trendIcon}</span>
             </button>`;
         }
     });
@@ -1771,7 +1784,7 @@ function openCategoryDetailModal(cat) {
     
     const emoji = categoryEmojis[cat] || '📦';
     document.getElementById('cat-modal-title').innerText = `${emoji} ${cat} — İlanlar`;
-    document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif ilan`;
+    document.getElementById('cat-modal-sub').innerText = `${window.currentCategoryModalData.length} aktif kayıt`;
 
     renderCategoryModalContent();
     document.getElementById('category-detail-modal').classList.remove('hidden');
@@ -1786,7 +1799,7 @@ function renderCategoryModalContent() {
     const items = window.currentCategoryModalData;
 
     if (items.length === 0) {
-        content.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Bu kategoride henüz ilan yok.</p>`;
+        content.innerHTML = `<p class="text-xs text-gray-400 text-center py-4">Bu kategoride henüz kayıt yok.</p>`;
         if (paginationContainer) paginationContainer.innerHTML = '';
         return;
     }
@@ -1795,6 +1808,7 @@ function renderCategoryModalContent() {
     const paginatedItems = items.slice(startIndex, startIndex + window.catModalItemsPerPage);
 
     paginatedItems.forEach(item => {
+        const isBuy = item.intent === 'buy';
         const emoji = categoryEmojis[item.category] || '📦';
         
         let priceHistoryBadge = '';
@@ -1807,11 +1821,11 @@ function renderCategoryModalContent() {
         }
 
         const div = document.createElement('div');
-        div.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/80 text-xs cursor-pointer hover:bg-lux-sage/20 transition mb-2";
+        div.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/80'} p-2.5 rounded-xl border text-xs cursor-pointer hover:bg-lux-sage/20 transition mb-2`;
         div.onclick = () => { closeCategoryDetailModal(); openDetailModal(item.id); };
         div.innerHTML = `
             <div class="min-w-0 pr-2">
-                <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)}</span>
+                <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
                 <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
             </div>
             <div class="text-right shrink-0">
@@ -1890,16 +1904,17 @@ function openAccountModal() {
 
     myListingsContainer.innerHTML = '';
     if (myListings.length === 0) {
-        myListingsContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz verdiğiniz bir ilan bulunmuyor.</p>`;
+        myListingsContainer.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz verdiğiniz bir kayıt bulunmuyor.</p>`;
     } else {
         myListings.forEach(item => {
+            const isBuy = item.intent === 'buy';
             const row = document.createElement('div');
-            row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
+            row.className = `flex justify-between items-center ${isBuy ? 'bg-blue-50 border-blue-200' : 'bg-lux-bg/40 border-gray-200/60'} p-2.5 rounded-xl border text-xs`;
             row.innerHTML = `
                 <div class="flex items-center space-x-2">
                     <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                     <div>
-                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
+                        <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)} ${isBuy ? '<span class="text-[9px] bg-blue-600 text-white px-1 py-0.5 rounded ml-1">ALIM</span>' : ''}</span>
                         <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
                     </div>
                 </div>
@@ -1925,6 +1940,11 @@ function openFormModal() {
     }
     const addForm = document.getElementById('add-listing-form');
     if (addForm) addForm.reset();
+    
+    // YENİ: Varsayılan olarak "Satış" sekmesi seçili gelsin
+    const intentSell = document.getElementById('intent-sell');
+    if (intentSell) intentSell.checked = true;
+
     document.getElementById('edit-listing-id').value = '';
     document.getElementById('form-lat').value = '';
     document.getElementById('form-lng').value = '';
@@ -1942,7 +1962,7 @@ function openFormModal() {
     window.locationOutsideHatay = null;
     const owBanner = document.getElementById('outside-hatay-warning');
     if (owBanner) owBanner.classList.add('hidden');
-    document.getElementById('form-modal-title').innerText = "Ücretsiz İlan Oluştur";
+    document.getElementById('form-modal-title').innerText = "Yeni İlan / Talep Oluştur";
     
     const sellerInput = document.getElementById('form-seller');
     const phoneInput = document.getElementById('form-phone');
@@ -1971,9 +1991,18 @@ function openFormModalForEdit() {
     if (!item) return;
 
     document.getElementById('edit-listing-id').value = item.id;
-    document.getElementById('form-modal-title').innerText = "İlanı Düzenle";
+    document.getElementById('form-modal-title').innerText = "Kaydı Düzenle";
     document.getElementById('form-title').value = item.title;
     
+    // YENİ: Edit sırasında radio butonları doldur
+    const intentRadios = document.getElementsByName('form-intent');
+    if (intentRadios && intentRadios.length > 0) {
+        intentRadios.forEach(r => r.checked = (r.value === (item.intent || 'sell')));
+    } else {
+        const intentSelect = document.getElementById('form-intent');
+        if (intentSelect) intentSelect.value = item.intent || 'sell';
+    }
+
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = item.listingType || 'tarim';
     
@@ -2098,7 +2127,7 @@ function renderListings() {
         : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
     
     const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} İlan/Hizmet Bulundu`;
+    if (countEl) countEl.innerText = `${items.length} Kayıt Bulundu`;
     grid.innerHTML = '';
 
     if (items.length === 0) {
@@ -2113,12 +2142,14 @@ function renderListings() {
 
     paginatedItems.forEach(item => {
         const card = document.createElement('div');
-
         const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
+        const isBuy = item.intent === 'buy';
 
         let cardStyle = 'border border-gray-200/70';
-        if (isVipActive) cardStyle = 'vip-card';
+        if (isVipActive) cardStyle = 'vip-card border-lux-gold/50 shadow-[0_0_15px_rgba(188,168,121,0.2)]';
         else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
+        
+        if (isBuy) cardStyle += ' ring-2 ring-blue-300 shadow-blue-100 bg-blue-50/20'; // Alım talebine özel görünüm
 
         const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
         const emoji = categoryEmojis[item.category] || '📦';
@@ -2133,6 +2164,7 @@ function renderListings() {
         }
         
         let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al' : 'İncele';
+        if (isBuy) primaryBtnText = 'Teklif İlet'; // Alım talebi buton yazısı
 
         card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
         card.innerHTML = `
@@ -2143,6 +2175,7 @@ function renderListings() {
                         <i class="fa-solid fa-heart"></i>
                     </button>
                     <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
+                        ${isBuy ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow animate-pulse">📢 ALIM TALEBİ</span>' : ''}
                         ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded shadow">VIP</span>' : ''}
                         ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse shadow">ACİL</span>' : ''}
                         
@@ -2166,12 +2199,12 @@ function renderListings() {
             <div class="px-3.5 pb-3.5">
                 <div class="flex justify-between items-end border-t border-gray-100 pt-2.5">
                     <div>
-                        <span class="text-[9px] text-gray-400 block">${escapeHtml(item.unit || 'Fiyat')}</span>
+                        <span class="text-[9px] text-gray-400 block">${isBuy ? 'Hedef / Bütçe' : escapeHtml(item.unit || 'Fiyat')}</span>
                         <span class="text-base font-bold text-lux-dark">${item.price} TL</span>
                         ${priceHistoryBadge}
-                        ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">Min. sipariş: ${escapeHtml(item.minOrderQty)}</span>` : ''}
+                        ${item.businessType === 'Toptancı' && item.minOrderQty ? `<span class="text-[9px] text-lux-olive font-semibold block mt-0.5">${isBuy ? 'Aranan' : 'Min'} Miktar: ${escapeHtml(item.minOrderQty)}</span>` : ''}
                     </div>
-                    <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-2.5 py-1.5 rounded-lg transition">${primaryBtnText}</button>
+                    <button onclick="openDetailModal('${escapeHtml(item.id)}')" class="text-[11px] ${isBuy ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-lux-bg text-lux-dark hover:bg-lux-sage/30'} font-semibold px-2.5 py-1.5 rounded-lg transition shadow-sm">${primaryBtnText}</button>
                 </div>
             </div>
         `;
@@ -2251,6 +2284,7 @@ function resetAllFilters() {
     const sortEl = document.getElementById('sort-filter');
     const minEl = document.getElementById('min-price-filter');
     const maxEl = document.getElementById('max-price-filter');
+    const intentEl = document.getElementById('intent-filter');
 
     if (searchEl) searchEl.value = '';
     if (catEl) catEl.value = '';
@@ -2258,6 +2292,7 @@ function resetAllFilters() {
     if (sortEl) sortEl.value = 'newest';
     if (minEl) minEl.value = '';
     if (maxEl) maxEl.value = '';
+    if (intentEl) intentEl.value = '';
 
     window.nearbyModeActive = false;
     const nearbyBtn = document.getElementById('nearby-btn');
@@ -2275,15 +2310,23 @@ function openDetailModal(id) {
 
     window.activeListingId = id;
     window.activeSellerUid = item.uid;
+    const isBuy = item.intent === 'buy';
+
     document.getElementById('detail-img').src = item.image;
-    document.getElementById('detail-title').innerText = item.title;
+    
+    const badgeHTML = isBuy ? '<span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[10px] ml-2 align-middle shadow-sm">📢 ALIM TALEBİ</span>' : '';
+    document.getElementById('detail-title').innerHTML = escapeHtml(item.title) + badgeHTML;
+    
     document.getElementById('detail-category').innerText = item.category;
     
     document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
     const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
     document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
     
-    let priceHTML = `${item.price} TL`;
+    let priceHTML = isBuy 
+        ? `<span class="text-xs font-normal text-gray-500 block mb-0.5">Hedef Bütçe / Alım Fiyatı:</span> ${item.price} TL` 
+        : `${item.price} TL`;
+
     if (item.priceHistory && item.priceHistory.length > 0) {
         const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
         const isDrop = item.price < oldPrice;
@@ -2356,10 +2399,13 @@ function openDetailModal(id) {
         detailWhatsAppBtn.target = "_self";
         detailWhatsAppBtn.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
     } else if (detailWhatsAppBtn) {
-        const waMsg = `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız/hizmetiniz hakkında görüşmek istiyorum.`;
+        const waMsg = isBuy
+            ? `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" alım talebiniz için size bir ürün/fiyat teklifim var.`
+            : `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız hakkında görüşmek istiyorum.`;
+        
         detailWhatsAppBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
         detailWhatsAppBtn.target = "_blank";
-        detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>İletişim</span>`;
+        detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>${isBuy ? 'Teklif İlet' : 'İletişim'}</span>`;
         detailWhatsAppBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
         detailWhatsAppBtn.onclick = null;
     }
