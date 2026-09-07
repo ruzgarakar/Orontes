@@ -170,6 +170,13 @@
                         <option value="price-high">Fiyat: Azalan</option>
                     </select>
 
+                    <!-- YENİ EKLENEN: ALIM TALEBİ FİLTRESİ -->
+                    <select id="intent-filter" onchange="filterListings()" class="w-full sm:w-auto py-2 px-3 border border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 bg-blue-50 text-xs font-semibold text-blue-900 shadow-sm">
+                        <option value="all">Tümü (Satılık & Aranan)</option>
+                        <option value="sell">📦 Sadece Satılık / Hizmet</option>
+                        <option value="buy">📢 Sadece Alım Talepleri</option>
+                    </select>
+
                     <button id="nearby-btn" onclick="window.toggleNearbyMode()" title="Yakınımdaki İlanlar" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-location-crosshairs"></i>
                     </button>
@@ -401,7 +408,7 @@
                     <span>Bu ilan kişiye/siparişe özel üretilebilmektedir (Özelleştirilebilir).</span>
                 </div>
 
-                <!-- YENİ: Hasat Rozeti -->
+                <!-- Hasat Rozeti -->
                 <div id="detail-harvest-box" class="hidden bg-orange-50 border border-orange-300 text-orange-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-seedling"></i>
                     <span>Ön Sipariş / Hasat Tarihi: <span id="detail-harvest-date">-</span></span>
@@ -482,7 +489,7 @@
                     <span id="seller-profile-count" class="text-lux-sage">0 ilan</span>
                 </div>
                 
-                <!-- YENİ: Satıcı Profil Rozetleri Container -->
+                <!-- Satıcı Profil Rozetleri Container -->
                 <div id="seller-profile-badges" class="flex flex-wrap mt-3 gap-1.5"></div>
             </div>
             <div class="p-5">
@@ -516,7 +523,7 @@
 
                 <button type="submit" id="auth-submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Giriş Yap</button>
                 
-                <!-- EKLENEN DOĞRULAMA KODU BUTONU (JS tarafından yönetilecek) -->
+                <!-- DOĞRULAMA KODU BUTONU (JS tarafından yönetilecek) -->
                 <button type="button" id="resend-verification-btn" class="w-full bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-2.5 rounded-xl shadow transition text-xs mt-3 hidden">Doğrulama Kodunu Tekrar Gönder</button>
             </form>
             
@@ -531,7 +538,7 @@
     <div id="form-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="closeFormModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Ücretsiz İlan Oluştur</h3>
+            <h3 id="form-modal-title" class="text-lg font-bold mb-1 text-lux-dark">Yeni İlan / Talep Oluştur</h3>
              
             <div id="launch-vip-info" class="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs mb-3 flex items-center space-x-2">
                 <i class="fa-solid fa-gift text-lux-gold text-lg"></i>
@@ -542,6 +549,21 @@
                 <input type="hidden" id="edit-listing-id" value="">
                 <input type="hidden" id="form-lat" value="">
                 <input type="hidden" id="form-lng" value="">
+
+                <!-- YENİ EKLENEN KISIM: İlan Amacı -->
+                <div class="mb-2 bg-blue-50/50 border border-blue-100 p-3 rounded-xl shadow-sm">
+                    <label class="block text-[11px] font-bold text-lux-dark uppercase mb-2">Ne Yapmak İstiyorsunuz?</label>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="form-intent" id="intent-sell" value="sell" class="w-4 h-4 text-lux-dark border-gray-300 focus:ring-lux-dark" checked>
+                            <span class="ml-2 text-xs font-semibold text-gray-700">Satılık / Hizmet Veriyorum</span>
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="radio" name="form-intent" id="intent-buy" value="buy" class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                            <span class="ml-2 text-xs font-bold text-blue-700">Alım Talebi Oluştur (Arıyorum)</span>
+                        </label>
+                    </div>
+                </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <select id="form-listing-type" onchange="window.toggleDynamicFields(); filterCategoryOptions();" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none font-semibold text-lux-dark">
@@ -578,7 +600,7 @@
                     </select>
                 </div>
 
-                <input type="text" id="form-title" required placeholder="İlan Başlığı (Örn: Hakiki Zeytinyağı / Boya Ustası)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                <input type="text" id="form-title" required placeholder="İlan Başlığı (Örn: 2 Ton Limon Arıyorum / Boya Ustası)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
 
                 <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2">
                     <label class="block text-[11px] font-semibold uppercase text-gray-500">📍 Konum</label>
@@ -613,7 +635,7 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="number" id="form-price" required min="0" step="0.01" placeholder="Fiyat (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="number" id="form-price" required min="0" step="0.01" placeholder="Fiyat / Bütçe (TL)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="text" id="form-unit" placeholder="Birim (KG / Saatlik / Günlük)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -638,7 +660,7 @@
                     <input type="checkbox" id="form-customizable" class="accent-purple-600 cursor-pointer w-4 h-4">
                 </div>
 
-                <!-- YENİ: Hasat / Ön Sipariş Alanı -->
+                <!-- Hasat / Ön Sipariş Alanı -->
                 <div id="harvest-date-container" class="bg-orange-50/50 p-3 rounded-xl border border-orange-200 space-y-2.5">
                     <label class="block text-[11px] font-semibold uppercase text-orange-700">🌱 Hasat / Ön Sipariş Tarihi (İsteğe Bağlı)</label>
                     <input type="text" id="form-harvest-date" placeholder="Örn: Ekim Ayında Teslim, Gelecek Hafta Çıkacak..." class="w-full border border-orange-200 p-2 rounded-xl text-xs bg-white outline-none">
@@ -667,7 +689,7 @@
                     </div>
                 </div>
 
-              <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">İlanı Kaydet</button>
+              <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">Kaydet ve Yayınla</button>
             </form>
         </div>
     </div>
