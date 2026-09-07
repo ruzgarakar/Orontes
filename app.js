@@ -340,7 +340,7 @@ window.executeLocalFilters = function() {
     const sortFilter = document.getElementById('sort-filter');
     const minPriceFilter = document.getElementById('min-price-filter');
     const maxPriceFilter = document.getElementById('max-price-filter');
-    const intentFilter = document.getElementById('intent-filter'); // YENİ: Alım Talebi Filtresi
+    const intentFilter = document.getElementById('intent-filter');
 
     const search = searchInput ? searchInput.value.toLowerCase() : '';
     const district = districtFilter ? districtFilter.value : '';
@@ -354,7 +354,6 @@ window.executeLocalFilters = function() {
         const matchesDistrict = district === "" || item.district === district;
         const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
         
-        // YENİ: Satılık / Alınık ayrımı kontrolü
         const itemIntent = item.intent || 'sell';
         const matchesIntent = (intentVal === '' || intentVal === 'all') ? true : (itemIntent === intentVal);
 
@@ -682,7 +681,6 @@ window.handleFormSubmit = async function(e) {
         const customEl = document.getElementById('form-customizable');
         const isCustomizable = customEl ? customEl.checked : false;
 
-        // YENİ: Alım veya Satım Talebi Seçimi Kontrolü
         const intentRadio = document.querySelector('input[name="form-intent"]:checked');
         const intentSelect = document.getElementById('form-intent');
         const listingIntent = intentRadio ? intentRadio.value : (intentSelect ? intentSelect.value : 'sell');
@@ -722,7 +720,7 @@ window.handleFormSubmit = async function(e) {
             uid: window.currentUser.uid,
             userEmail: window.currentUser.email,
             title: document.getElementById('form-title').value,
-            intent: listingIntent, // YENİ: sell veya buy
+            intent: listingIntent,
             category: category,
             listingType: listingType,          
             isCustomizable: isCustomizable,    
@@ -2428,148 +2426,6 @@ function openDetailModal(id) {
     setTimeout(() => { renderMap(item.lat, item.lng, item.district); }, 200);
 }
 
-window.openFormModal = openFormModal;
-window.closeFormModal = closeFormModal;
-window.openAuthModal = openAuthModal;
-window.closeAuthModal = closeAuthModal;
-window.toggleAuthMode = toggleAuthMode;
-window.openAccountModal = openAccountModal;
-window.closeAccountModal = closeAccountModal;
-window.switchAccountTab = switchAccountTab;
-window.openTermsModal = openTermsModal;
-window.closeTermsModal = closeTermsModal;
-window.openReportModal = openReportModal;
-window.closeReportModal = closeReportModal;
-window.handleReportSubmit = handleReportSubmit;
-window.openFormModalForEdit = openFormModalForEdit;
-window.setViewMode = setViewMode;
-window.changePage = changePage;
-window.shareOnWhatsApp = shareOnWhatsApp;
-window.openDetailModal = openDetailModal;                            
-window.closeDetailModal = closeDetailModal;
-window.filterListings = filterListings;
-window.executeLocalFilters = executeLocalFilters;
-window.renderListings = renderListings;
-window.resetAllFilters = resetAllFilters;
-window.updateFavBtnStyle = updateFavBtnStyle;
-window.getTimeAgo = getTimeAgo;
-window.closeSellerProfileModal = closeSellerProfileModal;
-window.openCategoryDetailModal = openCategoryDetailModal;
-window.closeCategoryDetailModal = closeCategoryDetailModal;
-window.renderMap = renderMap;
-window.initFormMap = initFormMap;
-window.updateFormMapCenter = updateFormMapCenter;
-window.updateMarqueeData = updateMarqueeData;
-window.renderPaginationControls = renderPaginationControls;
-window.loadFavoriteListings = loadFavoriteListings;
-window.openInboxTab = openInboxTab;
-
-// ==========================================
-// HATAY İNTERAKTİF HASAT & SEZON TAKVİMİ
-// ==========================================
-
-// Hatay'ın stratejik tarım ürünleri veri tabanı
-window.hatayHarvestData = [
-    { product: "Zeytin (Yağlık/Sofralık)", district: "Altınözü", start: 10, end: 12, category: "Zeytin & Yağ", icon: "🫒", color: "bg-green-600" },
-    { product: "Narenciye (Portakal/Limon)", district: "Dörtyol", start: 10, end: 3, category: "Narenciye", icon: "🍊", color: "bg-orange-500" },
-    { product: "Narenciye (Mandalina)", district: "Erzin", start: 9, end: 2, category: "Narenciye", icon: "🍊", color: "bg-orange-400" },
-    { product: "Samandağ Biberi", district: "Samandağ", start: 5, end: 11, category: "Sebze & Sera", icon: "🌶️", color: "bg-red-500" },
-    { product: "Hassa Üzümü", district: "Hassa", start: 7, end: 10, category: "Sebze & Sera", icon: "🍇", color: "bg-purple-500" },
-    { product: "Havuç", district: "Kırıkhan", start: 11, end: 3, category: "Sebze & Sera", icon: "🥕", color: "bg-orange-600" },
-    { product: "Kavun (Kırkağaç Tipi)", district: "Kırıkhan", start: 6, end: 8, category: "Sebze & Sera", icon: "🍈", color: "bg-yellow-400" },
-    { product: "Muz", district: "Arsuz", start: 9, end: 1, category: "Sebze & Sera", icon: "🍌", color: "bg-yellow-500" },
-    { product: "Pamuk", district: "Kırıkhan", start: 9, end: 10, category: "Bakliyat & Hububat", icon: "☁️", color: "bg-gray-300" },
-    { product: "Maydanoz & Yeşillik", district: "Samandağ", start: 1, end: 12, category: "Sebze & Sera", icon: "🥬", color: "bg-emerald-400" } // Yıl boyu
-];
-
-window.openHarvestCalendar = function() {
-    document.getElementById('harvest-calendar-modal').classList.remove('hidden');
-    window.renderHarvestCalendar();
-};
-
-window.closeHarvestCalendar = function() {
-    document.getElementById('harvest-calendar-modal').classList.add('hidden');
-};
-
-window.renderHarvestCalendar = function() {
-    const container = document.getElementById('harvest-calendar-content');
-    if (!container) return;
-
-    const districtFilter = document.getElementById('harvest-district-filter').value;
-    const months = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
-
-    let filteredData = window.hatayHarvestData;
-    if (districtFilter) {
-        filteredData = filteredData.filter(d => d.district === districtFilter);
-    }
-
-    let html = `
-        <div class="overflow-x-auto pb-4">
-            <table class="w-full text-left border-collapse min-w-[800px]">
-                <thead>
-                    <tr class="bg-lux-bg/40 text-lux-dark text-[10px] uppercase tracking-widest border-b border-lux-gold/30">
-                        <th class="p-3 font-extrabold w-[25%] rounded-tl-lg">Ürün & İlçe</th>
-                        ${months.map(m => `<th class="p-2 font-bold text-center w-[5%]">${m}</th>`).join('')}
-                        <th class="p-3 font-extrabold text-right w-[15%] rounded-tr-lg">Aksiyon</th>
-                    </tr>
-                </thead>
-                <tbody class="text-xs">
-    `;
-
-    filteredData.forEach(item => {
-        html += `
-            <tr class="border-b border-gray-100 hover:bg-gray-50/80 transition-colors group">
-                <td class="p-3">
-                    <div class="font-bold text-lux-dark flex items-center gap-1.5 text-[11px] md:text-xs">
-                        <span class="text-sm shadow-sm bg-white rounded-md px-1">${item.icon}</span> 
-                        ${item.product}
-                    </div>
-                    <div class="text-[9px] text-gray-500 mt-1 font-medium ml-7"><i class="fa-solid fa-location-dot text-lux-gold mr-0.5"></i> ${item.district}</div>
-                </td>
-        `;
-
-        for (let i = 1; i <= 12; i++) {
-            let isActive = false;
-            // Eğer bitiş ayı, başlangıç ayından küçükse (Örn: Kasım(11)'den Mart(3)'a kadar sarkıyorsa kış hasadı)
-            if (item.start <= item.end) {
-                isActive = i >= item.start && i <= item.end;
-            } else {
-                isActive = i >= item.start || i <= item.end;
-            }
-
-            html += `
-                <td class="p-1 text-center">
-                    <div class="w-full h-5 rounded-md transition-all duration-300 ${isActive ? item.color + ' opacity-90 shadow-[0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-110' : 'bg-gray-100/50'}"></div>
-                </td>
-            `;
-        }
-
-        html += `
-                <td class="p-3 text-right">
-                    <button onclick="window.filterByHarvest('${item.district}', '${item.category}')" class="bg-white border border-gray-200 text-lux-dark font-bold text-[9px] px-3 py-1.5 rounded-lg hover:border-lux-gold hover:text-lux-gold transition shadow-sm whitespace-nowrap">
-                        Tedarikçi Bul <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-
-    html += `
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4 p-3 md:p-4 bg-blue-50/50 border border-blue-200/50 rounded-xl text-xs text-blue-900 flex gap-3 items-start shadow-sm mx-3 md:mx-0">
-            <i class="fa-solid fa-circle-info mt-0.5 text-blue-600 text-base"></i>
-            <div>
-                <strong class="block mb-1 text-blue-700">Tedarikçi ve Alıcı İpucu:</strong>
-                <p class="leading-relaxed">Mevsimsel yağışlar ve iklim koşullarına göre hasat tarihleri <b>±15 gün</b> değişiklik gösterebilir. E-ticaret satıcıları ve toptancıların, takvimdeki başlangıç tarihinden en az <b>1 ay önce "Alım Talebi"</b> ilanlarını açmaları tavsiye edilir.</p>
-            </div>
-        </div>
-    `;
-
-    container.innerHTML = html;
-};
-
 // Takvimdeki "Tedarikçi Bul" butonuna basıldığında ana listeyi filtreler
 window.filterByHarvest = function(district, category) {
     window.closeHarvestCalendar();
@@ -2595,8 +2451,9 @@ window.filterByHarvest = function(district, category) {
     }
     
     window.showToast(`${district} bölgesi ${category} kayıtları listeleniyor.`, "success");
+};
 
-    // ==========================================
+// ==========================================
 // GÜNLÜK HAL FİYATLARI MOTORU
 // ==========================================
 
@@ -2704,4 +2561,39 @@ window.searchHalProductInListings = function(productName) {
         window.showToast(`Pazaryerinde "${baseName}" sonuçları listeleniyor.`, "success");
     }
 };
-};
+
+window.openFormModal = openFormModal;
+window.closeFormModal = closeFormModal;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.toggleAuthMode = toggleAuthMode;
+window.openAccountModal = openAccountModal;
+window.closeAccountModal = closeAccountModal;
+window.switchAccountTab = switchAccountTab;
+window.openTermsModal = openTermsModal;
+window.closeTermsModal = closeTermsModal;
+window.openReportModal = openReportModal;
+window.closeReportModal = closeReportModal;
+window.handleReportSubmit = handleReportSubmit;
+window.openFormModalForEdit = openFormModalForEdit;
+window.setViewMode = setViewMode;
+window.changePage = changePage;
+window.shareOnWhatsApp = shareOnWhatsApp;
+window.openDetailModal = openDetailModal;                            
+window.closeDetailModal = closeDetailModal;
+window.filterListings = filterListings;
+window.executeLocalFilters = executeLocalFilters;
+window.renderListings = renderListings;
+window.resetAllFilters = resetAllFilters;
+window.updateFavBtnStyle = updateFavBtnStyle;
+window.getTimeAgo = getTimeAgo;
+window.closeSellerProfileModal = closeSellerProfileModal;
+window.openCategoryDetailModal = openCategoryDetailModal;
+window.closeCategoryDetailModal = closeCategoryDetailModal;
+window.renderMap = renderMap;
+window.initFormMap = initFormMap;
+window.updateFormMapCenter = updateFormMapCenter;
+window.updateMarqueeData = updateMarqueeData;
+window.renderPaginationControls = renderPaginationControls;
+window.loadFavoriteListings = loadFavoriteListings;
+window.openInboxTab = openInboxTab;
