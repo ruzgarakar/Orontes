@@ -190,6 +190,43 @@
         </div>
     </section>
 
+    <!-- PİYASA, TALEPLER & TAKVİM BÖLÜMÜ (YENİ EKLENEN) -->
+    <section id="market-dashboard" class="max-w-7xl mx-auto px-4 mt-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Sol Sütun: Hal Fiyatları & Hasat Takvimi -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Hal Fiyatları -->
+                <div>
+                    <h2 class="text-base font-bold text-lux-dark flex items-center space-x-2 mb-3">
+                        <i class="fa-solid fa-chart-line text-lux-gold"></i>
+                        <span>Günlük Bölge Hal Fiyatları</span>
+                    </h2>
+                    <div id="market-prices-container"></div>
+                </div>
+                <!-- Hasat Takvimi -->
+                <div>
+                    <h2 class="text-base font-bold text-lux-dark flex items-center space-x-2 mb-3">
+                        <i class="fa-regular fa-calendar-days text-lux-gold"></i>
+                        <span>Hatay Hasat & Sezon Takvimi</span>
+                    </h2>
+                    <div id="harvest-calendar-container"></div>
+                </div>
+            </div>
+
+            <!-- Sağ Sütun: Alım Talepleri -->
+            <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-base font-bold text-lux-dark flex items-center space-x-2">
+                        <i class="fa-solid fa-bullhorn text-blue-600"></i>
+                        <span>Alım Talepleri (Alıcı Aranıyor)</span>
+                    </h2>
+                    <button onclick="openPurchaseRequestModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition shadow-sm">+ Talep Aç</button>
+                </div>
+                <div id="purchase-requests-container" class="flex-1 overflow-y-auto max-h-[400px] pr-1 space-y-2"></div>
+            </div>
+        </div>
+    </section>
+
     <!-- İLAN LİSTESİ -->
     <main class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
@@ -401,10 +438,16 @@
                     <span>Bu ilan kişiye/siparişe özel üretilebilmektedir (Özelleştirilebilir).</span>
                 </div>
 
-                <!-- YENİ: Hasat Rozeti -->
+                <!-- Hasat Rozeti -->
                 <div id="detail-harvest-box" class="hidden bg-orange-50 border border-orange-300 text-orange-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-seedling"></i>
                     <span>Ön Sipariş / Hasat Tarihi: <span id="detail-harvest-date">-</span></span>
+                </div>
+
+                <!-- Nakliye Rozeti -->
+                <div id="detail-logistics-box" class="hidden bg-blue-50 border border-blue-300 text-blue-800 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-truck-fast"></i>
+                    <span>Rota: <span id="detail-route">-</span> (<span id="detail-logistics-type">-</span>)</span>
                 </div>
 
                 <div id="detail-wholesale-box" class="hidden bg-lux-olive/10 border border-lux-olive/30 text-lux-olive p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
@@ -638,10 +681,25 @@
                     <input type="checkbox" id="form-customizable" class="accent-purple-600 cursor-pointer w-4 h-4">
                 </div>
 
-                <!-- YENİ: Hasat / Ön Sipariş Alanı -->
+                <!-- Hasat / Ön Sipariş Alanı -->
                 <div id="harvest-date-container" class="bg-orange-50/50 p-3 rounded-xl border border-orange-200 space-y-2.5">
                     <label class="block text-[11px] font-semibold uppercase text-orange-700">🌱 Hasat / Ön Sipariş Tarihi (İsteğe Bağlı)</label>
                     <input type="text" id="form-harvest-date" placeholder="Örn: Ekim Ayında Teslim, Gelecek Hafta Çıkacak..." class="w-full border border-orange-200 p-2 rounded-xl text-xs bg-white outline-none">
+                </div>
+
+                <!-- Nakliye Alanları -->
+                <div id="logistics-route-fields" class="hidden bg-blue-50/50 p-3 rounded-xl border border-blue-200 space-y-2.5">
+                    <label class="block text-[11px] font-semibold uppercase text-blue-700">🚛 Nakliye Rota Bilgileri</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="form-route-start" placeholder="Çıkış (Örn: İskenderun)" class="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <input type="text" id="form-route-end" placeholder="Varış (Örn: Adana)" class="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white outline-none">
+                    </div>
+                    <select id="form-logistics-type" class="w-full border border-blue-200 p-2 rounded-xl text-xs bg-white outline-none mt-2">
+                        <option value="">Nakliye Tipi Seçin</option>
+                        <option value="Boş Dönüş (Fırsat)">Boş Dönüş (Fırsat)</option>
+                        <option value="Parsiyel (Parça Yük)">Parsiyel (Parça Yük)</option>
+                        <option value="Tam Araç">Tam Araç</option>
+                    </select>
                 </div>
 
                 <div>
@@ -668,6 +726,38 @@
                 </div>
 
               <button type="submit" id="submit-btn" class="w-full bg-lux-dark hover:bg-lux-olive text-white font-bold py-2.5 rounded-xl shadow transition text-xs">İlanı Kaydet</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ALIM TALEBİ AÇMA MODALI (YENİ EKLENEN) -->
+    <div id="request-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl relative border border-gray-100">
+            <button onclick="closePurchaseRequestModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-bold mb-1 text-lux-dark">Yeni Alım Talebi</h3>
+            <p class="text-[10px] text-gray-500 mb-4">Üreticilerden veya toptancılardan ürün aradığınızı duyurun.</p>
+            
+            <form id="request-form" onsubmit="event.preventDefault(); submitPurchaseRequest(
+                document.getElementById('req-title').value,
+                document.getElementById('req-category').value,
+                document.getElementById('req-district').value,
+                document.getElementById('req-amount').value,
+                document.getElementById('req-desc').value
+            ); closePurchaseRequestModal();" class="space-y-3">
+                <input type="text" id="req-title" required placeholder="Talep Başlığı (Örn: 5 Ton Mandalina)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                <select id="req-category" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                    <option value="Zeytin & Yağ">Zeytin & Yağ</option>
+                    <option value="Narenciye">Narenciye</option>
+                    <option value="Salça & Sos">Salça & Sos</option>
+                    <option value="Sebze & Sera">Sebze & Sera</option>
+                    <option value="Bakliyat & Hububat">Bakliyat & Hububat</option>
+                    <option value="Canlı Hayvan & Süt">Canlı Hayvan & Süt</option>
+                    <option value="Diğer">Diğer</option>
+                </select>
+                <input type="text" id="req-district" required placeholder="Bölge / İlçe (Örn: Dörtyol)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                <input type="text" id="req-amount" required placeholder="Miktar (Örn: 5 Ton / 100 Şişe)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                <textarea id="req-desc" rows="2" placeholder="Ek detaylar, teslimat şartları vb..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none"></textarea>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs mt-2">Talebi Yayınla</button>
             </form>
         </div>
     </div>
@@ -736,6 +826,19 @@
                 }
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function openPurchaseRequestModal() { 
+            if(!window.currentUser) { 
+                window.showToast("Önce giriş yapmalısınız.", "warning"); 
+                openAuthModal('login'); 
+                return; 
+            }
+            document.getElementById('request-modal').classList.remove('hidden'); 
+        }
+        
+        function closePurchaseRequestModal() { 
+            document.getElementById('request-modal').classList.add('hidden'); 
         }
     </script>
 
