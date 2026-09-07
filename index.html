@@ -67,11 +67,11 @@
 
             <div class="flex items-center space-x-1.5 sm:space-x-2 mt-2 sm:mt-0">
                 <!-- EKLENEN HASAT TAKVİMİ BUTONU -->
-                <button onclick="window.openHarvestCalendar()" class="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white px-2.5 sm:px-4 py-1.5 rounded-xl text-xs font-bold shadow-md transition-transform hover:scale-105 border border-emerald-500">
-                    <i class="fa-regular fa-calendar-days text-sm"></i>
-                    <span class="hidden md:inline">Hasat Takvimi</span>
-                </button>
-
+                <!-- HASAT TAKVİMİ BUTONU (SİTE PALETİNE UYGUN ZEYTİN YEŞİLİ & ALTIN BORDER) -->
+<button onclick="window.openHarvestCalendar()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1.5 shadow-sm">
+    <i class="fa-regular fa-calendar-days text-sm"></i>
+    <span class="hidden md:inline">Hasat Takvimi</span>
+</button>
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
                     <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
