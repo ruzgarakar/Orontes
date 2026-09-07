@@ -34,7 +34,6 @@ window.showErrorPage = function(statusCode = 400, message = "Kötü İstek (Bad 
         </div>
     `;
 };
-
 window.showToast = function(message, type = 'success') {
     const toast = document.createElement('div');
     toast.innerHTML = `<div style="display:flex; align-items:center; gap:10px;">
