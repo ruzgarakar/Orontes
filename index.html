@@ -72,6 +72,10 @@
     <i class="fa-regular fa-calendar-days text-sm"></i>
     <span class="hidden md:inline">Hasat Takvimi</span>
 </button>
+<button onclick="window.openHalPricesModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1.5 shadow-sm">
+    <i class="fa-solid fa-scale-balanced text-sm"></i>
+    <span class="hidden md:inline">Hal Fiyatları</span>
+</button>
                 <div id="auth-logged-out" class="flex items-center space-x-1 sm:space-x-2">
                     <button onclick="openAuthModal('login')" class="text-lux-sage hover:text-white text-xs font-semibold px-2 sm:px-3 py-1.5 transition">Giriş Yap</button>
                     <button onclick="openAuthModal('register')" class="bg-lux-olive hover:bg-opacity-80 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs transition">Kayıt Ol</button>
@@ -722,6 +726,65 @@
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
+
+            <!-- GÜNLÜK HAL FİYATLARI MODALI -->
+<div id="hal-prices-modal" class="hidden fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative animate-fade-in-up">
+        
+        <!-- Header -->
+        <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-lux-bg/50">
+            <div>
+                <h2 class="text-lg md:text-xl font-black text-lux-dark flex items-center gap-2">
+                    <i class="fa-solid fa-scale-balanced text-lux-gold"></i> Hatay Günlük Hal Fiyatları Bülteni
+                </h2>
+                <p class="text-[11px] text-gray-500 mt-0.5" id="hal-update-date">Fiyatlar getiriliyor...</p>
+            </div>
+            <button onclick="window.closeHalPricesModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-red-500 hover:text-white transition flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Filtre ve Arama Çubuğu -->
+        <div class="p-3 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-2 justify-between items-center">
+            <div class="relative flex-1 min-w-[200px]">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                <input type="text" id="hal-search-input" onkeyup="window.filterHalPrices()" placeholder="Halde ürün ara (biber, zeytin, limon)..." class="w-full bg-white border border-gray-200 rounded-xl text-xs py-2 pl-8 pr-3 outline-none focus:border-lux-olive">
+            </div>
+            <div class="text-[11px] text-lux-dark font-medium bg-lux-gold/20 px-3 py-2 rounded-xl border border-lux-gold/30">
+                <i class="fa-solid fa-location-dot text-lux-gold mr-1"></i> <span id="hal-location-name">Antakya & İskenderun Hali</span>
+            </div>
+        </div>
+
+        <!-- Liste Tablosu -->
+        <div class="p-0 md:p-4 overflow-y-auto flex-1 bg-white">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[650px]">
+                    <thead>
+                        <tr class="bg-lux-bg/40 text-lux-dark text-[10px] uppercase tracking-widest border-b border-lux-gold/30">
+                            <th class="p-3 font-extrabold rounded-tl-lg">Ürün Adı</th>
+                            <th class="p-3 font-extrabold text-center">Birim</th>
+                            <th class="p-3 font-extrabold text-center">En Düşük</th>
+                            <th class="p-3 font-extrabold text-center">Ortalama</th>
+                            <th class="p-3 font-extrabold text-center">En Yüksek</th>
+                            <th class="p-3 font-extrabold text-center">Değişim</th>
+                            <th class="p-3 font-extrabold text-right rounded-tr-lg">Pazar Durumu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hal-prices-tbody" class="text-xs divide-y divide-gray-100">
+                        <!-- JS Tarafından Render Edilecek -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 p-3 bg-amber-50/70 border border-amber-200/70 rounded-xl text-xs text-amber-900 flex gap-2.5 items-start mx-3 md:mx-0">
+                <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 text-sm"></i>
+                <p class="leading-relaxed text-[11px]">
+                    Fiyatlar Hatay Büyükşehir Belediyesi Toptancı Halleri verileri doğrultusunda güncellenir. İlgilendiğiniz ürünün yanındaki <b>"İlanları Gör"</b> butonuna tıklayarak doğrudan üreticilerin ve toptancıların tekliflerini inceleyebilirsiniz.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
 
             <div class="p-3 flex gap-3 border-b border-gray-100 bg-gray-50">
                 <div class="relative flex-1 max-w-xs">
