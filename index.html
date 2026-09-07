@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Leaflet.js CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet MarkerCluster CSS (YENİ) -->
+    <!-- Leaflet MarkerCluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <!-- Harici Stil Dosyası -->
@@ -73,8 +73,8 @@
 
                 <div id="auth-logged-in" class="hidden flex items-center space-x-1.5 sm:space-x-2">
                     
-                    <!-- BİLDİRİM ZİLİ (GELEN KUTUSU ROZETİ) -->
-                    <div class="relative cursor-pointer" onclick="openInboxTab()" title="Gelen Mesajlar/Teklifler">
+                    <!-- BİLDİRİM ZİLİ (GELEN KUTUSU & BİLDİRİMLER) -->
+                    <div class="relative cursor-pointer" onclick="openInboxTab()" title="Gelen Kutusu & Bildirimler">
                         <button class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold px-3 py-1.5 rounded-xl border border-lux-gold/30 transition flex items-center justify-center">
                             <i class="fa-solid fa-bell"></i>
                         </button>
@@ -198,7 +198,6 @@
                 <span id="total-count" class="text-xs text-gray-400 font-normal">(Yükleniyor...)</span>
             </h2>
 
-            <!-- GÜNCELLENEN: Harita (Cluster) Görünümü Butonu Eklendi -->
             <div class="flex items-center space-x-1 bg-white p-1 rounded-xl border border-gray-200/80">
                 <button id="view-grid-btn" onclick="setViewMode('grid'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-lux-dark text-white transition"><i class="fa-solid fa-border-all"></i></button>
                 <button id="view-list-btn" onclick="setViewMode('list'); document.getElementById('global-map-container').classList.add('hidden'); document.getElementById('listings-grid').classList.remove('hidden');" class="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 hover:text-lux-dark transition"><i class="fa-solid fa-list"></i></button>
@@ -208,7 +207,6 @@
 
         <div id="listings-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"></div>
         
-        <!-- YENİ: Toplu Kümeleme (Marker Cluster) Harita Konteyneri -->
         <div id="global-map-container" class="hidden w-full h-[500px] rounded-2xl border border-gray-200 shadow-sm z-10 relative">
             <div id="global-map" class="w-full h-full rounded-2xl"></div>
         </div>
@@ -277,7 +275,6 @@
             <button onclick="closeAccountModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             
             <div class="flex items-center space-x-3 mb-4 pb-4 border-b">
-                <!-- Dinamik Avatar Alanı (Kişisel Resim Desteği) -->
                 <div class="w-12 h-12 rounded-full bg-lux-olive text-white font-bold flex items-center justify-center text-lg uppercase overflow-hidden relative" id="account-avatar-container">
                     <span id="account-avatar-text">U</span>
                     <img id="account-avatar-img" src="" class="hidden w-full h-full object-cover">
@@ -294,7 +291,7 @@
             <div class="flex border-b border-gray-200 mb-4 text-xs font-bold text-gray-500 overflow-x-auto whitespace-nowrap">
                 <button id="tab-btn-listings" onclick="switchAccountTab('listings')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark shrink-0">İlanlarım</button>
                 <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Favorilerim</button>
-                <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Gelen / Gönderilen Teklifler</button>
+                <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Gelen / Gönderilen / Bildirimler</button>
                 <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Profil Ayarları</button>
             </div>
 
@@ -307,7 +304,6 @@
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
                     <span class="text-[11px] font-bold text-lux-dark block uppercase"><i class="fa-solid fa-user-pen mr-1"></i> Profil Bilgilerini Güncelle</span>
                     
-                    <!-- Profil Fotoğrafı (Avatar) Seçici -->
                     <div class="flex items-center space-x-4 mb-3 pb-3 border-b border-gray-200/60">
                         <div class="w-12 h-12 rounded-full bg-white overflow-hidden relative border border-gray-300">
                             <img id="settings-avatar-preview" src="" class="w-full h-full object-cover hidden">
@@ -317,7 +313,6 @@
                             <label for="update-avatar-file" class="bg-lux-olive text-white px-3 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer hover:bg-opacity-80 transition shadow-sm">Fotoğraf Seç</label>
                             <input type="file" id="update-avatar-file" accept="image/*" class="hidden" onchange="previewAvatar(this)">
                             <p class="text-[9px] text-gray-400 mt-1">Maksimum 2MB</p>
-                            <!-- Seçilen fotoğrafı base64 olarak tutacak gizli input -->
                             <input type="hidden" id="update-avatar-base64">
                         </div>
                     </div>
@@ -400,7 +395,7 @@
                     <div id="map"></div>
                 </div>
 
-                <!-- DİNAMİK ROZETLER (Toptancı, Hatay Dışı, Sipariş Üzerine) -->
+                <!-- DİNAMİK ROZETLER -->
                 <div id="detail-custom-box" class="hidden bg-pink-50 border border-pink-200 text-pink-700 p-2.5 rounded-xl mb-4 text-xs font-semibold flex items-center gap-2">
                     <i class="fa-solid fa-palette text-pink-500"></i>
                     <span>Bu ilan kişiye/siparişe özel üretilebilmektedir (Özelleştirilebilir).</span>
@@ -460,7 +455,6 @@
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                             <span>Paylaş</span>
                         </button>
-                        <!-- GÜNCELLENEN İLETİŞİM BUTONU (Diğer butonlarla birebir aynı boyutta) -->
                         <a id="detail-whatsapp" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm">
                             <i class="fa-brands fa-whatsapp text-sm"></i>
                             <span>İletişim</span>
@@ -706,9 +700,7 @@
       </div>
     </div>
 
-    <!-- İhtiyaç Duyulan JS Komutları -->
     <script>
-        // Form Açıldığında veya Tür Değiştiğinde Alt Kategorileri Filtreler
         function filterCategoryOptions() {
             const typeSelect = document.getElementById('form-listing-type');
             if(!typeSelect) return;
@@ -726,13 +718,11 @@
                 }
             });
             
-            // Kullanıcı alakasız bir kategori seçili bıraktıysa ilk görünür olanı seçtiririz
             if (firstVisible) {
                 categorySelect.value = firstVisible.value;
             }
         }
 
-        // Profil Sayfasında Yüklenen Fotoğrafın Önizlemesini Gösterir ve Base64 Yapar
         function previewAvatar(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -742,7 +732,6 @@
                     document.getElementById('settings-avatar-preview').classList.remove('hidden');
                     document.getElementById('settings-avatar-placeholder').classList.add('hidden');
                     
-                    // Firebase'e kaydetmek üzere değeri gizli inputa atarız (app.js bu id'den okuyabilir)
                     document.getElementById('update-avatar-base64').value = base64Str;
                 }
                 reader.readAsDataURL(input.files[0]);
