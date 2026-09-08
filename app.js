@@ -77,6 +77,27 @@ window.showToast = function(message, type = 'success') {
     }, 5000);
 };
 
+/* ---------------------------------------------------------------------------
+   ERKEN TANIM: Dosyanın ilerleyen bölümlerindeki modüller yüklenene kadar
+   güvenli varsayılanlar. Modül 3 bunları tam sürümleriyle değiştirir.
+   --------------------------------------------------------------------------- */
+window.currentLang = window.currentLang || 'tr';
+
+window.t = function (key, trText) {
+    if (window.currentLang === 'ar' && window.I18N_AR && window.I18N_AR[key]) return window.I18N_AR[key];
+    return trText !== undefined ? trText : key;
+};
+
+window.jsAttr = function (v) {
+    return String(v === null || v === undefined ? '' : v)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+};
+
 window.db = db;
 window.ref = ref;
 window.push = push;
@@ -219,6 +240,8 @@ onAuthStateChanged(auth, async (user) => {
             window.userExtraData = { favorites: {}, avatar: '' };
         }
 
+        if (typeof window.refreshHarvestAlertBadge === 'function') window.refreshHarvestAlertBadge();
+
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
         window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
             let count = 0;
@@ -256,6 +279,7 @@ onAuthStateChanged(auth, async (user) => {
         if (loggedInBox) loggedInBox.classList.add('hidden');
         window.userExtraData = { favorites: {}, avatar: '' };
         window.pendingOffersCount = 0;
+        window.harvestAlertCount = 0;
         window.updateNotificationBadge();
     }
     window.filterListings();
@@ -263,9 +287,10 @@ onAuthStateChanged(auth, async (user) => {
 
 window.updateNotificationBadge = function() {
     const badge = document.getElementById('notification-badge');
+    const totalNotifications = (window.pendingOffersCount || 0) + (window.harvestAlertCount || 0);
     if (badge) {
-        if (window.pendingOffersCount > 0) {
-            badge.innerText = window.pendingOffersCount > 99 ? '99+' : window.pendingOffersCount;
+        if (totalNotifications > 0) {
+            badge.innerText = totalNotifications > 99 ? '99+' : totalNotifications;
             badge.classList.remove('hidden');
             badge.style.display = 'flex';
         } else {
@@ -715,6 +740,9 @@ window.handleFormSubmit = async function(e) {
             listingType: listingType,          
             isCustomizable: isCustomizable,    
             harvestDate: document.getElementById('form-harvest-date') ? document.getElementById('form-harvest-date').value : null,
+            producerStory: document.getElementById('form-producer-story') ? (document.getElementById('form-producer-story').value.trim() || null) : null,
+            videoUrl: document.getElementById('form-video-url') ? (document.getElementById('form-video-url').value.trim() || null) : null,
+            acceptsSubscription: document.getElementById('form-accepts-subscription') ? document.getElementById('form-accepts-subscription').checked : false,
             district: document.getElementById('form-district').value,
             address: document.getElementById('form-address').value || null,
             outsideHatay: isOutside,
@@ -936,11 +964,13 @@ window.loadSellerProfileBox = async function(sellerUid) {
         const ratingsSnap = await get(ref(db, 'ratings/' + sellerUid));
         const ratingsData = ratingsSnap.val() || {};
         const ratingsArray = Object.values(ratingsData);
-        const scores = ratingsArray.map(r => r.score).filter(s => typeof s === 'number');
+        const sellerRoleRatings = ratingsArray.filter(r => (r.role || 'seller') !== 'buyer');
+        const verifiedCount = ratingsArray.filter(r => r.verified).length;
+        const scores = sellerRoleRatings.map(r => r.score).filter(s => typeof s === 'number');
         const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
         const roundedStars = Math.round(avg);
         ratingEl.innerText = scores.length
-            ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})`
+            ? `${'★'.repeat(roundedStars)}${'☆'.repeat(5 - roundedStars)} ${avg.toFixed(1)} (${scores.length})${verifiedCount ? ' · ✅' + verifiedCount : ''}`
             : 'Henüz değerlendirme yok';
 
         if (window.currentUser && window.currentUser.uid !== sellerUid && rateBox) {
@@ -1071,6 +1101,7 @@ window.openSellerProfileModal = async function(sellerUid) {
     if(badgesDOM) badgesDOM.innerHTML = '';
 
     document.getElementById('seller-profile-modal').classList.remove('hidden');
+    if (typeof window.renderSellerRoleStats === 'function') window.renderSellerRoleStats(sellerUid);
 
     try {
         const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
@@ -1104,7 +1135,7 @@ window.openSellerProfileModal = async function(sellerUid) {
         const ratingsData = ratingsSnap.val() || {};
         const ratingsArray = Object.values(ratingsData);
         
-        const scores = ratingsArray.map(r => r.score).filter(s => typeof s === 'number');
+        const scores = ratingsArray.filter(r => (r.role || 'seller') !== 'buyer').map(r => r.score).filter(s => typeof s === 'number');
         const avg = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
         const roundedStars = Math.round(avg);
         ratingEl.innerText = scores.length
@@ -1166,10 +1197,18 @@ window.loadIncomingOffers = async function() {
         const incomingQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(window.currentUser.uid));
         const outgoingQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(window.currentUser.uid));
         
-        const [inSnap, outSnap] = await Promise.all([get(incomingQuery), get(outgoingQuery)]);
-        
-        const incomingData = inSnap.val() || {};
-        const outgoingData = outSnap.val() || {};
+        let incomingData = {};
+        let outgoingData = {};
+        let offersLoadFailed = false;
+        try {
+            const [inSnap, outSnap] = await Promise.all([get(incomingQuery), get(outgoingQuery)]);
+            incomingData = inSnap.val() || {};
+            outgoingData = outSnap.val() || {};
+        } catch (offerErr) {
+            // Teklifler yüklenemese bile favori/hasat bildirimleri gösterilmeye devam etsin
+            offersLoadFailed = true;
+            console.warn('Teklifler yüklenemedi:', offerErr);
+        }
 
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
         const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
@@ -1199,12 +1238,19 @@ window.loadIncomingOffers = async function() {
         }
 
         // Fiyat değişim bildirimleri ve teklifleri tarihe göre birleştir ve sırala
-        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts].sort((a,b) => b.date - a.date);
+        const harvestNotifs = (typeof window.getHarvestNotifications === 'function') ? window.getHarvestNotifications() : [];
+
+        // Fiyat değişim, hasat bildirimleri ve teklifleri tarihe göre birleştir ve sırala
+        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts, ...harvestNotifs].sort((a,b) => b.date - a.date);
 
         container.innerHTML = '';
 
+        if (offersLoadFailed) {
+            container.innerHTML = `<p class="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Teklif kutunuz şu anda yüklenemedi; aşağıda yalnızca bildirimleriniz gösteriliyor.</p>`;
+        }
+
         if (allOffers.length === 0) {
-            container.innerHTML = `<p class="text-xs text-gray-400 italic">Henüz aldığınız, gönderdiğiniz teklif veya favori bildiriminiz bulunmuyor.</p>`;
+            container.innerHTML += `<p class="text-xs text-gray-400 italic">Henüz aldığınız, gönderdiğiniz teklif ya da favori/hasat bildiriminiz bulunmuyor.</p>`;
             return;
         }
 
@@ -1231,6 +1277,24 @@ window.loadIncomingOffers = async function() {
                         <button onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm transition">İlanı İncele</button>
                     </div>
                 `;
+            } else if (o.type === 'harvest_alert') {
+                // HASAT BİLDİRİM KARTI ("Bana Haber Ver")
+                div.className = "bg-orange-50 p-3 rounded-xl border border-orange-200 text-xs space-y-2 mb-2";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center font-bold text-orange-900 border-b border-orange-200/50 pb-1 mb-1">
+                        <span class="text-[10px] bg-orange-200 text-orange-900 px-1.5 py-0.5 rounded"><i class="fa-solid fa-seedling mr-0.5"></i> HASAT BİLDİRİMİ</span>
+                        <span class="text-orange-700">${window.escapeHtml(o.monthLabel || '')}</span>
+                    </div>
+                    <p class="font-bold">🌱 ${window.escapeHtml(o.productName || '')} ${o.inSeason ? 'hasat sezonuna girdi!' : 'sezonu yaklaşıyor'}</p>
+                    <p class="text-[10px] text-gray-600">${o.inSeason
+                        ? (o.isPeak ? 'Bu ay <b>rekolte zirvesinde</b> — toplu alım için en uygun dönem.' : 'Ürün şu anda tedarik edilebilir durumda.')
+                        : 'Önümüzdeki ay hasat başlıyor; üreticilerle şimdiden ön bağlantı kurabilirsiniz.'}</p>
+                    ${o.district ? `<p class="text-[10px] text-gray-500"><i class="fa-solid fa-location-dot text-lux-gold mr-0.5"></i>Takip ettiğiniz ilçe: ${window.escapeHtml(o.district)}</p>` : ''}
+                    <div class="flex gap-1.5 mt-2">
+                        <button onclick="closeAccountModal(); window.harvestSearchListings('${window.jsAttr(o.category)}', '${window.jsAttr(o.keyword)}')" class="flex-1 bg-lux-dark hover:bg-lux-olive text-white px-2 py-1.5 rounded text-[10px] font-bold transition">İlanları Gör</button>
+                        <button onclick="closeAccountModal(); window.harvestCreateRequest('${window.jsAttr(o.category)}', '${window.jsAttr(o.productName)}')" class="flex-1 bg-lux-gold hover:bg-[#ad9868] text-lux-dark px-2 py-1.5 rounded text-[10px] font-bold transition">Alım Talebi Aç</button>
+                    </div>
+                `;
             } else {
                 // MEVCUT TEKLİF KARTLARI (Gelen/Giden)
                 const isIncoming = o.type === 'incoming';
@@ -1251,9 +1315,7 @@ window.loadIncomingOffers = async function() {
 
                     div.innerHTML = `
                         <div class="flex justify-between items-center font-bold text-amber-900 border-b border-amber-200/50 pb-1 mb-1">
-                            ${isSupply
-                                ? '<span class="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded"><i class="fa-solid fa-cart-shopping mr-0.5"></i> ALIM TALEBİME TEDARİK TEKLİFİ</span>'
-                                : '<span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>'}
+                            ${window.getOfferKindBadge(o.offerKind, true)}
                             <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
                         </div>
                         <p class="font-bold ${isSupply ? 'cursor-pointer hover:text-lux-olive' : ''}" ${isSupply ? `onclick="closeAccountModal(); window.openOfferTargetModal('supply', '${window.escapeHtml(o.listingId)}')"` : ''}>📌 ${window.escapeHtml(o.listingTitle || 'İlan')} ${isSupply ? '<i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>' : ''}</p>
@@ -1272,13 +1334,26 @@ window.loadIncomingOffers = async function() {
                                 <span>Kişiyle WhatsApp'tan Yazış</span>
                             </a>
                         ` : '<p class="text-[10px] text-red-500 italic">Telefon numarası belirtilmemiş.</p>'}
+                        ${o.offerKind === 'subscription' && o.frequency ? `<p class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 p-1.5 rounded mt-1"><i class="fa-solid fa-rotate mr-1"></i>Periyot: ${window.escapeHtml(o.frequency)}${o.subQty ? ` · Her teslimatta ${window.escapeHtml(String(o.subQty))}` : ''}${o.startDate ? ` · Başlangıç: ${window.escapeHtml(o.startDate)}` : ''}</p>` : ''}
+                        ${o.status === 'Onaylandı' ? `
+                            <div class="flex gap-1.5 pt-2 mt-1 border-t border-amber-200/60">
+                                <button onclick="window.openRatingModal('${window.jsAttr(o.buyerUid)}', '${window.jsAttr(o.buyerName || 'Alıcı')}', 'buyer', '${window.jsAttr(o.id)}')" class="flex-1 bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-1.5 rounded-lg text-[10px] transition">
+                                    <i class="fa-solid fa-star mr-1"></i>${o.buyerRated ? 'Puanımı Güncelle' : 'Alıcıyı Değerlendir'}
+                                </button>
+                                <button onclick="window.openDisputeModal('${window.jsAttr(o.id)}', '${window.jsAttr(o.buyerUid)}', '${window.jsAttr(o.buyerName || '')}', '${window.jsAttr(o.listingTitle || '')}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1.5 px-2.5 rounded-lg text-[10px] transition border border-red-200 whitespace-nowrap">
+                                    <i class="fa-solid fa-shield-halved mr-1"></i>Sorun Bildir
+                                </button>
+                            </div>
+                        ` : ''}
                     `;
                 } else {
+                    const targetListing = (window.listings || []).find(l => l.id === o.listingId);
+                    const counterpartyName = targetListing
+                        ? (targetListing.seller || 'Satıcı')
+                        : ((o.offerKind === 'supply' || o.offerKind === 'group') ? 'Alıcı' : 'Satıcı');
                     div.innerHTML = `
                         <div class="flex justify-between items-center font-bold text-gray-700 border-b border-gray-200 pb-1 mb-1">
-                            ${o.offerKind === 'supply'
-                                ? '<span class="text-[10px] bg-lux-olive text-white px-1.5 py-0.5 rounded"><i class="fa-solid fa-truck-field mr-0.5"></i> GÖNDERDİĞİM TEDARİK TEKLİFİ</span>'
-                                : '<span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>'}
+                            ${window.getOfferKindBadge(o.offerKind, false)}
                             <span class="text-emerald-700">${window.escapeHtml(String(o.offeredPrice || '?'))} TL</span>
                         </div>
                         <p class="font-bold cursor-pointer hover:text-lux-olive" onclick="closeAccountModal(); window.openOfferTargetModal('${o.offerKind || 'listing'}', '${window.escapeHtml(o.listingId)}')">📌 ${window.escapeHtml(o.listingTitle || 'İlan')} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></p>
@@ -1287,6 +1362,17 @@ window.loadIncomingOffers = async function() {
                             ${o.status === 'Onaylandı' ? `<span class="text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-check-circle"></i> Onaylandı, iletişime geçilecektir.</span>` : ''}
                         </div>
                         ${o.note ? `<p class="text-[10px] text-gray-500 italic bg-gray-100 p-1.5 rounded mt-1">İlettiğim Not: "${window.escapeHtml(o.note)}"</p>` : ''}
+                        ${o.offerKind === 'subscription' && o.frequency ? `<p class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 p-1.5 rounded mt-1"><i class="fa-solid fa-rotate mr-1"></i>Periyot: ${window.escapeHtml(o.frequency)}${o.subQty ? ` · ${window.escapeHtml(String(o.subQty))}` : ''}</p>` : ''}
+                        ${o.status === 'Onaylandı' ? `
+                            <div class="flex gap-1.5 pt-2 mt-1 border-t border-gray-200">
+                                <button onclick="window.openRatingModal('${window.jsAttr(o.sellerUid)}', '${window.jsAttr(counterpartyName)}', 'seller', '${window.jsAttr(o.id)}')" class="flex-1 bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold py-1.5 rounded-lg text-[10px] transition">
+                                    <i class="fa-solid fa-star mr-1"></i>${o.sellerRated ? 'Puanımı Güncelle' : 'Satıcıyı Değerlendir'}
+                                </button>
+                                <button onclick="window.openDisputeModal('${window.jsAttr(o.id)}', '${window.jsAttr(o.sellerUid)}', '${window.jsAttr(counterpartyName)}', '${window.jsAttr(o.listingTitle || '')}')" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1.5 px-2.5 rounded-lg text-[10px] transition border border-red-200 whitespace-nowrap">
+                                    <i class="fa-solid fa-shield-halved mr-1"></i>Sorun Bildir
+                                </button>
+                            </div>
+                        ` : ''}
                     `;
                 }
             }
@@ -1636,7 +1722,7 @@ function updateFormMapCenter(district) {
 function shareOnWhatsApp() {
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
-    const text = `📌 YEREL PAZAR & HİZMET AĞI\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${window.location.href}`;
+    const text = `📌 YEREL PAZAR & HİZMET AĞI\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${typeof window.getListingShareUrl === 'function' ? window.getListingShareUrl(item.id) : window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 }
 
@@ -1666,6 +1752,7 @@ function switchAccountTab(tab) {
     if (tab === 'favorites') loadFavoriteListings();
     if (tab === 'offers') window.loadIncomingOffers();
     if (tab === 'buyrequests' && typeof window.loadMyBuyRequests === 'function') window.loadMyBuyRequests();
+    if (tab === 'buyrequests' && typeof window.loadMyGroupBuys === 'function') window.loadMyGroupBuys();
 }
 
 window.openInboxTab = function() {
@@ -1742,6 +1829,13 @@ function updateMarqueeData() {
 
     let contentHTML = `<div class="flex space-x-4 items-center px-4 shrink-0">
         <span class="font-bold text-lux-gold uppercase flex items-center space-x-1 mr-2"><i class="fa-solid fa-chart-line"></i><span>Canlı Piyasa Endeksi:</span></span>`;
+
+    const openGbCount = (window.groupBuys || []).filter(g => (g.status || 'Açık') !== 'Kapandı').length;
+    if (openGbCount > 0) {
+        contentHTML += `<button onclick="document.getElementById('groupbuys-section').scrollIntoView({behavior:'smooth'})" title="Birlikte al kampanyaları" class="bg-lux-olive hover:bg-lux-dark text-white font-extrabold px-2.5 py-1 rounded-lg border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+            <span>👥</span><span>BİRLİKTE AL: ${openGbCount} Aktif Kampanya</span>
+        </button>`;
+    }
 
     const openBrCount = (window.buyRequests || []).filter(r => (r.status || 'Açık') === 'Açık').length;
     if (openBrCount > 0) {
@@ -1946,6 +2040,9 @@ function openFormModal() {
     document.getElementById('form-lng').value = '';
     document.getElementById('form-address').value = '';
     if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = '';
+    if (document.getElementById('form-producer-story')) document.getElementById('form-producer-story').value = '';
+    if (document.getElementById('form-video-url')) document.getElementById('form-video-url').value = '';
+    if (document.getElementById('form-accepts-subscription')) document.getElementById('form-accepts-subscription').checked = false;
     
     const lTypeEl = document.getElementById('form-listing-type');
     if(lTypeEl) lTypeEl.value = 'tarim';
@@ -2001,6 +2098,9 @@ function openFormModalForEdit() {
     if(customEl) customEl.checked = item.isCustomizable || false;
 
     if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = item.harvestDate || '';
+    if (document.getElementById('form-producer-story')) document.getElementById('form-producer-story').value = item.producerStory || '';
+    if (document.getElementById('form-video-url')) document.getElementById('form-video-url').value = item.videoUrl || '';
+    if (document.getElementById('form-accepts-subscription')) document.getElementById('form-accepts-subscription').checked = item.acceptsSubscription || false;
 
     document.getElementById('form-district').value = item.district;
     document.getElementById('form-address').value = item.address || '';
@@ -2114,11 +2214,11 @@ function renderListings() {
         : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
     
     const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} İlan/Hizmet Bulundu`;
+    if (countEl) countEl.innerText = `${items.length} ${window.t('list.found', 'İlan/Hizmet Bulundu')}`;
     grid.innerHTML = '';
 
     if (items.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">Aradığınız kriterlere uygun sonuç bulunamadı.</div>`;
+        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">${window.t('list.empty', 'Aradığınız kriterlere uygun sonuç bulunamadı.')}</div>`;
         const pagContainer = document.getElementById('pagination-container');
         if (pagContainer) pagContainer.innerHTML = '';
         return;
@@ -2148,7 +2248,9 @@ function renderListings() {
             </div>`;
         }
         
-        let primaryBtnText = item.listingType === 'hizmet' ? 'Teklif Al' : 'İncele';
+        let primaryBtnText = item.listingType === 'hizmet'
+            ? window.t('card.getOffer', 'Teklif Al')
+            : window.t('card.review', 'İncele');
 
         card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
         card.innerHTML = `
@@ -2166,6 +2268,8 @@ function renderListings() {
                         ${item.listingType === 'el_yapimi' ? '<span class="bg-purple-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎨 EL YAPIMI</span>' : ''}
                         ${item.isCustomizable ? '<span class="bg-pink-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">SİPARİŞ ÜZERİNE</span>' : ''}
                         ${item.harvestDate ? '<span class="bg-orange-500 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🌱 ÖN SİPARİŞ</span>' : ''}
+                        ${(item.producerStory || item.videoUrl) ? '<span class="bg-teal-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎥 ÜRETİCİ HİKAYESİ</span>' : ''}
+                        ${item.acceptsSubscription ? '<span class="bg-indigo-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🔁 DÜZENLİ SİPARİŞ</span>' : ''}
 
                         ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
                         ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
@@ -2342,6 +2446,9 @@ function openDetailModal(id) {
             harvestBox.classList.add('hidden');
         }
     }
+
+    if (typeof window.renderProducerStory === 'function') window.renderProducerStory(item);
+    if (typeof window.setupDetailExtras === 'function') window.setupDetailExtras(item);
 
     const outsideBox = document.getElementById('detail-outside-hatay-box');
     if (item.outsideHatay) {
@@ -2664,7 +2771,7 @@ window.renderBuyRequests = function () {
                 <div class="flex flex-wrap gap-1 mb-2">
                     ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : ''}
                     ${rq.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse">🔥 ACİL</span>' : ''}
-                    ${rq.recurring ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🔁 DÜZENLİ ALIM</span>' : ''}
+                    ${rq.recurring ? `<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🔁 DÜZENLİ ALIM${rq.frequency ? ' · ' + escapeHtml(rq.frequency) : ''}</span>` : ''}
                     ${rq.buyerType ? `<span class="bg-lux-bg text-lux-dark font-semibold text-[9px] px-2 py-0.5 rounded border border-gray-200">${escapeHtml(rq.buyerType)}</span>` : ''}
                 </div>
 
@@ -2766,6 +2873,7 @@ window.openBuyRequestForm = function (prefill) {
 
     window.brDistrictSelection = new Set(['Tüm Hatay']);
     window.renderBrDistrictChips();
+    if (typeof window.toggleBrFrequency === 'function') window.toggleBrFrequency();
 
     const nameEl = document.getElementById('br-name');
     const phoneEl = document.getElementById('br-phone');
@@ -2816,6 +2924,8 @@ window.openBuyRequestFormForEdit = function (id) {
     document.getElementById('br-name').value = rq.buyerName || '';
     document.getElementById('br-phone').value = rq.phone || '';
     document.getElementById('br-recurring').checked = !!rq.recurring;
+    if (document.getElementById('br-frequency') && rq.frequency) document.getElementById('br-frequency').value = rq.frequency;
+    if (typeof window.toggleBrFrequency === 'function') window.toggleBrFrequency();
     document.getElementById('br-urgent').checked = !!rq.isUrgent;
 
     const districts = Array.isArray(rq.districts) ? rq.districts : (rq.districts ? [rq.districts] : ['Tüm Hatay']);
@@ -2879,6 +2989,8 @@ window.handleBuyRequestSubmit = async function (e) {
         deadline: document.getElementById('br-deadline').value.trim() || null,
         districts: districts.length ? districts : ['Tüm Hatay'],
         recurring: document.getElementById('br-recurring').checked,
+        frequency: (document.getElementById('br-recurring').checked && document.getElementById('br-frequency'))
+            ? document.getElementById('br-frequency').value : null,
         isUrgent: document.getElementById('br-urgent').checked,
         desc: document.getElementById('br-desc').value.trim() || null,
         status: existing ? (existing.status || 'Açık') : 'Açık',
@@ -2931,7 +3043,7 @@ window.openBuyRequestDetail = function (id) {
     badges.innerHTML = `
         ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : '<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">AÇIK TALEP</span>'}
         ${rq.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">🔥 ACİL</span>' : ''}
-        ${rq.recurring ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🔁 DÜZENLİ ALIM</span>' : ''}
+        ${rq.recurring ? `<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded">🔁 DÜZENLİ ALIM${rq.frequency ? ' · ' + escapeHtml(rq.frequency) : ''}</span>` : ''}
     `;
 
     // WhatsApp köprüsü
@@ -3439,6 +3551,7 @@ window.renderHarvestCalendar = function () {
 
     data.forEach(p => {
         const isPeakNow = month && p.peak.includes(month);
+        const alertOn = (typeof window.isHarvestAlertOn === 'function') && window.isHarvestAlertOn(p.name);
         const listingCount = (window.listings || []).filter(l =>
             l.category === p.category &&
             (`${l.title} ${l.desc || ''}`.toLocaleLowerCase('tr-TR').includes(p.keyword.toLocaleLowerCase('tr-TR')))
@@ -3476,12 +3589,16 @@ window.renderHarvestCalendar = function () {
                     </span>
                     ${listingCount > 0 ? `<span class="inline-block text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded mt-1 border border-emerald-200 ml-1">Vitrinde ${listingCount} ilan</span>` : ''}
                 </div>
-                <div class="flex gap-1.5 shrink-0">
-                    <button onclick="window.harvestSearchListings('${escapeHtml(p.category)}', '${escapeHtml(p.keyword)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
-                        <i class="fa-solid fa-magnifying-glass mr-0.5"></i> İlanları Gör
+                <div class="flex gap-1.5 shrink-0 flex-wrap justify-end">
+                    <button onclick="window.toggleHarvestAlert('${window.jsAttr(p.name)}')" title="Bu ürün hasat sezonuna girince gelen kutunuzdan haber verelim"
+                        class="${alertOn ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'} text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                        <i class="fa-solid ${alertOn ? 'fa-bell' : 'fa-bell-slash'} mr-0.5"></i> ${alertOn ? window.t('hv.notifyOn', 'Bildirim Açık') : window.t('hv.notify', 'Bana Haber Ver')}
                     </button>
-                    <button onclick="window.harvestCreateRequest('${escapeHtml(p.category)}', '${escapeHtml(p.name)}')" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
-                        <i class="fa-solid fa-cart-shopping mr-0.5"></i> Alım Talebi Aç
+                    <button onclick="window.harvestSearchListings('${window.jsAttr(p.category)}', '${window.jsAttr(p.keyword)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                        <i class="fa-solid fa-magnifying-glass mr-0.5"></i> ${window.t('hv.seeListings', 'İlanları Gör')}
+                    </button>
+                    <button onclick="window.harvestCreateRequest('${window.jsAttr(p.category)}', '${window.jsAttr(p.name)}')" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                        <i class="fa-solid fa-cart-shopping mr-0.5"></i> ${window.t('hv.openRequest', 'Alım Talebi Aç')}
                     </button>
                 </div>
             </div>
@@ -3534,3 +3651,1877 @@ window.renderBrDistrictChips();
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.initHarvestCalendar === 'function') window.initHarvestCalendar();
 });
+
+/* =========================================================================================
+   ORONTES — MODÜL 3 / BÖLÜM A
+   • Çok dilli altyapı (Türkçe / Arapça + RTL)
+   • Açılır-kapanır (collapsible) bölüm altyapısı
+   • İnteraktif ilçe haritası
+   • Güvenli inline-handler yardımcıları
+   ========================================================================================= */
+
+window.I18N_AR = {
+    "nav.login": "تسجيل الدخول",
+    "nav.register": "إنشاء حساب",
+    "nav.account": "حسابي",
+    "nav.newListing": "أضف إعلاناً",
+    "nav.filter": "تصفية",
+    "nav.showcase": "إعلانات المعرض",
+    "nav.buyRequests": "طلبات الشراء (ماذا تبحث؟)",
+    "nav.harvest": "روزنامة الحصاد والمواسم",
+    "nav.groupBuy": "الشراء الجماعي",
+
+    "hero.title": "سوق هاتاي المحلي وشبكة الخدمات",
+    "hero.sub": "من المنتج والحرفي والصنايعي المحلي مباشرة إلى المشتري؛ سوق رقمي بدون عمولة.",
+
+    "filter.searchPh": "ابحث عن منتج، زيت زيتون، حرفة يدوية، دهّان، نقل...",
+    "filter.allCategories": "كل الفئات",
+    "filter.allDistricts": "كل هاتاي (الأقضية)",
+    "filter.newest": "الأحدث",
+    "filter.oldest": "الأقدم",
+    "filter.priceLow": "السعر: تصاعدي",
+    "filter.priceHigh": "السعر: تنازلي",
+    "filter.priceLabel": "السعر (ليرة):",
+    "filter.minPh": "الأدنى",
+    "filter.maxPh": "الأعلى",
+    "filter.nearby": "الإعلانات القريبة مني",
+    "filter.reset": "إعادة ضبط الفلاتر",
+    "filter.districtMap": "🗺️ اختر القضاء من الخريطة",
+
+    "list.title": "إعلانات المعرض",
+    "list.found": "إعلان/خدمة",
+    "list.empty": "لا توجد نتائج مطابقة لبحثك.",
+    "card.review": "عرض التفاصيل",
+    "card.getOffer": "اطلب عرض سعر",
+
+    "detail.desc": "الوصف",
+    "detail.location": "الموقع",
+    "detail.owner": "صاحب الإعلان",
+    "detail.contact": "تواصل",
+    "detail.share": "مشاركة",
+    "detail.report": "إبلاغ",
+    "detail.offerTitle": "أرسل عرض سعر / طلب تواصل",
+    "detail.sendOffer": "إرسال الطلب",
+    "detail.story": "قصة المنتِج",
+    "detail.video": "شاهد فيديو المنتِج",
+    "detail.qr": "رمز QR",
+    "detail.shareCard": "بطاقة المشاركة ورمز QR",
+    "detail.problem": "الإبلاغ عن مشكلة",
+
+    "br.title": "طلبات الشراء — \"ماذا تبحث؟\"",
+    "br.sub": "تجار الجملة وأصحاب المطاعم والفنادق والأسواق والمصدّرون يكتبون ما يبحثون عنه هنا؛ والمنتجون يرسلون عروضهم مباشرة.",
+    "br.create": "أنشئ طلب شراء",
+    "br.searchPh": "ابحث في طلبات الشراء: يوسفي، زيت زيتون، فلفل...",
+    "br.detail": "التفاصيل",
+    "br.giveOffer": "قدّم عرضاً",
+    "br.empty": "لا توجد طلبات شراء بهذه المعايير.",
+    "br.supplySend": "إرسال عرض التوريد",
+
+    "hv.title": "روزنامة الحصاد والمواسم في هاتاي",
+    "hv.thisMonth": "العودة لهذا الشهر",
+    "hv.searchPh": "ابحث عن منتج: زيتون، يوسفي، غار، فلفل، عسل...",
+    "hv.seeListings": "عرض الإعلانات",
+    "hv.openRequest": "أنشئ طلب شراء",
+    "hv.notify": "أعلمني",
+    "hv.notifyOn": "التنبيه مفعّل",
+    "hv.hide": "إخفاء",
+    "hv.show": "إظهار",
+
+    "gb.title": "الشراء الجماعي — \"لنشترِ معاً\"",
+    "gb.sub": "عدة مشترين صغار يجتمعون على منتج واحد للوصول إلى سعر الجملة. حدّد الكمية وانضم.",
+    "gb.create": "افتح شراءً جماعياً",
+    "gb.join": "انضم",
+    "gb.joined": "أنت مشارك",
+    "gb.target": "الهدف",
+    "gb.collected": "المجمّع",
+    "gb.participants": "مشارك",
+    "gb.reached": "تم بلوغ الهدف",
+    "gb.empty": "لا توجد حملة شراء جماعي حالياً.",
+
+    "rate.send": "أرسل التقييم",
+    "rate.verified": "عملية موثّقة",
+    "rate.asSeller": "تقييمه كبائع",
+    "rate.asBuyer": "تقييمه كمشتري",
+    "dispute.title": "الإبلاغ عن مشكلة / نزاع",
+    "dispute.send": "إرسال البلاغ",
+
+    "sub.title": "طلب دوري / اشتراك",
+    "sub.send": "أرسل طلب الاشتراك",
+
+    "acc.myListings": "إعلاناتي",
+    "acc.favorites": "المفضلة",
+    "acc.myRequests": "طلبات الشراء الخاصة بي",
+
+    "faq.title": "الأسئلة الشائعة",
+    "support.title": "الدعم والتواصل",
+    "legal.btn": "إخلاء المسؤولية القانونية",
+
+    "form.storyLabel": "🌿 قصة المنتِج (اختياري)",
+    "form.storyPh": "من أين يأتي هذا المنتج؟ كيف يُنتج؟ اكتب قصتك القصيرة...",
+    "form.videoLabel": "🎥 رابط فيديو قصير (YouTube / Instagram)",
+    "form.videoPh": "https://youtube.com/... أو رابط Instagram"
+};
+
+try { window.currentLang = localStorage.getItem('orontes_lang') || 'tr'; } catch (e) { window.currentLang = 'tr'; }
+
+/* Türkçe metin daima fallback'tir; TR modunda çıktı birebir aynı kalır. */
+window.t = function (key, trText) {
+    if (window.currentLang !== 'ar') return trText !== undefined ? trText : key;
+    return window.I18N_AR[key] || (trText !== undefined ? trText : key);
+};
+
+window.applyLanguage = function (lang) {
+    window.currentLang = (lang === 'ar') ? 'ar' : 'tr';
+    try { localStorage.setItem('orontes_lang', window.currentLang); } catch (e) {}
+
+    const isAr = window.currentLang === 'ar';
+    document.documentElement.lang = isAr ? 'ar' : 'tr';
+    document.documentElement.dir = isAr ? 'rtl' : 'ltr';
+    document.body.classList.toggle('orontes-rtl', isAr);
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        if (!el.dataset.trText) el.dataset.trText = el.textContent;
+        const key = el.getAttribute('data-i18n');
+        el.textContent = isAr ? (window.I18N_AR[key] || el.dataset.trText) : el.dataset.trText;
+    });
+
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        if (!el.dataset.trPh) el.dataset.trPh = el.getAttribute('placeholder') || '';
+        const key = el.getAttribute('data-i18n-ph');
+        el.setAttribute('placeholder', isAr ? (window.I18N_AR[key] || el.dataset.trPh) : el.dataset.trPh);
+    });
+
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        if (!el.dataset.trTitle) el.dataset.trTitle = el.getAttribute('title') || '';
+        const key = el.getAttribute('data-i18n-title');
+        el.setAttribute('title', isAr ? (window.I18N_AR[key] || el.dataset.trTitle) : el.dataset.trTitle);
+    });
+
+    const trBtn = document.getElementById('lang-btn-tr');
+    const arBtn = document.getElementById('lang-btn-ar');
+    if (trBtn && arBtn) {
+        trBtn.className = !isAr
+            ? "px-2 py-1 rounded-lg text-[11px] font-bold bg-lux-gold text-lux-dark transition"
+            : "px-2 py-1 rounded-lg text-[11px] font-semibold text-lux-sage hover:text-white transition";
+        arBtn.className = isAr
+            ? "px-2 py-1 rounded-lg text-[11px] font-bold bg-lux-gold text-lux-dark transition"
+            : "px-2 py-1 rounded-lg text-[11px] font-semibold text-lux-sage hover:text-white transition";
+    }
+
+    try {
+        if (typeof window.renderListings === 'function') window.renderListings();
+        if (typeof window.renderBuyRequests === 'function') window.renderBuyRequests();
+        if (typeof window.renderHarvestCalendar === 'function') window.renderHarvestCalendar();
+        if (typeof window.renderGroupBuys === 'function') window.renderGroupBuys();
+    } catch (e) { console.warn('Dil değişiminde yeniden çizim hatası:', e); }
+};
+
+window.setLanguage = function (lang) {
+    window.applyLanguage(lang);
+    window.showToast(lang === 'ar' ? "تم تغيير اللغة إلى العربية." : "Site dili Türkçe olarak ayarlandı.", "success");
+};
+
+/* ------------------------------- AÇILIR / KAPANIR BÖLÜMLER ------------------------------- */
+
+window.toggleCollapse = function (bodyId, btnId, storageKey) {
+    const body = document.getElementById(bodyId);
+    const btn = document.getElementById(btnId);
+    if (!body) return;
+
+    const willHide = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', willHide);
+
+    if (btn) {
+        const icon = btn.querySelector('i');
+        const label = btn.querySelector('span');
+        if (icon) icon.className = willHide ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+        if (label) label.innerText = willHide ? window.t('hv.show', 'Göster') : window.t('hv.hide', 'Gizle');
+    }
+
+    if (storageKey) {
+        try { localStorage.setItem(storageKey, willHide ? 'closed' : 'open'); } catch (e) {}
+    }
+
+    if (!willHide) {
+        setTimeout(() => {
+            if (window.districtMapInstance) window.districtMapInstance.invalidateSize();
+        }, 220);
+    }
+};
+
+window.restoreCollapseState = function (bodyId, btnId, storageKey, defaultOpen) {
+    const body = document.getElementById(bodyId);
+    const btn = document.getElementById(btnId);
+    if (!body) return;
+
+    let state = null;
+    try { state = localStorage.getItem(storageKey); } catch (e) {}
+    const shouldOpen = state ? (state === 'open') : !!defaultOpen;
+
+    body.classList.toggle('hidden', !shouldOpen);
+    if (btn) {
+        const icon = btn.querySelector('i');
+        const label = btn.querySelector('span');
+        if (icon) icon.className = shouldOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+        if (label) label.innerText = shouldOpen ? window.t('hv.hide', 'Gizle') : window.t('hv.show', 'Göster');
+    }
+};
+
+/* ------------------------------- İNTERAKTİF İLÇE HARİTASI ------------------------------- */
+
+window.districtMapInstance = null;
+
+window.toggleDistrictMap = function () {
+    const panel = document.getElementById('district-map-panel');
+    if (!panel) return;
+    const willOpen = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !willOpen);
+
+    const btn = document.getElementById('district-map-btn');
+    if (btn) {
+        btn.className = willOpen
+            ? "bg-lux-dark text-white px-3 py-2 rounded-xl transition text-xs font-semibold whitespace-nowrap"
+            : "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs font-semibold whitespace-nowrap";
+    }
+
+    if (willOpen) setTimeout(() => window.renderDistrictMap(), 150);
+};
+
+window.renderDistrictMap = function () {
+    const el = document.getElementById('district-map');
+    if (!el || typeof L === 'undefined') return;
+
+    if (window.districtMapInstance) {
+        window.districtMapInstance.remove();
+        window.districtMapInstance = null;
+    }
+
+    window.districtMapInstance = L.map('district-map', { scrollWheelZoom: false }).setView([36.35, 36.2], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap'
+    }).addTo(window.districtMapInstance);
+
+    const activeDistrict = (document.getElementById('district-filter') || {}).value || '';
+
+    Object.keys(districtCoords).forEach(district => {
+        const coords = districtCoords[district];
+        const count = (window.listings || []).filter(l => l.district === district).length;
+        const brCount = (window.buyRequests || []).filter(r => {
+            const ds = Array.isArray(r.districts) ? r.districts : [];
+            return (r.status || 'Açık') === 'Açık' && (ds.includes(district) || ds.includes('Tüm Hatay') || ds.length === 0);
+        }).length;
+
+        const isActive = activeDistrict === district;
+        const radius = 11 + Math.min(count, 12) * 1.6;
+
+        const marker = L.circleMarker(coords, {
+            radius: radius,
+            color: isActive ? '#07332c' : '#485b46',
+            weight: isActive ? 3 : 1.5,
+            fillColor: count > 0 ? '#bca879' : '#afb7ac',
+            fillOpacity: count > 0 ? 0.85 : 0.45
+        }).addTo(window.districtMapInstance);
+
+        marker.bindTooltip(`${district} · ${count} ilan`, { direction: 'top', offset: [0, -4] });
+        marker.bindPopup(`
+            <div style="text-align:center; min-width:150px;">
+                <b style="font-size:13px; color:#07332c;">${escapeHtml(district)}</b><br>
+                <span style="font-size:11px; color:#485b46;">${count} vitrin ilanı</span><br>
+                <span style="font-size:11px; color:#8a6d3b;">${brCount} açık alım talebi</span><br>
+                <button onclick="window.selectDistrictFromMap('${escapeHtml(district)}')" style="margin-top:7px; padding:5px 10px; background:#07332c; color:#bca879; border:none; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold; width:100%;">
+                    Bu ilçenin ilanlarını gör
+                </button>
+            </div>
+        `);
+
+        marker.on('click', () => marker.openPopup());
+    });
+
+    setTimeout(() => {
+        if (window.districtMapInstance) window.districtMapInstance.invalidateSize();
+    }, 250);
+};
+
+window.selectDistrictFromMap = function (district) {
+    const distFilter = document.getElementById('district-filter');
+    if (distFilter) distFilter.value = district;
+    window.filterListings();
+    window.showToast(`📍 ${district} ilçesinin ilanları listelendi.`, "success");
+    const grid = document.getElementById('listings-grid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (window.districtMapInstance) window.renderDistrictMap();
+};
+
+/* ------------------------------- TEKLİF TÜRÜ ROZETİ ------------------------------- */
+
+window.getOfferKindBadge = function (offerKind, isIncoming) {
+    if (offerKind === 'supply') {
+        return isIncoming
+            ? '<span class="text-[10px] bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded"><i class="fa-solid fa-cart-shopping mr-0.5"></i> ALIM TALEBİME TEDARİK TEKLİFİ</span>'
+            : '<span class="text-[10px] bg-lux-olive text-white px-1.5 py-0.5 rounded"><i class="fa-solid fa-truck-field mr-0.5"></i> GÖNDERDİĞİM TEDARİK TEKLİFİ</span>';
+    }
+    if (offerKind === 'subscription') {
+        return isIncoming
+            ? '<span class="text-[10px] bg-indigo-200 text-indigo-900 px-1.5 py-0.5 rounded"><i class="fa-solid fa-rotate mr-0.5"></i> DÜZENLİ SİPARİŞ TALEBİ</span>'
+            : '<span class="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded"><i class="fa-solid fa-rotate mr-0.5"></i> GÖNDERDİĞİM ABONELİK TALEBİ</span>';
+    }
+    if (offerKind === 'group') {
+        return isIncoming
+            ? '<span class="text-[10px] bg-lux-gold text-lux-dark px-1.5 py-0.5 rounded"><i class="fa-solid fa-people-group mr-0.5"></i> TOPLU ALIMIMA TEKLİF</span>'
+            : '<span class="text-[10px] bg-lux-olive text-white px-1.5 py-0.5 rounded"><i class="fa-solid fa-people-group mr-0.5"></i> TOPLU ALIMA TEKLİFİM</span>';
+    }
+    return isIncoming
+        ? '<span class="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded">GELEN TALEP</span>'
+        : '<span class="text-[10px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">GÖNDERDİĞİM TALEP</span>';
+};
+
+/* =========================================================================================
+   ORONTES — MODÜL 3 / BÖLÜM B
+   • İşlem sonrası ÇİFT TARAFLI puanlama (alıcı ⇄ satıcı, doğrulanmış işlem rozeti)
+   • Anlaşmazlık / "Sorun Bildir" akışı
+   • Otomatik paylaşım kartı görseli + yazdırılabilir QR afişi
+   • Derin bağlantı (ilan/talep/kampanya linki)
+   • Üretici hikayesi & kısa video
+   ========================================================================================= */
+
+window.BUYER_REVIEW_BADGES = ["Hızlı Ödeme", "Net İletişim", "Sözünde Durdu", "Sorunsuz Teslim Aldı", "Tekrar Çalışılır", "Dürüst Alıcı"];
+
+window.activeRatingTarget = null;
+window.ratingSelectedScore = 0;
+window.ratingSelectedBadges = new Set();
+
+window.openRatingModal = function (targetUid, targetName, role, dealId) {
+    if (!window.currentUser) {
+        window.showToast("Değerlendirme için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+    if (targetUid === window.currentUser.uid) {
+        window.showToast("Kendinizi değerlendiremezsiniz.", "error");
+        return;
+    }
+
+    window.activeRatingTarget = { uid: targetUid, name: targetName, role: role || 'seller', dealId: dealId || null };
+    const isSellerTarget = (role || 'seller') !== 'buyer';
+
+    document.getElementById('rating-modal-title').innerText = isSellerTarget
+        ? window.t('rate.asSeller', 'Satıcıyı Değerlendir')
+        : window.t('rate.asBuyer', 'Alıcıyı Değerlendir');
+    document.getElementById('rating-target-name').innerText = targetName || 'Kullanıcı';
+    document.getElementById('rating-deal-note').classList.toggle('hidden', !dealId);
+
+    const commentEl = document.getElementById('rating-comment');
+    if (commentEl) commentEl.value = '';
+
+    window.ratingSelectedScore = 0;
+    window.ratingSelectedBadges = new Set();
+
+    get(ref(db, `ratings/${targetUid}/${window.currentUser.uid}`)).then(snap => {
+        if (snap.exists()) {
+            const prev = snap.val();
+            window.ratingSelectedScore = prev.score || 0;
+            window.ratingSelectedBadges = new Set(prev.badges || []);
+            if (commentEl) commentEl.value = prev.comment || '';
+            window.renderRatingStars();
+            window.renderRatingBadges(isSellerTarget);
+        }
+    }).catch(() => {});
+
+    window.renderRatingStars();
+    window.renderRatingBadges(isSellerTarget);
+    document.getElementById('rating-modal').classList.remove('hidden');
+};
+
+window.closeRatingModal = function () {
+    document.getElementById('rating-modal').classList.add('hidden');
+    window.activeRatingTarget = null;
+};
+
+window.renderRatingStars = function () {
+    const box = document.getElementById('rating-stars');
+    if (!box) return;
+    box.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+        const star = document.createElement('span');
+        star.innerText = i <= window.ratingSelectedScore ? '★' : '☆';
+        star.style.color = i <= window.ratingSelectedScore ? '#bca879' : '#c7c7c7';
+        star.style.cursor = 'pointer';
+        star.style.fontSize = '30px';
+        star.style.lineHeight = '1';
+        star.onclick = () => { window.ratingSelectedScore = i; window.renderRatingStars(); };
+        box.appendChild(star);
+    }
+};
+
+window.renderRatingBadges = function (isSellerTarget) {
+    const box = document.getElementById('rating-badges');
+    if (!box) return;
+    box.innerHTML = '';
+    const list = isSellerTarget ? window.AVAILABLE_REVIEW_BADGES : window.BUYER_REVIEW_BADGES;
+
+    list.forEach(badge => {
+        const el = document.createElement('span');
+        el.innerText = badge;
+        const selected = window.ratingSelectedBadges.has(badge);
+        el.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${selected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-lux-bg hover:bg-gray-200 text-lux-dark border-lux-olive font-medium'}`;
+        el.onclick = () => {
+            if (window.ratingSelectedBadges.has(badge)) window.ratingSelectedBadges.delete(badge);
+            else window.ratingSelectedBadges.add(badge);
+            window.renderRatingBadges(isSellerTarget);
+        };
+        box.appendChild(el);
+    });
+};
+
+window.submitTwoWayRating = async function () {
+    if (!window.currentUser || !window.activeRatingTarget) return;
+    if (!window.ratingSelectedScore) {
+        window.showToast("Lütfen önce bir yıldız seçin.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('rating-submit-btn');
+    if (btn) { btn.disabled = true; btn.innerText = "Gönderiliyor..."; }
+
+    const target = window.activeRatingTarget;
+    try {
+        await update(ref(db, `ratings/${target.uid}/${window.currentUser.uid}`), {
+            score: window.ratingSelectedScore,
+            badges: Array.from(window.ratingSelectedBadges),
+            comment: (document.getElementById('rating-comment').value || '').trim() || null,
+            role: target.role,
+            dealId: target.dealId || null,
+            verified: !!target.dealId,
+            raterName: window.userExtraData.username || window.currentUser.displayName || 'Kullanıcı',
+            date: Date.now()
+        });
+
+        if (target.dealId) {
+            const flagField = target.role === 'buyer' ? 'sellerRated' : 'buyerRated';
+            try { await update(ref(db, `offers/${target.dealId}`), { [flagField]: true }); } catch (e) {}
+        }
+
+        window.showToast("⭐ Değerlendirmeniz kaydedildi. Teşekkürler!", "success");
+        window.closeRatingModal();
+
+        const offersTab = document.getElementById('tab-content-offers');
+        if (offersTab && !offersTab.classList.contains('hidden') && typeof window.loadIncomingOffers === 'function') {
+            window.loadIncomingOffers();
+        }
+        if (window.activeSellerUid === target.uid && typeof window.loadSellerProfileBox === 'function') {
+            window.loadSellerProfileBox(target.uid);
+        }
+    } catch (err) {
+        window.showToast("Değerlendirme kaydedilemedi: " + err.message, "error");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = window.t('rate.send', 'Değerlendirmeyi Gönder'); }
+    }
+};
+
+/* Satıcı profilinde rol bazlı (satıcı/alıcı) puan dökümü ve yorumlar */
+window.renderSellerRoleStats = async function (uid) {
+    const box = document.getElementById('seller-profile-roles');
+    if (!box) return;
+    box.innerHTML = '';
+
+    try {
+        const snap = await get(ref(db, 'ratings/' + uid));
+        const data = snap.val() || {};
+        const all = Object.values(data);
+        if (all.length === 0) return;
+
+        const sellerR = all.filter(r => (r.role || 'seller') !== 'buyer' && typeof r.score === 'number');
+        const buyerR = all.filter(r => r.role === 'buyer' && typeof r.score === 'number');
+        const verified = all.filter(r => r.verified).length;
+
+        const avg = arr => arr.length ? (arr.reduce((a, b) => a + b.score, 0) / arr.length).toFixed(1) : null;
+        const sAvg = avg(sellerR);
+        const bAvg = avg(buyerR);
+
+        let html = '<div class="flex flex-wrap gap-2 mt-2">';
+        if (sAvg) html += `<span class="bg-lux-olive/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-lux-gold/30">🛒 ${window.t('rate.asSeller', 'Satıcı puanı')}: ★ ${sAvg} (${sellerR.length})</span>`;
+        if (bAvg) html += `<span class="bg-lux-olive/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-lux-gold/30">👤 ${window.t('rate.asBuyer', 'Alıcı puanı')}: ★ ${bAvg} (${buyerR.length})</span>`;
+        if (verified > 0) html += `<span class="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">✅ ${verified} ${window.t('rate.verified', 'doğrulanmış işlem')}</span>`;
+        html += '</div>';
+
+        const comments = all.filter(r => r.comment).sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
+        if (comments.length) {
+            html += '<div class="mt-3 space-y-1.5">';
+            comments.forEach(c => {
+                html += `<div class="bg-lux-olive/25 rounded-lg p-2 border border-lux-gold/20">
+                    <span class="text-[10px] text-lux-gold font-bold">${'★'.repeat(c.score || 0)}${c.verified ? ' <span class="text-emerald-400">✅</span>' : ''} ${escapeHtml(c.raterName || 'Kullanıcı')}</span>
+                    <p class="text-[11px] text-white/90 leading-snug mt-0.5">${escapeHtml(c.comment)}</p>
+                </div>`;
+            });
+            html += '</div>';
+        }
+
+        box.innerHTML = html;
+    } catch (err) { /* sessiz geç */ }
+};
+
+/* ------------------------- ANLAŞMAZLIK / SORUN BİLDİR ------------------------- */
+
+window.activeDisputeContext = null;
+
+window.openDisputeModal = function (dealId, counterpartyUid, counterpartyName, contextTitle) {
+    if (!window.currentUser) {
+        window.showToast("Sorun bildirmek için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+    window.activeDisputeContext = {
+        dealId: dealId || null,
+        counterpartyUid: counterpartyUid || null,
+        counterpartyName: counterpartyName || '',
+        contextTitle: contextTitle || ''
+    };
+    document.getElementById('dispute-context').innerText = contextTitle
+        ? `${contextTitle}${counterpartyName ? ' · ' + counterpartyName : ''}`
+        : (counterpartyName || 'Genel bildirim');
+    const form = document.getElementById('dispute-form');
+    if (form) form.reset();
+    document.getElementById('dispute-modal').classList.remove('hidden');
+};
+
+window.closeDisputeModal = function () {
+    document.getElementById('dispute-modal').classList.add('hidden');
+    window.activeDisputeContext = null;
+};
+
+window.handleDisputeSubmit = async function (e) {
+    e.preventDefault();
+    if (!window.currentUser || !window.activeDisputeContext) return;
+
+    const btn = document.getElementById('dispute-submit-btn');
+    btn.disabled = true;
+    btn.innerText = "Gönderiliyor...";
+
+    try {
+        await push(ref(db, 'disputes'), {
+            dealId: window.activeDisputeContext.dealId,
+            counterpartyUid: window.activeDisputeContext.counterpartyUid,
+            counterpartyName: window.activeDisputeContext.counterpartyName,
+            contextTitle: window.activeDisputeContext.contextTitle,
+            reporterUid: window.currentUser.uid,
+            reporterName: window.userExtraData.username || window.currentUser.displayName || 'Kullanıcı',
+            reporterEmail: window.currentUser.email,
+            reporterPhone: window.userExtraData.phone || null,
+            reason: document.getElementById('dispute-reason').value,
+            desc: document.getElementById('dispute-desc').value,
+            status: 'İnceleniyor',
+            date: Date.now()
+        });
+        window.showToast("🛡️ Bildiriminiz ekibimize iletildi. En kısa sürede incelenecektir.", "success");
+        window.closeDisputeModal();
+    } catch (err) {
+        window.showToast("Bildirim gönderilemedi: " + err.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = window.t('dispute.send', 'Bildirimi Gönder');
+    }
+};
+
+/* ------------------------- DERİN BAĞLANTI ------------------------- */
+
+window.getBaseUrl = function () {
+    return window.location.origin + window.location.pathname;
+};
+window.getListingShareUrl = function (id) {
+    return `${window.getBaseUrl()}?ilan=${encodeURIComponent(id)}`;
+};
+window.getBuyRequestShareUrl = function (id) {
+    return `${window.getBaseUrl()}?talep=${encodeURIComponent(id)}`;
+};
+window.getGroupBuyShareUrl = function (id) {
+    return `${window.getBaseUrl()}?birlikte=${encodeURIComponent(id)}`;
+};
+
+window.copyToClipboard = async function (text, successMsg) {
+    try {
+        await navigator.clipboard.writeText(text);
+        window.showToast(successMsg || "Bağlantı kopyalandı!", "success");
+    } catch (err) {
+        const tmp = document.createElement('textarea');
+        tmp.value = text;
+        document.body.appendChild(tmp);
+        tmp.select();
+        try { document.execCommand('copy'); window.showToast(successMsg || "Bağlantı kopyalandı!", "success"); }
+        catch (e) { window.showToast("Kopyalanamadı. Bağlantı: " + text, "warning"); }
+        tmp.remove();
+    }
+};
+
+window.handleDeepLink = async function () {
+    const params = new URLSearchParams(window.location.search);
+    const listingId = params.get('ilan');
+    const requestId = params.get('talep');
+    const groupId = params.get('birlikte');
+
+    if (listingId) {
+        let item = (window.listings || []).find(l => l.id === listingId);
+        if (!item) {
+            try {
+                const snap = await get(ref(db, 'listings/' + listingId));
+                if (snap.exists()) {
+                    item = { id: listingId, ...snap.val() };
+                    window.listings = [...(window.listings || []), item];
+                }
+            } catch (e) {}
+        }
+        if (item) window.openDetailModal(listingId);
+        else window.showToast("Bağlantıdaki ilan bulunamadı veya kaldırılmış.", "warning");
+        return;
+    }
+
+    if (requestId) {
+        let rq = (window.buyRequests || []).find(r => r.id === requestId);
+        if (!rq) {
+            try {
+                const snap = await get(ref(db, 'buyRequests/' + requestId));
+                if (snap.exists()) {
+                    rq = { id: requestId, ...snap.val() };
+                    window.buyRequests = [...(window.buyRequests || []), rq];
+                }
+            } catch (e) {}
+        }
+        if (rq) window.openBuyRequestDetail(requestId);
+        else window.showToast("Bağlantıdaki alım talebi bulunamadı.", "warning");
+        return;
+    }
+
+    if (groupId) {
+        let gb = (window.groupBuys || []).find(g => g.id === groupId);
+        if (!gb) {
+            try {
+                const snap = await get(ref(db, 'groupBuys/' + groupId));
+                if (snap.exists()) {
+                    gb = { id: groupId, ...snap.val() };
+                    window.groupBuys = [...(window.groupBuys || []), gb];
+                }
+            } catch (e) {}
+        }
+        if (gb) window.openGroupBuyDetail(groupId);
+        else window.showToast("Bağlantıdaki toplu alım bulunamadı.", "warning");
+    }
+};
+
+/* ------------------------- PAYLAŞIM KARTI & QR ------------------------- */
+
+window.shareCardCanvas = null;
+window.activeShareListingId = null;
+
+window.loadImageForCanvas = function (src) {
+    return new Promise((resolve) => {
+        if (!src) { resolve(null); return; }
+        const img = new Image();
+        if (!src.startsWith('data:')) img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+};
+
+window.wrapCanvasText = function (ctx, text, maxWidth, maxLines) {
+    const words = String(text || '').split(/\s+/);
+    const lines = [];
+    let line = '';
+    words.forEach(w => {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = w;
+        } else {
+            line = test;
+        }
+    });
+    if (line) lines.push(line);
+    if (maxLines && lines.length > maxLines) {
+        const cut = lines.slice(0, maxLines);
+        cut[maxLines - 1] = cut[maxLines - 1].replace(/\s+\S*$/, '') + '…';
+        return cut;
+    }
+    return lines;
+};
+
+window.makeQrCanvas = function (text, size) {
+    if (typeof QRCode === 'undefined') return null;
+    try {
+        const holder = document.createElement('div');
+        holder.style.display = 'none';
+        document.body.appendChild(holder);
+        new QRCode(holder, {
+            text: text,
+            width: size,
+            height: size,
+            colorDark: '#07332c',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        const canvas = holder.querySelector('canvas');
+        let result = null;
+        if (canvas) {
+            result = document.createElement('canvas');
+            result.width = size;
+            result.height = size;
+            result.getContext('2d').drawImage(canvas, 0, 0, size, size);
+        }
+        holder.remove();
+        return result;
+    } catch (err) {
+        console.warn('QR üretilemedi:', err);
+        return null;
+    }
+};
+
+/* 1080x1350 sosyal medya / WhatsApp paylaşım kartı */
+window.buildShareCard = async function (item) {
+    const W = 1080, H = 1350;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#07332c';
+    ctx.fillRect(0, 0, W, H);
+
+    const imgH = 720;
+    const img = await window.loadImageForCanvas(item.image);
+    if (img) {
+        const scale = Math.max(W / img.width, imgH / img.height);
+        const dw = img.width * scale, dh = img.height * scale;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, W, imgH);
+        ctx.clip();
+        ctx.drawImage(img, (W - dw) / 2, (imgH - dh) / 2, dw, dh);
+        ctx.restore();
+    } else {
+        const grd = ctx.createLinearGradient(0, 0, W, imgH);
+        grd.addColorStop(0, '#485b46');
+        grd.addColorStop(1, '#07332c');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, W, imgH);
+        ctx.font = '160px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(categoryEmojis[item.category] || '📦', W / 2, imgH / 2 + 55);
+        ctx.textAlign = 'left';
+    }
+
+    const fade = ctx.createLinearGradient(0, imgH - 240, 0, imgH);
+    fade.addColorStop(0, 'rgba(7,51,44,0)');
+    fade.addColorStop(1, 'rgba(7,51,44,0.95)');
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, imgH - 240, W, 240);
+
+    ctx.fillStyle = '#bca879';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(56, 56, 330, 92, 22); else ctx.rect(56, 56, 330, 92);
+    ctx.fill();
+    ctx.fillStyle = '#07332c';
+    ctx.font = '900 50px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ORONTES', 82, 104);
+    ctx.textBaseline = 'alphabetic';
+
+    let bx = 56;
+    const by = 176;
+    const drawTag = (text, bg, fg) => {
+        ctx.font = '700 30px Inter, Segoe UI, system-ui, sans-serif';
+        const w = ctx.measureText(text).width + 40;
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, w, 54, 14); else ctx.rect(bx, by, w, 54);
+        ctx.fill();
+        ctx.fillStyle = fg;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, bx + 20, by + 28);
+        ctx.textBaseline = 'alphabetic';
+        bx += w + 14;
+    };
+    const vipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
+    if (vipActive) drawTag('VIP', '#bca879', '#07332c');
+    if (item.isUrgent) drawTag('ACİL', '#dc2626', '#ffffff');
+    if (item.businessType === 'Toptancı') drawTag('TOPTANCI', '#485b46', '#ffffff');
+    if (item.harvestDate) drawTag('ÖN SİPARİŞ', '#f97316', '#ffffff');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 62px Inter, Segoe UI, system-ui, sans-serif';
+    const titleLines = window.wrapCanvasText(ctx, item.title, W - 300, 2);
+    let ty = 830;
+    titleLines.forEach(l => { ctx.fillText(l, 60, ty); ty += 76; });
+
+    ctx.fillStyle = '#afb7ac';
+    ctx.font = '400 36px Inter, Segoe UI, system-ui, sans-serif';
+    const loc = (item.outsideHatay ? '' : 'Hatay / ') + (window.getListingLocationText(item) || '');
+    ctx.fillText('📍 ' + loc, 60, ty + 8);
+    ctx.fillText('👤 ' + String(item.seller || ''), 60, ty + 62);
+
+    ctx.fillStyle = '#bca879';
+    ctx.font = '900 96px Inter, Segoe UI, system-ui, sans-serif';
+    const priceText = `${item.price} TL`;
+    ctx.fillText(priceText, 60, 1180);
+    if (item.unit) {
+        const priceW = ctx.measureText(priceText).width;
+        ctx.fillStyle = '#afb7ac';
+        ctx.font = '500 38px Inter, Segoe UI, system-ui, sans-serif';
+        ctx.fillText('/ ' + item.unit, 76 + priceW, 1180);
+    }
+
+    const qr = window.makeQrCanvas(window.getListingShareUrl(item.id), 200);
+    if (qr) {
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(806, 1046, 224, 224, 18); else ctx.rect(806, 1046, 224, 224);
+        ctx.fill();
+        ctx.drawImage(qr, 818, 1058, 200, 200);
+    }
+
+    ctx.fillStyle = 'rgba(72,91,70,0.55)';
+    ctx.fillRect(0, 1274, W, 76);
+    ctx.fillStyle = '#afb7ac';
+    ctx.font = '600 30px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ORONTES · Hatay Yerel Pazaryeri — komisyonsuz, doğrudan üreticiden', 60, 1312);
+    ctx.textBaseline = 'alphabetic';
+
+    return canvas;
+};
+
+/* Fiziksel tezgah / dükkan için yazdırılabilir QR afişi */
+window.buildQrPoster = async function (item) {
+    const W = 1080, H = 1440;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = '#07332c';
+    ctx.fillRect(0, 0, W, 220);
+    ctx.fillStyle = '#bca879';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(375, 62, 330, 96, 22); else ctx.rect(375, 62, 330, 96);
+    ctx.fill();
+    ctx.fillStyle = '#07332c';
+    ctx.font = '900 52px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ORONTES', 540, 112);
+
+    ctx.fillStyle = '#07332c';
+    ctx.font = '800 56px Inter, Segoe UI, system-ui, sans-serif';
+    const lines = window.wrapCanvasText(ctx, item.title, W - 160, 2);
+    let ty = 320;
+    lines.forEach(l => { ctx.fillText(l, W / 2, ty); ty += 68; });
+
+    ctx.fillStyle = '#485b46';
+    ctx.font = '900 78px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.fillText(`${item.price} TL${item.unit ? ' / ' + item.unit : ''}`, W / 2, ty + 40);
+
+    const qr = window.makeQrCanvas(window.getListingShareUrl(item.id), 560);
+    if (qr) {
+        ctx.strokeStyle = '#bca879';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(256, ty + 110, 568, 568);
+        ctx.drawImage(qr, 260, ty + 114, 560, 560);
+    } else {
+        ctx.fillStyle = '#888888';
+        ctx.font = '400 34px Inter, sans-serif';
+        ctx.fillText('QR oluşturulamadı', W / 2, ty + 380);
+    }
+
+    ctx.fillStyle = '#07332c';
+    ctx.font = '700 44px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.fillText('Telefonunuzla okutun,', W / 2, ty + 760);
+    ctx.fillText('ilanın tamamını görün 📱', W / 2, ty + 818);
+
+    ctx.fillStyle = '#485b46';
+    ctx.font = '400 32px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.fillText('📍 ' + ((item.outsideHatay ? '' : 'Hatay / ') + (window.getListingLocationText(item) || '')), W / 2, ty + 890);
+    ctx.fillText('👤 ' + String(item.seller || ''), W / 2, ty + 940);
+
+    ctx.fillStyle = '#07332c';
+    ctx.fillRect(0, H - 90, W, 90);
+    ctx.fillStyle = '#afb7ac';
+    ctx.font = '600 28px Inter, Segoe UI, system-ui, sans-serif';
+    ctx.fillText('ORONTES · Hatay Yerel Pazaryeri ve Hizmet Ağı', W / 2, H - 36);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    return canvas;
+};
+
+window.openShareCardModal = async function (listingId) {
+    const id = listingId || window.activeListingId;
+    const item = (window.listings || []).find(l => l.id === id);
+    if (!item) { window.showToast("İlan bulunamadı.", "error"); return; }
+
+    window.activeShareListingId = id;
+
+    const modal = document.getElementById('share-card-modal');
+    const cardBox = document.getElementById('share-card-preview');
+    const qrBox = document.getElementById('share-qr-preview');
+    const linkEl = document.getElementById('share-link-text');
+
+    cardBox.innerHTML = `<div class="text-center py-10 text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin text-xl block mb-2"></i>Paylaşım kartı hazırlanıyor...</div>`;
+    qrBox.innerHTML = '';
+    if (linkEl) linkEl.value = window.getListingShareUrl(id);
+    modal.classList.remove('hidden');
+
+    try {
+        const cardCanvas = await window.buildShareCard(item);
+        cardBox.innerHTML = '';
+        cardCanvas.className = 'w-full rounded-xl border border-gray-200 shadow-sm';
+        cardBox.appendChild(cardCanvas);
+        window.shareCardCanvas = cardCanvas;
+    } catch (err) {
+        console.warn('Paylaşım kartı hatası:', err);
+        cardBox.innerHTML = `<div class="text-center py-8 text-xs text-red-500">Paylaşım kartı oluşturulamadı. Görsel farklı bir sunucudan geliyorsa tarayıcı engelliyor olabilir.</div>`;
+    }
+
+    const qrCanvas = window.makeQrCanvas(window.getListingShareUrl(id), 200);
+    if (qrCanvas) {
+        qrCanvas.className = 'rounded-lg border border-gray-200 mx-auto';
+        qrBox.appendChild(qrCanvas);
+    } else {
+        qrBox.innerHTML = `<p class="text-[11px] text-gray-400 text-center">QR kütüphanesi yüklenemedi.</p>`;
+    }
+};
+
+window.closeShareCardModal = function () {
+    document.getElementById('share-card-modal').classList.add('hidden');
+};
+
+window.downloadCanvasImage = function (canvas, filename) {
+    if (!canvas) { window.showToast("Görsel henüz hazır değil.", "warning"); return; }
+    canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        window.showToast("Görsel indirildi. WhatsApp/Instagram'da paylaşabilirsiniz!", "success");
+    }, 'image/png');
+};
+
+window.safeFileName = function (text, fallback) {
+    const clean = String(text || '').replace(/[^a-zA-Z0-9ğüşıöçĞÜŞİÖÇ ]/g, '').slice(0, 40).trim().replace(/\s+/g, '-');
+    return clean || fallback;
+};
+
+window.downloadShareCard = function () {
+    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    window.downloadCanvasImage(window.shareCardCanvas, `orontes-${window.safeFileName(item && item.title, 'ilan')}.png`);
+};
+
+window.downloadQrPoster = async function () {
+    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    if (!item) return;
+    window.showToast("QR afişi hazırlanıyor...", "warning");
+    try {
+        const poster = await window.buildQrPoster(item);
+        window.downloadCanvasImage(poster, `orontes-qr-afis-${window.safeFileName(item.title, 'ilan')}.png`);
+    } catch (err) {
+        window.showToast("QR afişi oluşturulamadı.", "error");
+    }
+};
+
+/* Mobilde görseli doğrudan WhatsApp/Instagram'a gönderir */
+window.nativeShareCard = async function () {
+    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    if (!item) return;
+    const url = window.getListingShareUrl(item.id);
+    const text = `📌 ${item.title}\n💰 ${item.price} TL${item.unit ? ' / ' + item.unit : ''}\n📍 ${(item.outsideHatay ? '' : 'Hatay / ') + window.getListingLocationText(item)}\n\nORONTES'te görüntüle: ${url}`;
+
+    try {
+        if (window.shareCardCanvas && navigator.canShare) {
+            const blob = await new Promise(res => window.shareCardCanvas.toBlob(res, 'image/png'));
+            const file = new File([blob], 'orontes-ilan.png', { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: item.title, text: text });
+                return;
+            }
+        }
+        if (navigator.share) {
+            await navigator.share({ title: item.title, text: text, url: url });
+            return;
+        }
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    }
+};
+
+window.copyShareLink = function () {
+    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    if (!item) return;
+    window.copyToClipboard(window.getListingShareUrl(item.id), "İlan bağlantısı kopyalandı!");
+};
+
+/* ------------------------- ÜRETİCİ HİKAYESİ / VİDEO ------------------------- */
+
+window.getYoutubeId = function (url) {
+    if (!url) return null;
+    const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    return m ? m[1] : null;
+};
+
+window.renderProducerStory = function (item) {
+    const box = document.getElementById('detail-story-box');
+    const textEl = document.getElementById('detail-story-text');
+    const videoBox = document.getElementById('detail-video-box');
+    if (!box || !textEl || !videoBox) return;
+
+    const hasStory = !!(item.producerStory && String(item.producerStory).trim());
+    const hasVideo = !!(item.videoUrl && String(item.videoUrl).trim());
+
+    box.classList.toggle('hidden', !hasStory && !hasVideo);
+    textEl.innerText = hasStory ? item.producerStory : '';
+    textEl.classList.toggle('hidden', !hasStory);
+
+    videoBox.innerHTML = '';
+    if (hasVideo) {
+        const ytId = window.getYoutubeId(item.videoUrl);
+        if (ytId) {
+            videoBox.innerHTML = `<div class="rounded-xl overflow-hidden border border-lux-olive/30 mt-2" style="position:relative; padding-top:56.25%;">
+                <iframe src="https://www.youtube.com/embed/${escapeHtml(ytId)}" title="Üretici videosu" allowfullscreen loading="lazy"
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;"></iframe>
+            </div>`;
+        } else {
+            videoBox.innerHTML = `<a href="${escapeHtml(item.videoUrl)}" target="_blank" rel="noopener"
+                class="mt-2 inline-flex items-center gap-1.5 bg-lux-dark hover:bg-lux-olive text-white font-bold px-3 py-2 rounded-lg text-[11px] transition">
+                <i class="fa-solid fa-circle-play"></i> ${window.t('detail.video', 'Üretici videosunu izle')}
+            </a>`;
+        }
+    }
+};
+
+/* İlan detayındaki yeni alanların bağlamını hazırlar */
+window.setupDetailExtras = function (item) {
+    const subBox = document.getElementById('detail-subscription-box');
+    if (subBox) {
+        const isOwn = window.currentUser && item.uid === window.currentUser.uid;
+        subBox.classList.toggle('hidden', !!isOwn);
+        const hint = document.getElementById('sub-accept-hint');
+        if (hint) hint.classList.toggle('hidden', !item.acceptsSubscription);
+        const qtyUnit = document.getElementById('sub-unit-label');
+        if (qtyUnit) qtyUnit.innerText = item.unit || 'KG';
+    }
+
+    const problemBtn = document.getElementById('detail-problem-btn');
+    if (problemBtn) {
+        problemBtn.onclick = () => window.openDisputeModal(null, item.uid, item.seller || '', item.title || '');
+    }
+
+    const shareBtn = document.getElementById('detail-sharecard-btn');
+    if (shareBtn) shareBtn.onclick = () => window.openShareCardModal(item.id);
+};
+
+/* =========================================================================================
+   ORONTES — MODÜL 3 / BÖLÜM C
+   • Hasat takviminde "Bana Haber Ver" bildirim kancası
+   • Düzenli / abonelik siparişi
+   • Toplu alım — "Birlikte Al"
+   ========================================================================================= */
+
+/* ------------------------- HASAT BİLDİRİMLERİ ------------------------- */
+
+window.harvestAlertCount = 0;
+window.notifiedHarvestSeasons = new Set();
+
+window.harvestKey = function (name) {
+    return String(name || '')
+        .toLocaleLowerCase('tr-TR')
+        .replace(/[.#$\[\]\/]/g, '')
+        .replace(/[^a-z0-9çğıöşü]+/gi, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60);
+};
+
+window.isHarvestAlertOn = function (productName) {
+    const alerts = (window.userExtraData && window.userExtraData.harvestAlerts) || {};
+    return !!alerts[window.harvestKey(productName)];
+};
+
+window.toggleHarvestAlert = async function (productName) {
+    if (!window.currentUser) {
+        window.showToast("Hasat bildirimi kurmak için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+
+    const product = (window.HATAY_HARVEST_DATA || []).find(p => p.name === productName);
+    if (!product) return;
+
+    const key = window.harvestKey(productName);
+    if (!window.userExtraData.harvestAlerts) window.userExtraData.harvestAlerts = {};
+
+    try {
+        if (window.userExtraData.harvestAlerts[key]) {
+            await remove(ref(db, `users/${window.currentUser.uid}/harvestAlerts/${key}`));
+            delete window.userExtraData.harvestAlerts[key];
+            window.showToast(`🔕 "${productName}" hasat bildirimi kapatıldı.`, "success");
+        } else {
+            const payload = {
+                name: product.name,
+                category: product.category,
+                keyword: product.keyword,
+                months: product.months,
+                peak: product.peak,
+                district: window.harvestSelectedDistrict || null,
+                createdAt: Date.now()
+            };
+            await update(ref(db, `users/${window.currentUser.uid}/harvestAlerts/${key}`), payload);
+            window.userExtraData.harvestAlerts[key] = payload;
+            window.showToast(`🔔 "${productName}" hasat sezonuna girince gelen kutunuzdan haber vereceğiz!`, "success");
+        }
+        window.renderHarvestCalendar();
+        window.refreshHarvestAlertBadge();
+    } catch (err) {
+        window.showToast("Bildirim kaydedilemedi: " + err.message, "error");
+    }
+};
+
+/* Gelen kutusuna basılacak hasat bildirim kartlarını üretir */
+window.getHarvestNotifications = function () {
+    const alerts = (window.userExtraData && window.userExtraData.harvestAlerts) || {};
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const items = [];
+
+    Object.keys(alerts).forEach(key => {
+        const a = alerts[key];
+        if (!a || !Array.isArray(a.months)) return;
+
+        const inSeason = a.months.includes(month);
+        const startingSoon = !inSeason && a.months.includes(nextMonth);
+        if (!inSeason && !startingSoon) return;
+
+        items.push({
+            id: 'harvest_' + key,
+            type: 'harvest_alert',
+            productName: a.name,
+            category: a.category,
+            keyword: a.keyword,
+            district: a.district || null,
+            inSeason: inSeason,
+            isPeak: Array.isArray(a.peak) && a.peak.includes(month),
+            monthLabel: window.TR_MONTHS[(inSeason ? month : nextMonth) - 1],
+            date: Date.now() - (inSeason ? 0 : 1000)
+        });
+    });
+
+    return items;
+};
+
+window.refreshHarvestAlertBadge = function () {
+    const notifs = window.getHarvestNotifications();
+    window.harvestAlertCount = notifs.length;
+    if (typeof window.updateNotificationBadge === 'function') window.updateNotificationBadge();
+
+    if (window.currentUser) {
+        notifs.forEach(n => {
+            if (n.inSeason && !window.notifiedHarvestSeasons.has(n.id)) {
+                window.notifiedHarvestSeasons.add(n.id);
+                window.showToast(`🌱 Takip ettiğiniz "${n.productName}" hasat sezonuna girdi! Gelen kutunuza bakın.`, "success");
+            }
+        });
+    }
+};
+
+/* ------------------------- DÜZENLİ / ABONELİK SİPARİŞİ ------------------------- */
+
+window.submitSubscriptionRequest = async function () {
+    if (!window.currentUser) {
+        window.showToast("Düzenli sipariş talebi için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+
+    const item = (window.listings || []).find(l => l.id === window.activeListingId);
+    if (!item) return;
+
+    if (item.uid === window.currentUser.uid) {
+        window.showToast("Kendi ilanınıza abonelik talebi gönderemezsiniz.", "error");
+        return;
+    }
+
+    const frequency = document.getElementById('sub-frequency').value;
+    const qty = document.getElementById('sub-qty').value.trim();
+    const start = document.getElementById('sub-start').value.trim();
+    const note = document.getElementById('sub-note').value.trim();
+
+    if (!qty) {
+        window.showToast("Lütfen her teslimatta almak istediğiniz miktarı yazın.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('sub-submit-btn');
+    if (btn) { btn.disabled = true; btn.innerText = "Gönderiliyor..."; }
+
+    try {
+        await push(ref(db, 'offers'), {
+            offerKind: 'subscription',
+            listingId: item.id,
+            listingTitle: item.title,
+            sellerUid: item.uid,
+            buyerUid: window.currentUser.uid,
+            buyerName: window.userExtraData.username || window.currentUser.displayName || window.currentUser.email,
+            buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
+            offeredPrice: item.price,
+            frequency: frequency,
+            subQty: qty,
+            startDate: start || null,
+            note: note ? `[DÜZENLİ SİPARİŞ] ${note}` : `[DÜZENLİ SİPARİŞ] ${frequency} · ${qty} ${item.unit || ''}`,
+            status: 'Beklemede',
+            date: Date.now()
+        });
+
+        window.showToast("🔁 Düzenli sipariş talebiniz iletildi! Satıcı onaylarsa periyodik tedarik başlar.", "success");
+        document.getElementById('sub-qty').value = '';
+        document.getElementById('sub-start').value = '';
+        document.getElementById('sub-note').value = '';
+    } catch (err) {
+        window.showToast("Talep iletilemedi: " + err.message, "error");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = window.t('sub.send', 'Düzenli Sipariş Talebi Gönder'); }
+    }
+};
+
+/* Alım talebi formunda "düzenli alım" seçilince periyot alanını göster */
+window.toggleBrFrequency = function () {
+    const cb = document.getElementById('br-recurring');
+    const box = document.getElementById('br-frequency-box');
+    if (!cb || !box) return;
+    box.classList.toggle('hidden', !cb.checked);
+};
+
+/* ------------------------- TOPLU ALIM — "BİRLİKTE AL" ------------------------- */
+
+window.groupBuys = [];
+window.filteredGroupBuys = [];
+window.gbOnlyOpen = true;
+window.activeGroupBuyId = null;
+window.activeGroupBuysListener = null;
+window.activeGroupBuysQuery = null;
+window.gbDistrictSelection = new Set(['Tüm Hatay']);
+
+window.startGroupBuysListener = function () {
+    try {
+        const q = query(ref(db, 'groupBuys'), orderByChild('date'), limitToLast(80));
+
+        if (window.activeGroupBuysQuery && window.activeGroupBuysListener) {
+            off(window.activeGroupBuysQuery, 'value', window.activeGroupBuysListener);
+        }
+
+        window.activeGroupBuysQuery = q;
+        window.activeGroupBuysListener = onValue(q, (snapshot) => {
+            const items = [];
+            snapshot.forEach(child => items.push({ id: child.key, ...child.val() }));
+            items.sort((a, b) => (b.date || 0) - (a.date || 0));
+            window.groupBuys = items;
+            window.executeGroupBuyFilters();
+
+            if (typeof window.updateMarqueeData === 'function') window.updateMarqueeData();
+
+            const detailModal = document.getElementById('groupbuy-detail-modal');
+            if (detailModal && !detailModal.classList.contains('hidden') && window.activeGroupBuyId) {
+                window.openGroupBuyDetail(window.activeGroupBuyId, true);
+            }
+        }, (err) => {
+            console.warn('Toplu alımlar okunamadı:', err);
+            const grid = document.getElementById('groupbuys-grid');
+            if (grid) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 bg-white rounded-2xl border border-gray-200 text-gray-500 text-xs">
+                    <i class="fa-solid fa-triangle-exclamation text-lux-gold text-xl block mb-2"></i>
+                    <b class="text-lux-dark block mb-1">Toplu alım kampanyaları görüntülenemiyor.</b>
+                    Lütfen birkaç saniye sonra sayfayı yenileyin.
+                </div>`;
+            }
+        });
+    } catch (err) {
+        console.warn('Toplu alım dinleyicisi başlatılamadı:', err);
+    }
+};
+
+window.getGroupBuyProgress = function (gb) {
+    const parts = gb.participants || {};
+    const collected = Object.values(parts).reduce((sum, p) => sum + (Number(p.qty) || 0), 0);
+    const target = Number(gb.targetQty) || 0;
+    const percent = target > 0 ? Math.min(100, Math.round((collected / target) * 100)) : 0;
+    return { collected, target, percent, count: Object.keys(parts).length };
+};
+
+window.executeGroupBuyFilters = function () {
+    const searchEl = document.getElementById('gb-search');
+    const catEl = document.getElementById('gb-category-filter');
+    const search = searchEl ? searchEl.value.toLocaleLowerCase('tr-TR') : '';
+    const category = catEl ? catEl.value : '';
+
+    window.filteredGroupBuys = (window.groupBuys || []).filter(gb => {
+        const haystack = `${gb.title || ''} ${gb.desc || ''} ${gb.category || ''}`.toLocaleLowerCase('tr-TR');
+        const matchesSearch = !search || haystack.includes(search);
+        const matchesCat = !category || gb.category === category;
+        const matchesStatus = !window.gbOnlyOpen || (gb.status || 'Açık') !== 'Kapandı';
+        return matchesSearch && matchesCat && matchesStatus;
+    });
+
+    window.renderGroupBuys();
+};
+
+window.toggleGroupBuyOpenOnly = function () {
+    window.gbOnlyOpen = !window.gbOnlyOpen;
+    const btn = document.getElementById('gb-open-toggle');
+    if (btn) {
+        btn.className = window.gbOnlyOpen
+            ? "bg-lux-gold text-lux-dark font-bold px-3 py-2 rounded-xl text-xs transition whitespace-nowrap"
+            : "bg-lux-bg text-gray-600 font-semibold px-3 py-2 rounded-xl text-xs transition whitespace-nowrap border border-gray-200";
+        btn.innerHTML = window.gbOnlyOpen
+            ? '<i class="fa-solid fa-toggle-on mr-1"></i> Sadece Aktif Kampanyalar'
+            : '<i class="fa-solid fa-toggle-off mr-1"></i> Kapananlar Dahil';
+    }
+    window.executeGroupBuyFilters();
+};
+
+window.renderGroupBuys = function () {
+    const grid = document.getElementById('groupbuys-grid');
+    if (!grid) return;
+
+    const items = window.filteredGroupBuys || [];
+    const countEl = document.getElementById('gb-total-count');
+    if (countEl) {
+        const active = (window.groupBuys || []).filter(g => (g.status || 'Açık') !== 'Kapandı').length;
+        countEl.innerText = `${items.length} kampanya listelendi · ${active} aktif toplu alım`;
+    }
+
+    grid.innerHTML = '';
+
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-lux-olive/40 text-gray-500 text-xs">
+            <i class="fa-solid fa-people-group text-2xl text-lux-sage block mb-2"></i>
+            <b class="text-lux-dark block mb-1">${window.t('gb.empty', 'Şu anda aktif toplu alım kampanyası yok.')}</b>
+            Küçük alıcılar birleşip toptan fiyat yakalayabilir — ilk kampanyayı siz başlatın.
+            <button onclick="window.openGroupBuyForm()" class="block mx-auto mt-3 bg-lux-dark text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-lux-olive transition">
+                <i class="fa-solid fa-plus mr-1"></i> ${window.t('gb.create', 'Toplu Alım Başlat')}
+            </button>
+        </div>`;
+        return;
+    }
+
+    items.forEach(gb => {
+        const p = window.getGroupBuyProgress(gb);
+        const isClosed = (gb.status || 'Açık') === 'Kapandı';
+        const reached = p.percent >= 100;
+        const emoji = categoryEmojis[gb.category] || '📦';
+        const joined = window.currentUser && gb.participants && gb.participants[window.currentUser.uid];
+
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-2xl border ${isClosed ? 'border-gray-200 opacity-70' : (reached ? 'border-[1.5px] border-emerald-500' : 'border-lux-olive/30')} p-4 flex flex-col justify-between hover:shadow-lg transition-all duration-300`;
+        card.innerHTML = `
+            <div>
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="bg-lux-olive text-white text-[9px] font-extrabold px-2 py-1 rounded-md uppercase tracking-wide whitespace-nowrap">
+                        <i class="fa-solid fa-people-group mr-0.5"></i> BİRLİKTE AL
+                    </span>
+                    <span class="text-[9px] text-gray-400 whitespace-nowrap"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(gb.date)}</span>
+                </div>
+
+                <div class="flex flex-wrap gap-1 mb-2">
+                    ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : ''}
+                    ${reached && !isClosed ? `<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">🎯 ${window.t('gb.reached', 'HEDEFE ULAŞILDI')}</span>` : ''}
+                    ${joined ? `<span class="bg-lux-gold text-lux-dark font-bold text-[9px] px-2 py-0.5 rounded">✓ ${window.t('gb.joined', 'KATILDIN')}</span>` : ''}
+                </div>
+
+                <h3 onclick="window.openGroupBuyDetail('${escapeHtml(gb.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-2">
+                    ${emoji} ${escapeHtml(gb.title || 'Toplu alım')}
+                </h3>
+
+                <div class="mb-2">
+                    <div class="flex justify-between text-[10px] font-semibold mb-1">
+                        <span class="text-lux-olive">${window.t('gb.collected', 'Toplanan')}: ${p.collected} ${escapeHtml(gb.unit || '')}</span>
+                        <span class="text-gray-500">${window.t('gb.target', 'Hedef')}: ${p.target} ${escapeHtml(gb.unit || '')}</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-lux-bg rounded-full overflow-hidden border border-gray-200">
+                        <div class="h-full ${reached ? 'bg-emerald-500' : 'bg-lux-gold'} transition-all" style="width:${p.percent}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[9px] text-gray-400 mt-1">
+                        <span>%${p.percent}</span>
+                        <span><i class="fa-solid fa-users mr-0.5"></i>${p.count} ${window.t('gb.participants', 'katılımcı')}</span>
+                    </div>
+                </div>
+
+                <div class="text-[10px] text-gray-500 space-y-0.5">
+                    ${gb.targetPrice ? `<p><i class="fa-solid fa-tag text-lux-gold w-3"></i> Hedef fiyat: <b class="text-lux-dark">${escapeHtml(String(gb.targetPrice))} TL</b></p>` : ''}
+                    ${gb.deadline ? `<p><i class="fa-solid fa-calendar-day text-lux-gold w-3"></i> Son katılım: ${escapeHtml(gb.deadline)}</p>` : ''}
+                    <p><i class="fa-solid fa-location-dot text-lux-gold w-3"></i> ${escapeHtml(Array.isArray(gb.districts) && gb.districts.length ? gb.districts.join(' · ') : 'Tüm Hatay')}</p>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-100 mt-3 pt-2.5 flex items-center justify-between gap-2">
+                <span class="text-[9px] text-gray-400">${escapeHtml(gb.creatorName || '')}</span>
+                <button onclick="window.openGroupBuyDetail('${escapeHtml(gb.id)}')" class="text-[11px] ${isClosed ? 'bg-lux-bg text-gray-500' : 'bg-lux-olive text-white hover:bg-lux-dark'} font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
+                    ${isClosed || joined ? window.t('br.detail', 'Detay') : window.t('gb.join', 'Katıl')}
+                </button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+};
+
+window.renderGbDistrictChips = function () {
+    const box = document.getElementById('gb-district-chips');
+    if (!box) return;
+    box.innerHTML = '';
+
+    const makeChip = (label) => {
+        const chip = document.createElement('span');
+        const isSelected = window.gbDistrictSelection.has(label);
+        chip.innerText = label;
+        chip.className = `cursor-pointer text-[10px] px-2 py-1 rounded-full border transition-all ${isSelected ? 'bg-lux-dark text-lux-gold border-lux-gold font-bold' : 'bg-white hover:bg-lux-bg text-lux-dark border-gray-300 font-medium'}`;
+        chip.onclick = () => {
+            if (label === 'Tüm Hatay') {
+                window.gbDistrictSelection.clear();
+                window.gbDistrictSelection.add('Tüm Hatay');
+            } else {
+                window.gbDistrictSelection.delete('Tüm Hatay');
+                if (window.gbDistrictSelection.has(label)) window.gbDistrictSelection.delete(label);
+                else window.gbDistrictSelection.add(label);
+                if (window.gbDistrictSelection.size === 0) window.gbDistrictSelection.add('Tüm Hatay');
+            }
+            window.renderGbDistrictChips();
+        };
+        box.appendChild(chip);
+    };
+
+    makeChip('Tüm Hatay');
+    (window.HATAY_DISTRICT_LIST || []).forEach(d => makeChip(d));
+};
+
+window.openGroupBuyForm = function (prefill) {
+    if (!window.currentUser) {
+        window.showToast("Toplu alım başlatmak için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+
+    const form = document.getElementById('groupbuy-form');
+    if (form) form.reset();
+    document.getElementById('gb-edit-id').value = '';
+    document.getElementById('gb-form-title-text').innerText = window.t('gb.create', 'Toplu Alım Başlat');
+    document.getElementById('gb-submit-btn').innerText = 'Kampanyayı Başlat';
+
+    window.gbDistrictSelection = new Set(['Tüm Hatay']);
+    window.renderGbDistrictChips();
+
+    const nameEl = document.getElementById('gb-name');
+    const phoneEl = document.getElementById('gb-phone');
+    if (nameEl) nameEl.value = window.userExtraData.username || window.currentUser.displayName || (window.currentUser.email || '').split('@')[0];
+    if (phoneEl) phoneEl.value = window.userExtraData.phone || '';
+
+    if (prefill && prefill.category) document.getElementById('gb-category').value = prefill.category;
+    if (prefill && prefill.title) document.getElementById('gb-title').value = prefill.title;
+
+    document.getElementById('groupbuy-detail-modal').classList.add('hidden');
+    document.getElementById('groupbuy-form-modal').classList.remove('hidden');
+};
+
+window.closeGroupBuyForm = function () {
+    document.getElementById('groupbuy-form-modal').classList.add('hidden');
+};
+
+window.openGroupBuyFormForEdit = function (id) {
+    const gb = (window.groupBuys || []).find(g => g.id === id);
+    if (!gb || !window.currentUser || gb.creatorUid !== window.currentUser.uid) {
+        window.showToast("Bu kampanyayı düzenleme yetkiniz yok.", "error");
+        return;
+    }
+
+    document.getElementById('gb-edit-id').value = gb.id;
+    document.getElementById('gb-form-title-text').innerText = 'Toplu Alımı Düzenle';
+    document.getElementById('gb-submit-btn').innerText = 'Değişiklikleri Kaydet';
+    document.getElementById('gb-title').value = gb.title || '';
+    document.getElementById('gb-category').value = gb.category || '';
+    document.getElementById('gb-target-qty').value = gb.targetQty || '';
+    document.getElementById('gb-unit').value = gb.unit || '';
+    document.getElementById('gb-target-price').value = gb.targetPrice || '';
+    document.getElementById('gb-deadline').value = gb.deadline || '';
+    document.getElementById('gb-desc').value = gb.desc || '';
+    document.getElementById('gb-name').value = gb.creatorName || '';
+    document.getElementById('gb-phone').value = gb.phone || '';
+    document.getElementById('gb-my-qty').value = (gb.participants && gb.participants[window.currentUser.uid])
+        ? gb.participants[window.currentUser.uid].qty : '';
+
+    window.gbDistrictSelection = new Set(Array.isArray(gb.districts) && gb.districts.length ? gb.districts : ['Tüm Hatay']);
+    window.renderGbDistrictChips();
+
+    document.getElementById('groupbuy-detail-modal').classList.add('hidden');
+    document.getElementById('groupbuy-form-modal').classList.remove('hidden');
+};
+
+window.handleGroupBuySubmit = async function (e) {
+    e.preventDefault();
+    if (!window.currentUser) return;
+
+    const editId = document.getElementById('gb-edit-id').value;
+    const title = document.getElementById('gb-title').value.trim();
+    const category = document.getElementById('gb-category').value;
+    const targetQty = Number(document.getElementById('gb-target-qty').value);
+    const myQty = Number(document.getElementById('gb-my-qty').value);
+    const name = document.getElementById('gb-name').value.trim();
+    const phone = document.getElementById('gb-phone').value.trim();
+
+    if (!title || !category || !targetQty || !name || !phone) {
+        window.showToast("Lütfen zorunlu (*) alanları doldurun.", "warning");
+        return;
+    }
+    if (targetQty <= 0) {
+        window.showToast("Hedef miktar 0'dan büyük olmalıdır.", "warning");
+        return;
+    }
+
+    const existing = editId ? (window.groupBuys || []).find(g => g.id === editId) : null;
+    if (editId && (!existing || existing.creatorUid !== window.currentUser.uid)) {
+        window.showToast("Bu kampanyayı düzenleme yetkiniz yok.", "error");
+        return;
+    }
+
+    const btn = document.getElementById('gb-submit-btn');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Kaydediliyor...";
+
+    const payload = {
+        creatorUid: window.currentUser.uid,
+        creatorName: name,
+        phone: phone,
+        title: title,
+        category: category,
+        targetQty: targetQty,
+        unit: document.getElementById('gb-unit').value.trim() || 'KG',
+        targetPrice: Number(document.getElementById('gb-target-price').value) || null,
+        deadline: document.getElementById('gb-deadline').value.trim() || null,
+        districts: Array.from(window.gbDistrictSelection),
+        desc: document.getElementById('gb-desc').value.trim() || null,
+        status: existing ? (existing.status || 'Açık') : 'Açık',
+        date: existing ? existing.date : Date.now(),
+        updatedAt: Date.now()
+    };
+
+    try {
+        let targetId = editId;
+        if (editId) {
+            await update(ref(db, 'groupBuys/' + editId), payload);
+            window.showToast("Toplu alım kampanyanız güncellendi.", "success");
+        } else {
+            const newRef = await push(ref(db, 'groupBuys'), payload);
+            targetId = newRef.key;
+            window.showToast("🤝 Toplu alım kampanyanız başladı! Bağlantıyı paylaşarak katılımcı toplayın.", "success");
+        }
+
+        if (myQty > 0 && targetId) {
+            await update(ref(db, `groupBuys/${targetId}/participants/${window.currentUser.uid}`), {
+                name: name, phone: phone, qty: myQty, joinedAt: Date.now()
+            });
+        }
+
+        window.closeGroupBuyForm();
+        const sec = document.getElementById('groupbuys-section');
+        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+        window.showToast("Kampanya kaydedilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+};
+
+window.openGroupBuyDetail = function (id, silentRefresh) {
+    const gb = (window.groupBuys || []).find(g => g.id === id);
+    if (!gb) return;
+
+    window.activeGroupBuyId = id;
+    const p = window.getGroupBuyProgress(gb);
+    const isCreator = window.currentUser && gb.creatorUid === window.currentUser.uid;
+    const isClosed = (gb.status || 'Açık') === 'Kapandı';
+    const myPart = window.currentUser && gb.participants ? gb.participants[window.currentUser.uid] : null;
+
+    document.getElementById('gbd-title').innerText = `${categoryEmojis[gb.category] || '📦'} ${gb.title}`;
+    document.getElementById('gbd-category').innerText = gb.category || '-';
+    document.getElementById('gbd-time').innerText = getTimeAgo(gb.date);
+    document.getElementById('gbd-desc').innerText = gb.desc || 'Ek açıklama girilmedi.';
+    document.getElementById('gbd-creator').innerText = gb.creatorName || '-';
+    document.getElementById('gbd-deadline').innerText = gb.deadline || 'Belirtilmedi';
+    document.getElementById('gbd-target-price').innerText = gb.targetPrice ? `${gb.targetPrice} TL` : 'Üretici teklifine göre';
+    document.getElementById('gbd-districts').innerText = Array.isArray(gb.districts) && gb.districts.length ? gb.districts.join(' · ') : 'Tüm Hatay';
+
+    const bar = document.getElementById('gbd-progress-bar');
+    bar.style.width = p.percent + '%';
+    bar.className = `h-full ${p.percent >= 100 ? 'bg-emerald-500' : 'bg-lux-gold'} transition-all`;
+    document.getElementById('gbd-progress-text').innerText = `${p.collected} / ${p.target} ${gb.unit || ''} (%${p.percent}) · ${p.count} katılımcı`;
+
+    document.getElementById('gbd-badges').innerHTML = `
+        ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : '<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">AKTİF KAMPANYA</span>'}
+        ${p.percent >= 100 ? '<span class="bg-lux-gold text-lux-dark font-bold text-[9px] px-2 py-0.5 rounded">🎯 HEDEFE ULAŞILDI</span>' : ''}
+        ${myPart ? '<span class="bg-white/20 text-white font-bold text-[9px] px-2 py-0.5 rounded">✓ KATILDIN</span>' : ''}
+    `;
+
+    const listEl = document.getElementById('gbd-participants');
+    listEl.innerHTML = '';
+    const parts = gb.participants || {};
+    if (Object.keys(parts).length === 0) {
+        listEl.innerHTML = `<p class="text-[11px] text-gray-400 italic">Henüz katılımcı yok — ilk katılan siz olun!</p>`;
+    } else {
+        Object.keys(parts).forEach(uid => {
+            const part = parts[uid];
+            const row = document.createElement('div');
+            row.className = "flex justify-between items-center bg-lux-bg/40 p-2 rounded-lg border border-gray-200/60 text-[11px]";
+            row.innerHTML = `
+                <span class="font-semibold text-lux-dark">${escapeHtml(part.name || 'Katılımcı')}${uid === gb.creatorUid ? ' <span class="text-[9px] bg-lux-gold text-lux-dark px-1 rounded">BAŞLATAN</span>' : ''}</span>
+                <span class="text-lux-olive font-bold">${escapeHtml(String(part.qty || 0))} ${escapeHtml(gb.unit || '')}</span>
+            `;
+            listEl.appendChild(row);
+        });
+    }
+
+    const joinBox = document.getElementById('gbd-join-box');
+    joinBox.classList.toggle('hidden', isClosed);
+    document.getElementById('gbd-join-btn').innerText = myPart
+        ? 'Katılım Miktarımı Güncelle'
+        : window.t('gb.join', 'Kampanyaya Katıl');
+    document.getElementById('gbd-leave-btn').classList.toggle('hidden', !myPart);
+    if (!silentRefresh) document.getElementById('gbd-join-qty').value = myPart ? myPart.qty : '';
+    document.getElementById('gbd-join-unit').innerText = gb.unit || 'KG';
+
+    document.getElementById('gbd-supply-box').classList.toggle('hidden', isClosed || !!isCreator);
+
+    document.getElementById('gbd-owner-actions').classList.toggle('hidden', !isCreator);
+    const statusBtn = document.getElementById('gbd-status-btn');
+    if (statusBtn) statusBtn.innerHTML = isClosed
+        ? '<i class="fa-solid fa-lock-open mr-1"></i> Kampanyayı Yeniden Aç'
+        : '<i class="fa-solid fa-lock mr-1"></i> Kampanyayı Kapat';
+
+    document.getElementById('groupbuy-detail-modal').classList.remove('hidden');
+};
+
+window.closeGroupBuyDetail = function () {
+    document.getElementById('groupbuy-detail-modal').classList.add('hidden');
+    window.activeGroupBuyId = null;
+};
+
+window.joinGroupBuy = async function () {
+    if (!window.currentUser) {
+        window.showToast("Katılmak için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+    const gb = (window.groupBuys || []).find(g => g.id === window.activeGroupBuyId);
+    if (!gb) return;
+
+    const qty = Number(document.getElementById('gbd-join-qty').value);
+    if (!qty || qty <= 0) {
+        window.showToast("Lütfen almak istediğiniz miktarı girin.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('gbd-join-btn');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Kaydediliyor...";
+
+    try {
+        await update(ref(db, `groupBuys/${gb.id}/participants/${window.currentUser.uid}`), {
+            name: window.userExtraData.username || window.currentUser.displayName || 'Katılımcı',
+            phone: window.userExtraData.phone || 'Belirtilmedi',
+            qty: qty,
+            joinedAt: Date.now()
+        });
+        window.showToast(`🤝 Kampanyaya ${qty} ${gb.unit || ''} ile katıldınız!`, "success");
+    } catch (err) {
+        window.showToast("Katılım kaydedilemedi: " + err.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+};
+
+window.leaveGroupBuy = async function () {
+    if (!window.currentUser || !window.activeGroupBuyId) return;
+    if (!confirm("Bu toplu alım kampanyasından çıkmak istediğinize emin misiniz?")) return;
+    try {
+        await remove(ref(db, `groupBuys/${window.activeGroupBuyId}/participants/${window.currentUser.uid}`));
+        window.showToast("Kampanyadan çıkarıldınız.", "success");
+    } catch (err) {
+        window.showToast("İşlem başarısız: " + err.message, "error");
+    }
+};
+
+window.toggleGroupBuyStatus = async function () {
+    const gb = (window.groupBuys || []).find(g => g.id === window.activeGroupBuyId);
+    if (!gb || !window.currentUser || gb.creatorUid !== window.currentUser.uid) return;
+    const newStatus = (gb.status || 'Açık') === 'Açık' ? 'Kapandı' : 'Açık';
+    try {
+        await update(ref(db, 'groupBuys/' + gb.id), { status: newStatus, updatedAt: Date.now() });
+        window.showToast(`Kampanya durumu "${newStatus}" olarak güncellendi.`, "success");
+    } catch (err) {
+        window.showToast("Durum güncellenemedi: " + err.message, "error");
+    }
+};
+
+window.deleteGroupBuy = async function (id) {
+    const targetId = id || window.activeGroupBuyId;
+    const gb = (window.groupBuys || []).find(g => g.id === targetId);
+    if (!gb || !window.currentUser || gb.creatorUid !== window.currentUser.uid) {
+        window.showToast("Bu kampanyayı silme yetkiniz yok.", "error");
+        return;
+    }
+    if (!confirm("Bu toplu alım kampanyasını silmek istediğinize emin misiniz?")) return;
+    try {
+        await remove(ref(db, 'groupBuys/' + targetId));
+        window.showToast("Toplu alım kampanyası silindi.", "success");
+        window.closeGroupBuyDetail();
+    } catch (err) {
+        window.showToast("Silinemedi: " + err.message, "error");
+    }
+};
+
+window.submitGroupSupplyOffer = async function () {
+    if (!window.currentUser) {
+        window.showToast("Teklif göndermek için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+    const gb = (window.groupBuys || []).find(g => g.id === window.activeGroupBuyId);
+    if (!gb) return;
+    if (gb.creatorUid === window.currentUser.uid) {
+        window.showToast("Kendi kampanyanıza teklif gönderemezsiniz.", "error");
+        return;
+    }
+
+    const price = document.getElementById('gbd-supply-price').value;
+    const note = document.getElementById('gbd-supply-note').value;
+    if (!price) {
+        window.showToast("Lütfen birim fiyatınızı girin.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('gbd-supply-btn');
+    btn.disabled = true;
+    btn.innerText = "Gönderiliyor...";
+
+    try {
+        const p = window.getGroupBuyProgress(gb);
+        await push(ref(db, 'offers'), {
+            offerKind: 'group',
+            requestId: gb.id,
+            listingId: gb.id,
+            listingTitle: gb.title,
+            sellerUid: gb.creatorUid,
+            buyerUid: window.currentUser.uid,
+            buyerName: window.userExtraData.username || window.currentUser.displayName || window.currentUser.email,
+            buyerPhone: window.userExtraData.phone || 'Belirtilmedi',
+            offeredPrice: price,
+            note: note
+                ? `[TOPLU ALIM TEKLİFİ · ${p.collected} ${gb.unit || ''}] ${note}`
+                : `[TOPLU ALIM TEKLİFİ] Toplam ${p.collected} ${gb.unit || ''} için birim fiyat teklifi`,
+            status: 'Beklemede',
+            date: Date.now()
+        });
+        window.showToast("Toplu alım teklifiniz kampanya sahibine iletildi!", "success");
+        document.getElementById('gbd-supply-price').value = '';
+        document.getElementById('gbd-supply-note').value = '';
+    } catch (err) {
+        window.showToast("Teklif iletilemedi: " + err.message, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = window.t('br.supplySend', 'Tedarik Teklifi Gönder');
+    }
+};
+
+window.shareGroupBuy = function () {
+    const gb = (window.groupBuys || []).find(g => g.id === window.activeGroupBuyId);
+    if (!gb) return;
+    const p = window.getGroupBuyProgress(gb);
+    const url = window.getGroupBuyShareUrl(gb.id);
+    const text = `🤝 BİRLİKTE ALALIM — ${gb.title}\n🎯 Hedef: ${p.target} ${gb.unit || ''} · Toplanan: ${p.collected} ${gb.unit || ''} (%${p.percent})\n\nKatılmak için: ${url}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+};
+
+/* Hesabım > Alım Taleplerim sekmesinde toplu alımlarım */
+window.loadMyGroupBuys = function () {
+    const container = document.getElementById('tab-content-buyrequests');
+    if (!container || !window.currentUser) return;
+
+    const mine = (window.groupBuys || []).filter(g => g.creatorUid === window.currentUser.uid);
+    const joined = (window.groupBuys || []).filter(g =>
+        g.creatorUid !== window.currentUser.uid && g.participants && g.participants[window.currentUser.uid]);
+
+    const divider = document.createElement('div');
+    divider.className = "pt-3 mt-3 border-t border-gray-200";
+    divider.innerHTML = `
+        <span class="text-[11px] font-bold text-lux-dark block mb-2"><i class="fa-solid fa-people-group text-lux-olive mr-1"></i> Toplu Alım Kampanyalarım</span>
+        <button onclick="closeAccountModal(); window.openGroupBuyForm();" class="w-full bg-lux-olive text-white font-bold py-2 rounded-xl text-xs hover:bg-lux-dark transition mb-2">
+            <i class="fa-solid fa-plus mr-1"></i> Yeni Toplu Alım Başlat
+        </button>
+    `;
+    container.appendChild(divider);
+
+    const all = [...mine, ...joined];
+    if (all.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = "text-xs text-gray-400 italic";
+        empty.innerText = "Henüz başlattığınız veya katıldığınız bir toplu alım yok.";
+        container.appendChild(empty);
+        return;
+    }
+
+    all.forEach(gb => {
+        const p = window.getGroupBuyProgress(gb);
+        const isMine = gb.creatorUid === window.currentUser.uid;
+        const row = document.createElement('div');
+        row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs mb-2";
+        row.innerHTML = `
+            <div class="min-w-0 pr-2">
+                <span class="font-bold text-lux-dark block line-clamp-1">${categoryEmojis[gb.category] || '📦'} ${escapeHtml(gb.title)}</span>
+                <span class="text-[10px] text-gray-500">${p.collected}/${p.target} ${escapeHtml(gb.unit || '')} · %${p.percent} · ${p.count} katılımcı</span>
+                <span class="text-[9px] font-bold ${isMine ? 'text-lux-olive' : 'text-gray-500'} block">${isMine ? 'BAŞLATAN BENİM' : 'KATILDIM'}</span>
+            </div>
+            <div class="flex space-x-1 shrink-0">
+                <button onclick="closeAccountModal(); window.openGroupBuyDetail('${escapeHtml(gb.id)}')" class="bg-lux-dark text-white text-[10px] px-2 py-1 rounded">İncele</button>
+                ${isMine ? `<button onclick="closeAccountModal(); window.openGroupBuyFormForEdit('${escapeHtml(gb.id)}')" class="bg-amber-100 text-amber-800 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="window.deleteGroupBuy('${escapeHtml(gb.id)}')" class="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded"><i class="fa-solid fa-trash-can"></i></button>` : ''}
+            </div>
+        `;
+        container.appendChild(row);
+    });
+};
+
+/* =========================================================================================
+   MODÜL 3 — BAŞLATMA
+   ========================================================================================= */
+
+window.startGroupBuysListener();
+window.renderGbDistrictChips();
+
+function orontesModule3Init() {
+    window.applyLanguage(window.currentLang);
+    window.restoreCollapseState('harvest-body', 'harvest-collapse-btn', 'orontes_harvest_open', true);
+    window.restoreCollapseState('groupbuys-body', 'gb-collapse-btn', 'orontes_gb_open', true);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', orontesModule3Init);
+} else {
+    orontesModule3Init();
+}
+
+setTimeout(() => {
+    window.handleDeepLink();
+    window.refreshHarvestAlertBadge();
+}, 1800);
