@@ -12,6 +12,7 @@ const firebaseConfig = {
     appId: "1:220241708945:web:1a638ad256a7872282fc30",
     measurementId: "G-WP8LYJG7N9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
@@ -82,15 +83,19 @@ window.showToast = function(message, type = 'success') {
    --------------------------------------------------------------------------- */
 window.currentLang = window.currentLang || 'tr';
 
-window.t = function (key, trText) {
+window.orontesT = function (key, trText) {
     if (window.currentLang === 'ar' && window.I18N_AR && window.I18N_AR[key]) return window.I18N_AR[key];
     return trText !== undefined ? trText : key;
 };
+
+window.t = window.orontesT;   // kısa takma ad (dışarıdan ezilse bile orontesT çalışmaya devam eder)
 
 window.jsAttr = function (v) {
     return String(v === null || v === undefined ? '' : v)
         .replace(/\\/g, '\\\\')
         .replace(/'/g, "\\'")
+        .replace(/\r/g, '')
+        .replace(/\n/g, '\\n')
         .replace(/&/g, '&amp;')
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
@@ -2213,11 +2218,11 @@ function renderListings() {
         : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5';
     
     const countEl = document.getElementById('total-count');
-    if (countEl) countEl.innerText = `${items.length} ${window.t('list.found', 'İlan/Hizmet Bulundu')}`;
+    if (countEl) countEl.innerText = `${items.length} ${window.orontesT('list.found', 'İlan/Hizmet Bulundu')}`;
     grid.innerHTML = '';
 
     if (items.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">${window.t('list.empty', 'Aradığınız kriterlere uygun sonuç bulunamadı.')}</div>`;
+        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">${window.orontesT('list.empty', 'Aradığınız kriterlere uygun sonuç bulunamadı.')}</div>`;
         const pagContainer = document.getElementById('pagination-container');
         if (pagContainer) pagContainer.innerHTML = '';
         return;
@@ -2248,8 +2253,8 @@ function renderListings() {
         }
         
         let primaryBtnText = item.listingType === 'hizmet'
-            ? window.t('card.getOffer', 'Teklif Al')
-            : window.t('card.review', 'İncele');
+            ? window.orontesT('card.getOffer', 'Teklif Al')
+            : window.orontesT('card.review', 'İncele');
 
         card.className = `bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 ${window.currentViewMode === 'list' ? 'flex flex-row' : 'flex flex-col justify-between'} ${cardStyle}`;
         card.innerHTML = `
@@ -3591,13 +3596,13 @@ window.renderHarvestCalendar = function () {
                 <div class="flex gap-1.5 shrink-0 flex-wrap justify-end">
                     <button onclick="window.toggleHarvestAlert('${window.jsAttr(p.name)}')" title="Bu ürün hasat sezonuna girince gelen kutunuzdan haber verelim"
                         class="${alertOn ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-700 border border-orange-300 hover:bg-orange-100'} text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
-                        <i class="fa-solid ${alertOn ? 'fa-bell' : 'fa-bell-slash'} mr-0.5"></i> ${alertOn ? window.t('hv.notifyOn', 'Bildirim Açık') : window.t('hv.notify', 'Bana Haber Ver')}
+                        <i class="fa-solid ${alertOn ? 'fa-bell' : 'fa-bell-slash'} mr-0.5"></i> ${alertOn ? window.orontesT('hv.notifyOn', 'Bildirim Açık') : window.orontesT('hv.notify', 'Bana Haber Ver')}
                     </button>
                     <button onclick="window.harvestSearchListings('${window.jsAttr(p.category)}', '${window.jsAttr(p.keyword)}')" class="bg-lux-dark hover:bg-lux-olive text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
-                        <i class="fa-solid fa-magnifying-glass mr-0.5"></i> ${window.t('hv.seeListings', 'İlanları Gör')}
+                        <i class="fa-solid fa-magnifying-glass mr-0.5"></i> ${window.orontesT('hv.seeListings', 'İlanları Gör')}
                     </button>
                     <button onclick="window.harvestCreateRequest('${window.jsAttr(p.category)}', '${window.jsAttr(p.name)}')" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
-                        <i class="fa-solid fa-cart-shopping mr-0.5"></i> ${window.t('hv.openRequest', 'Alım Talebi Aç')}
+                        <i class="fa-solid fa-cart-shopping mr-0.5"></i> ${window.orontesT('hv.openRequest', 'Alım Talebi Aç')}
                     </button>
                 </div>
             </div>
@@ -3764,7 +3769,7 @@ window.I18N_AR = {
 try { window.currentLang = localStorage.getItem('orontes_lang') || 'tr'; } catch (e) { window.currentLang = 'tr'; }
 
 /* Türkçe metin daima fallback'tir; TR modunda çıktı birebir aynı kalır. */
-window.t = function (key, trText) {
+window.orontesT = function (key, trText) {
     if (window.currentLang !== 'ar') return trText !== undefined ? trText : key;
     return window.I18N_AR[key] || (trText !== undefined ? trText : key);
 };
@@ -3807,6 +3812,17 @@ window.applyLanguage = function (lang) {
             : "px-2 py-1 rounded-lg text-[11px] font-semibold text-lux-sage hover:text-white transition";
     }
 
+    // Aç/kapa butonlarının metni JS ile yazıldığı için dil değişiminde tazelenmeli
+    [['harvest-collapse-btn', 'harvest-body'], ['gb-collapse-btn', 'groupbuys-body']].forEach(pair => {
+        const btn = document.getElementById(pair[0]);
+        const body = document.getElementById(pair[1]);
+        if (!btn || !body) return;
+        const label = btn.querySelector('span');
+        if (label) label.innerText = body.classList.contains('hidden')
+            ? window.orontesT('hv.show', 'Göster')
+            : window.orontesT('hv.hide', 'Gizle');
+    });
+
     try {
         if (typeof window.renderListings === 'function') window.renderListings();
         if (typeof window.renderBuyRequests === 'function') window.renderBuyRequests();
@@ -3814,6 +3830,8 @@ window.applyLanguage = function (lang) {
         if (typeof window.renderGroupBuys === 'function') window.renderGroupBuys();
     } catch (e) { console.warn('Dil değişiminde yeniden çizim hatası:', e); }
 };
+
+window.t = window.orontesT;   // takma adı tam sürümle tazele
 
 window.setLanguage = function (lang) {
     window.applyLanguage(lang);
@@ -3834,7 +3852,7 @@ window.toggleCollapse = function (bodyId, btnId, storageKey) {
         const icon = btn.querySelector('i');
         const label = btn.querySelector('span');
         if (icon) icon.className = willHide ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
-        if (label) label.innerText = willHide ? window.t('hv.show', 'Göster') : window.t('hv.hide', 'Gizle');
+        if (label) label.innerText = willHide ? window.orontesT('hv.show', 'Göster') : window.orontesT('hv.hide', 'Gizle');
     }
 
     if (storageKey) {
@@ -3862,7 +3880,7 @@ window.restoreCollapseState = function (bodyId, btnId, storageKey, defaultOpen) 
         const icon = btn.querySelector('i');
         const label = btn.querySelector('span');
         if (icon) icon.className = shouldOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
-        if (label) label.innerText = shouldOpen ? window.t('hv.hide', 'Gizle') : window.t('hv.show', 'Göster');
+        if (label) label.innerText = shouldOpen ? window.orontesT('hv.hide', 'Gizle') : window.orontesT('hv.show', 'Göster');
     }
 };
 
@@ -4005,8 +4023,8 @@ window.openRatingModal = function (targetUid, targetName, role, dealId) {
     const isSellerTarget = (role || 'seller') !== 'buyer';
 
     document.getElementById('rating-modal-title').innerText = isSellerTarget
-        ? window.t('rate.asSeller', 'Satıcıyı Değerlendir')
-        : window.t('rate.asBuyer', 'Alıcıyı Değerlendir');
+        ? window.orontesT('rate.asSeller', 'Satıcıyı Değerlendir')
+        : window.orontesT('rate.asBuyer', 'Alıcıyı Değerlendir');
     document.getElementById('rating-target-name').innerText = targetName || 'Kullanıcı';
     document.getElementById('rating-deal-note').classList.toggle('hidden', !dealId);
 
@@ -4114,7 +4132,7 @@ window.submitTwoWayRating = async function () {
     } catch (err) {
         window.showToast("Değerlendirme kaydedilemedi: " + err.message, "error");
     } finally {
-        if (btn) { btn.disabled = false; btn.innerText = window.t('rate.send', 'Değerlendirmeyi Gönder'); }
+        if (btn) { btn.disabled = false; btn.innerText = window.orontesT('rate.send', 'Değerlendirmeyi Gönder'); }
     }
 };
 
@@ -4139,9 +4157,9 @@ window.renderSellerRoleStats = async function (uid) {
         const bAvg = avg(buyerR);
 
         let html = '<div class="flex flex-wrap gap-2 mt-2">';
-        if (sAvg) html += `<span class="bg-lux-olive/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-lux-gold/30">🛒 ${window.t('rate.asSeller', 'Satıcı puanı')}: ★ ${sAvg} (${sellerR.length})</span>`;
-        if (bAvg) html += `<span class="bg-lux-olive/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-lux-gold/30">👤 ${window.t('rate.asBuyer', 'Alıcı puanı')}: ★ ${bAvg} (${buyerR.length})</span>`;
-        if (verified > 0) html += `<span class="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">✅ ${verified} ${window.t('rate.verified', 'doğrulanmış işlem')}</span>`;
+        if (sAvg) html += `<span class="bg-lux-olive/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-lux-gold/30">🛒 ${window.orontesT('rate.asSeller', 'Satıcı puanı')}: ★ ${sAvg} (${sellerR.length})</span>`;
+        if (bAvg) html += `<span class="bg-lux-olive/40 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-lux-gold/30">👤 ${window.orontesT('rate.asBuyer', 'Alıcı puanı')}: ★ ${bAvg} (${buyerR.length})</span>`;
+        if (verified > 0) html += `<span class="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">✅ ${verified} ${window.orontesT('rate.verified', 'doğrulanmış işlem')}</span>`;
         html += '</div>';
 
         const comments = all.filter(r => r.comment).sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, 4);
@@ -4218,7 +4236,7 @@ window.handleDisputeSubmit = async function (e) {
         window.showToast("Bildirim gönderilemedi: " + err.message, "error");
     } finally {
         btn.disabled = false;
-        btn.innerText = window.t('dispute.send', 'Bildirimi Gönder');
+        btn.innerText = window.orontesT('dispute.send', 'Bildirimi Gönder');
     }
 };
 
@@ -4554,10 +4572,19 @@ window.buildQrPoster = async function (item) {
 
 window.openShareCardModal = async function (listingId) {
     const id = listingId || window.activeListingId;
-    const item = (window.listings || []).find(l => l.id === id);
+    let item = (window.listings || []).find(l => l.id === id);
+
+    // İlan yerel listede yoksa (örn. QR/derin bağlantıyla açıldıysa) doğrudan çek
+    if (!item && id) {
+        try {
+            const snap = await get(ref(db, 'listings/' + id));
+            if (snap.exists()) item = { id: id, ...snap.val() };
+        } catch (e) { console.warn('İlan çekilemedi:', e); }
+    }
     if (!item) { window.showToast("İlan bulunamadı.", "error"); return; }
 
     window.activeShareListingId = id;
+    window.activeShareItem = item;
 
     const modal = document.getElementById('share-card-modal');
     const cardBox = document.getElementById('share-card-preview');
@@ -4613,13 +4640,19 @@ window.safeFileName = function (text, fallback) {
     return clean || fallback;
 };
 
+window.getActiveShareItem = function () {
+    return window.activeShareItem
+        || (window.listings || []).find(l => l.id === window.activeShareListingId)
+        || null;
+};
+
 window.downloadShareCard = function () {
-    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    const item = window.getActiveShareItem();
     window.downloadCanvasImage(window.shareCardCanvas, `orontes-${window.safeFileName(item && item.title, 'ilan')}.png`);
 };
 
 window.downloadQrPoster = async function () {
-    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    const item = window.getActiveShareItem();
     if (!item) return;
     window.showToast("QR afişi hazırlanıyor...", "warning");
     try {
@@ -4632,7 +4665,7 @@ window.downloadQrPoster = async function () {
 
 /* Mobilde görseli doğrudan WhatsApp/Instagram'a gönderir */
 window.nativeShareCard = async function () {
-    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    const item = window.getActiveShareItem();
     if (!item) return;
     const url = window.getListingShareUrl(item.id);
     const text = `📌 ${item.title}\n💰 ${item.price} TL${item.unit ? ' / ' + item.unit : ''}\n📍 ${(item.outsideHatay ? '' : 'Hatay / ') + window.getListingLocationText(item)}\n\nORONTES'te görüntüle: ${url}`;
@@ -4658,7 +4691,7 @@ window.nativeShareCard = async function () {
 };
 
 window.copyShareLink = function () {
-    const item = (window.listings || []).find(l => l.id === window.activeShareListingId);
+    const item = window.getActiveShareItem();
     if (!item) return;
     window.copyToClipboard(window.getListingShareUrl(item.id), "İlan bağlantısı kopyalandı!");
 };
@@ -4695,7 +4728,7 @@ window.renderProducerStory = function (item) {
         } else {
             videoBox.innerHTML = `<a href="${escapeHtml(item.videoUrl)}" target="_blank" rel="noopener"
                 class="mt-2 inline-flex items-center gap-1.5 bg-lux-dark hover:bg-lux-olive text-white font-bold px-3 py-2 rounded-lg text-[11px] transition">
-                <i class="fa-solid fa-circle-play"></i> ${window.t('detail.video', 'Üretici videosunu izle')}
+                <i class="fa-solid fa-circle-play"></i> ${window.orontesT('detail.video', 'Üretici videosunu izle')}
             </a>`;
         }
     }
@@ -4711,6 +4744,14 @@ window.setupDetailExtras = function (item) {
         if (hint) hint.classList.toggle('hidden', !item.acceptsSubscription);
         const qtyUnit = document.getElementById('sub-unit-label');
         if (qtyUnit) qtyUnit.innerText = item.unit || 'KG';
+
+        // Önceki ilandan kalan değerleri temizle
+        ['sub-qty', 'sub-start', 'sub-note'].forEach(fid => {
+            const el = document.getElementById(fid);
+            if (el) el.value = '';
+        });
+        const freqEl = document.getElementById('sub-frequency');
+        if (freqEl) freqEl.value = 'Aylık';
     }
 
     const problemBtn = document.getElementById('detail-problem-btn');
@@ -4890,7 +4931,7 @@ window.submitSubscriptionRequest = async function () {
     } catch (err) {
         window.showToast("Talep iletilemedi: " + err.message, "error");
     } finally {
-        if (btn) { btn.disabled = false; btn.innerText = window.t('sub.send', 'Düzenli Sipariş Talebi Gönder'); }
+        if (btn) { btn.disabled = false; btn.innerText = window.orontesT('sub.send', 'Düzenli Sipariş Talebi Gönder'); }
     }
 };
 
@@ -5005,10 +5046,10 @@ window.renderGroupBuys = function () {
     if (items.length === 0) {
         grid.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-lux-olive/40 text-gray-500 text-xs">
             <i class="fa-solid fa-people-group text-2xl text-lux-sage block mb-2"></i>
-            <b class="text-lux-dark block mb-1">${window.t('gb.empty', 'Şu anda aktif toplu alım kampanyası yok.')}</b>
+            <b class="text-lux-dark block mb-1">${window.orontesT('gb.empty', 'Şu anda aktif toplu alım kampanyası yok.')}</b>
             Küçük alıcılar birleşip toptan fiyat yakalayabilir — ilk kampanyayı siz başlatın.
             <button onclick="window.openGroupBuyForm()" class="block mx-auto mt-3 bg-lux-dark text-white font-bold px-4 py-2 rounded-xl text-xs hover:bg-lux-olive transition">
-                <i class="fa-solid fa-plus mr-1"></i> ${window.t('gb.create', 'Toplu Alım Başlat')}
+                <i class="fa-solid fa-plus mr-1"></i> ${window.orontesT('gb.create', 'Toplu Alım Başlat')}
             </button>
         </div>`;
         return;
@@ -5034,8 +5075,8 @@ window.renderGroupBuys = function () {
 
                 <div class="flex flex-wrap gap-1 mb-2">
                     ${isClosed ? '<span class="bg-gray-500 text-white font-bold text-[9px] px-2 py-0.5 rounded">KAPANDI</span>' : ''}
-                    ${reached && !isClosed ? `<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">🎯 ${window.t('gb.reached', 'HEDEFE ULAŞILDI')}</span>` : ''}
-                    ${joined ? `<span class="bg-lux-gold text-lux-dark font-bold text-[9px] px-2 py-0.5 rounded">✓ ${window.t('gb.joined', 'KATILDIN')}</span>` : ''}
+                    ${reached && !isClosed ? `<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">🎯 ${window.orontesT('gb.reached', 'HEDEFE ULAŞILDI')}</span>` : ''}
+                    ${joined ? `<span class="bg-lux-gold text-lux-dark font-bold text-[9px] px-2 py-0.5 rounded">✓ ${window.orontesT('gb.joined', 'KATILDIN')}</span>` : ''}
                 </div>
 
                 <h3 onclick="window.openGroupBuyDetail('${escapeHtml(gb.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-2">
@@ -5044,15 +5085,15 @@ window.renderGroupBuys = function () {
 
                 <div class="mb-2">
                     <div class="flex justify-between text-[10px] font-semibold mb-1">
-                        <span class="text-lux-olive">${window.t('gb.collected', 'Toplanan')}: ${p.collected} ${escapeHtml(gb.unit || '')}</span>
-                        <span class="text-gray-500">${window.t('gb.target', 'Hedef')}: ${p.target} ${escapeHtml(gb.unit || '')}</span>
+                        <span class="text-lux-olive">${window.orontesT('gb.collected', 'Toplanan')}: ${p.collected} ${escapeHtml(gb.unit || '')}</span>
+                        <span class="text-gray-500">${window.orontesT('gb.target', 'Hedef')}: ${p.target} ${escapeHtml(gb.unit || '')}</span>
                     </div>
                     <div class="w-full h-2.5 bg-lux-bg rounded-full overflow-hidden border border-gray-200">
                         <div class="h-full ${reached ? 'bg-emerald-500' : 'bg-lux-gold'} transition-all" style="width:${p.percent}%"></div>
                     </div>
                     <div class="flex justify-between text-[9px] text-gray-400 mt-1">
                         <span>%${p.percent}</span>
-                        <span><i class="fa-solid fa-users mr-0.5"></i>${p.count} ${window.t('gb.participants', 'katılımcı')}</span>
+                        <span><i class="fa-solid fa-users mr-0.5"></i>${p.count} ${window.orontesT('gb.participants', 'katılımcı')}</span>
                     </div>
                 </div>
 
@@ -5066,7 +5107,7 @@ window.renderGroupBuys = function () {
             <div class="border-t border-gray-100 mt-3 pt-2.5 flex items-center justify-between gap-2">
                 <span class="text-[9px] text-gray-400">${escapeHtml(gb.creatorName || '')}</span>
                 <button onclick="window.openGroupBuyDetail('${escapeHtml(gb.id)}')" class="text-[11px] ${isClosed ? 'bg-lux-bg text-gray-500' : 'bg-lux-olive text-white hover:bg-lux-dark'} font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap">
-                    ${isClosed || joined ? window.t('br.detail', 'Detay') : window.t('gb.join', 'Katıl')}
+                    ${isClosed || joined ? window.orontesT('br.detail', 'Detay') : window.orontesT('gb.join', 'Katıl')}
                 </button>
             </div>
         `;
@@ -5113,7 +5154,7 @@ window.openGroupBuyForm = function (prefill) {
     const form = document.getElementById('groupbuy-form');
     if (form) form.reset();
     document.getElementById('gb-edit-id').value = '';
-    document.getElementById('gb-form-title-text').innerText = window.t('gb.create', 'Toplu Alım Başlat');
+    document.getElementById('gb-form-title-text').innerText = window.orontesT('gb.create', 'Toplu Alım Başlat');
     document.getElementById('gb-submit-btn').innerText = 'Kampanyayı Başlat';
 
     window.gbDistrictSelection = new Set(['Tüm Hatay']);
@@ -5293,7 +5334,7 @@ window.openGroupBuyDetail = function (id, silentRefresh) {
     joinBox.classList.toggle('hidden', isClosed);
     document.getElementById('gbd-join-btn').innerText = myPart
         ? 'Katılım Miktarımı Güncelle'
-        : window.t('gb.join', 'Kampanyaya Katıl');
+        : window.orontesT('gb.join', 'Kampanyaya Katıl');
     document.getElementById('gbd-leave-btn').classList.toggle('hidden', !myPart);
     if (!silentRefresh) document.getElementById('gbd-join-qty').value = myPart ? myPart.qty : '';
     document.getElementById('gbd-join-unit').innerText = gb.unit || 'KG';
@@ -5439,7 +5480,7 @@ window.submitGroupSupplyOffer = async function () {
         window.showToast("Teklif iletilemedi: " + err.message, "error");
     } finally {
         btn.disabled = false;
-        btn.innerText = window.t('br.supplySend', 'Tedarik Teklifi Gönder');
+        btn.innerText = window.orontesT('br.supplySend', 'Tedarik Teklifi Gönder');
     }
 };
 
