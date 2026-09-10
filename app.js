@@ -12,12 +12,95 @@ const firebaseConfig = {
     appId: "1:220241708945:web:1a638ad256a7872282fc30",
     measurementId: "G-WP8LYJG7N9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
 window.AVAILABLE_REVIEW_BADGES = ["Hızlı Teslimat", "Doğal / Organik Ürün", "İyi İletişim", "Güvenilir", "Kaliteli Hizmet", "Özenli Paketleme"];
-window.notifiedPriceDrops = new Set();
+/* ---------------------------------------------------------------------------
+   BİLDİRİM DURUMU
+   seenNotifications    : gelen kutusunda GÖRÜLDÜ  → kırmızı rozeti sıfırlar
+   toastedNotifications : yeşil kutu GÖSTERİLDİ    → aynı olay için bir daha çıkmaz
+   Her ikisi de kullanıcı profiline yazılır; sayfa yenilense de korunur.
+   --------------------------------------------------------------------------- */
+window.seenNotifications = {};
+window.toastedNotifications = {};
+window.pendingOffersCount = 0;
+window.harvestAlertCount = 0;
+window.priceAlertCount = 0;
+window.currentPendingOfferIds = [];
+
+window.notifKeyOffer = function (offerId) { return 'offer_' + offerId; };
+window.notifKeyPrice = function (listingId, changeDate) { return 'price_' + listingId + '_' + (changeDate || 0); };
+
+window.isNotifSeen = function (key) {
+    return !!(key && window.seenNotifications && window.seenNotifications[key]);
+};
+
+/* Aynı olay için yeşil bilgilendirme kutusunu YALNIZCA BİR KEZ gösterir */
+window.maybeToastOnce = function (key, message, type) {
+    if (!key || !window.currentUser) return;
+    if (window.toastedNotifications && window.toastedNotifications[key]) return;
+
+    window.showToast(message, type);
+
+    if (!window.toastedNotifications) window.toastedNotifications = {};
+    window.toastedNotifications[key] = true;
+    if (window.userExtraData) {
+        if (!window.userExtraData.toastedNotifications) window.userExtraData.toastedNotifications = {};
+        window.userExtraData.toastedNotifications[key] = true;
+    }
+    try {
+        update(ref(db, 'users/' + window.currentUser.uid + '/toastedNotifications'), { [key]: true });
+    } catch (err) {
+        console.warn('Bildirim durumu kaydedilemedi:', err);
+    }
+};
+
+/* Favori ilanlardaki fiyat değişimlerini tek kaynaktan üretir */
+window.getPriceAlerts = function () {
+    const out = [];
+    const favs = (window.userExtraData && window.userExtraData.favorites) || {};
+    Object.keys(favs).forEach(favId => {
+        const item = (window.listings || []).find(l => l.id === favId);
+        if (!item || !item.priceHistory || !item.priceHistory.length) return;
+        const last = item.priceHistory[item.priceHistory.length - 1];
+        if (item.price === last.price) return;
+        out.push({
+            id: 'alert_' + item.id,
+            key: window.notifKeyPrice(item.id, last.date),
+            type: 'price_alert',
+            listingId: item.id,
+            listingTitle: item.title,
+            oldPrice: last.price,
+            newPrice: item.price,
+            date: last.date,
+            isDrop: item.price < last.price
+        });
+    });
+    return out;
+};
+
+/* Fiyat bildirimlerini işler: rozeti günceller + (bir kez) yeşil kutu gösterir */
+window.processPriceAlerts = function () {
+    if (!window.currentUser) { window.priceAlertCount = 0; window.updateNotificationBadge(); return; }
+
+    const alerts = window.getPriceAlerts();
+    window.priceAlertCount = alerts.filter(a => !window.isNotifSeen(a.key)).length;
+
+    alerts.forEach(a => {
+        const verb = a.isDrop ? 'düştü' : 'yükseldi';
+        window.maybeToastOnce(
+            a.key,
+            `İlgilendiğiniz "${a.listingTitle}" ilanında fiyat ${verb}! (${a.oldPrice} TL ➔ ${a.newPrice} TL)`,
+            a.isDrop ? 'success' : 'warning'
+        );
+    });
+
+    window.updateNotificationBadge();
+};
+
 window.globalMapInstance = null;
 window.markerClusterGroup = null;
 
@@ -238,10 +321,10 @@ onAuthStateChanged(auth, async (user) => {
             } else {
                 window.userExtraData = { favorites: {}, avatar: '' };
             }
-            // Okunmamış bildirim hesabı: teklifler KİMLİK ile, hasat bildirimleri tarihle izlenir.
-            // (Kimlik yöntemi cihazlar arası saat farkından etkilenmez.)
+            // Bildirim durumu: hepsi KİMLİK ile izlenir (cihaz saat farkından etkilenmez)
             window.lastInboxSeen = Number(window.userExtraData.lastInboxSeen) || 0;
-            window.seenOfferIds = window.userExtraData.seenOffers || {};
+            window.seenNotifications = window.userExtraData.seenNotifications || {};
+            window.toastedNotifications = window.userExtraData.toastedNotifications || {};
         } catch(err) {
             console.error("Kullanıcı verisi çekilemedi:", err);
             window.userExtraData = { favorites: {}, avatar: '' };
@@ -260,7 +343,7 @@ onAuthStateChanged(auth, async (user) => {
                 if(offer.status === 'Beklemede') {
                     pendingIds.push(child.key);
                     // Rozet yalnızca HENÜZ GÖRÜLMEMİŞ teklifleri sayar
-                    if (!(window.seenOfferIds && window.seenOfferIds[child.key])) count++;
+                    if (!window.isNotifSeen(window.notifKeyOffer(child.key))) count++;
                     if (offer.date > window.loginSessionTime && (Date.now() - offer.date) < 10000) {
                         newlyAdded = true;
                     }
@@ -291,8 +374,10 @@ onAuthStateChanged(auth, async (user) => {
         window.userExtraData = { favorites: {}, avatar: '' };
         window.pendingOffersCount = 0;
         window.harvestAlertCount = 0;
+        window.priceAlertCount = 0;
         window.lastInboxSeen = 0;
-        window.seenOfferIds = {};
+        window.seenNotifications = {};
+        window.toastedNotifications = {};
         window.currentPendingOfferIds = [];
         window.updateNotificationBadge();
     }
@@ -301,7 +386,9 @@ onAuthStateChanged(auth, async (user) => {
 
 window.updateNotificationBadge = function() {
     const badge = document.getElementById('notification-badge');
-    const totalNotifications = (window.pendingOffersCount || 0) + (window.harvestAlertCount || 0);
+    const totalNotifications = (window.pendingOffersCount || 0)
+        + (window.harvestAlertCount || 0)
+        + (window.priceAlertCount || 0);
     if (badge) {
         if (totalNotifications > 0) {
             badge.innerText = totalNotifications > 99 ? '99+' : totalNotifications;
@@ -337,22 +424,11 @@ window.triggerDatabaseFilter = function(category = '') {
             items.push({ id: childSnapshot.key, ...childSnapshot.val() });
         });
         
-        if (window.currentUser && window.userExtraData && window.userExtraData.favorites) {
-            items.forEach(item => {
-                if (window.userExtraData.favorites[item.id] && item.priceHistory && item.priceHistory.length > 0) {
-                    const oldPrice = item.priceHistory[item.priceHistory.length - 1].price;
-                    if (item.price !== oldPrice && !window.notifiedPriceDrops.has(item.id)) {
-                        const isDrop = item.price < oldPrice;
-                        const msgType = isDrop ? "success" : "warning";
-                        const verb = isDrop ? "düştü" : "yükseldi";
-                        window.showToast(`İlgilendiğiniz "${item.title}" ilanında fiyat ${verb}! (${oldPrice} TL ➔ ${item.price} TL)`, msgType);
-                        window.notifiedPriceDrops.add(item.id);
-                    }
-                }
-            });
-        }
-
         window.listings = items;
+
+        // Favori fiyat değişimleri: rozeti güncelle, yeşil kutuyu olay başına bir kez göster
+        if (typeof window.processPriceAlerts === 'function') window.processPriceAlerts();
+
         window.executeLocalFilters();
         window.updateMarqueeData(); 
         
@@ -1227,29 +1303,8 @@ window.loadIncomingOffers = async function() {
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
         const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
 
-        // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (YENİ EKLENEN KISIM)
-        const priceAlerts = [];
-        if (window.userExtraData && window.userExtraData.favorites) {
-            Object.keys(window.userExtraData.favorites).forEach(favId => {
-                const item = (window.listings || []).find(l => l.id === favId);
-                if (item && item.priceHistory && item.priceHistory.length > 0) {
-                    const lastHistory = item.priceHistory[item.priceHistory.length - 1];
-                    // Eğer ilan fiyatı değiştiyse bunu diziye ekliyoruz
-                    if (item.price !== lastHistory.price) {
-                        priceAlerts.push({
-                            id: 'alert_' + item.id,
-                            type: 'price_alert',
-                            listingId: item.id,
-                            listingTitle: item.title,
-                            oldPrice: lastHistory.price,
-                            newPrice: item.price,
-                            date: lastHistory.date,
-                            isDrop: item.price < lastHistory.price
-                        });
-                    }
-                }
-            });
-        }
+        // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (tek kaynak: window.getPriceAlerts)
+        const priceAlerts = (typeof window.getPriceAlerts === 'function') ? window.getPriceAlerts() : [];
 
         // Fiyat değişim bildirimleri ve teklifleri tarihe göre birleştir ve sırala
         const harvestNotifs = (typeof window.getHarvestNotifications === 'function') ? window.getHarvestNotifications() : [];
@@ -1779,25 +1834,33 @@ window.markInboxAsSeen = async function () {
 
     window.lastInboxSeen = Date.now();
 
-    // Şu an bekleyen tüm teklifleri "görüldü" olarak işaretle.
-    // Sadece hâlâ bekleyenler saklanır; liste sınırsız büyümez.
+    /* Şu an gelen kutusunda görünen TÜM bildirimleri (teklif + fiyat + hasat)
+       "görüldü" olarak işaretle. Sadece hâlâ geçerli olanlar saklanır;
+       liste sınırsız büyümez. */
     const seen = {};
-    (window.currentPendingOfferIds || []).forEach(id => { seen[id] = true; });
-    window.seenOfferIds = seen;
+    (window.currentPendingOfferIds || []).forEach(id => { seen[window.notifKeyOffer(id)] = true; });
+    if (typeof window.getPriceAlerts === 'function') {
+        window.getPriceAlerts().forEach(a => { if (a.key) seen[a.key] = true; });
+    }
+    if (typeof window.getHarvestNotifications === 'function') {
+        window.getHarvestNotifications().forEach(h => { if (h.key) seen[h.key] = true; });
+    }
+    window.seenNotifications = seen;
 
     if (window.userExtraData) {
         window.userExtraData.lastInboxSeen = window.lastInboxSeen;
-        window.userExtraData.seenOffers = seen;
+        window.userExtraData.seenNotifications = seen;
     }
 
     window.pendingOffersCount = 0;
     window.harvestAlertCount = 0;
+    window.priceAlertCount = 0;
     window.updateNotificationBadge();
 
     try {
         await update(ref(db, 'users/' + window.currentUser.uid), {
             lastInboxSeen: window.lastInboxSeen,
-            seenOffers: Object.keys(seen).length ? seen : null
+            seenNotifications: Object.keys(seen).length ? seen : null
         });
     } catch (err) {
         console.warn('Okundu bilgisi kaydedilemedi:', err);
@@ -4818,7 +4881,6 @@ window.setupDetailExtras = function (item) {
 /* ------------------------- HASAT BİLDİRİMLERİ ------------------------- */
 
 window.harvestAlertCount = 0;
-window.notifiedHarvestSeasons = new Set();
 
 window.harvestKey = function (name) {
     return String(name || '')
@@ -4895,6 +4957,7 @@ window.getHarvestNotifications = function () {
 
         items.push({
             id: 'harvest_' + key,
+            key: 'harvest_' + key + '_' + now.getFullYear() + '-' + (now.getMonth() + 1),
             type: 'harvest_alert',
             productName: a.name,
             category: a.category,
@@ -4912,17 +4975,18 @@ window.getHarvestNotifications = function () {
 
 window.refreshHarvestAlertBadge = function () {
     const notifs = window.getHarvestNotifications();
-    window.harvestAlertCount = notifs.filter(n => (n.date || 0) > (window.lastInboxSeen || 0)).length;
+    window.harvestAlertCount = notifs.filter(n => !window.isNotifSeen(n.key)).length;
     if (typeof window.updateNotificationBadge === 'function') window.updateNotificationBadge();
 
-    if (window.currentUser) {
-        notifs.forEach(n => {
-            if (n.inSeason && !window.notifiedHarvestSeasons.has(n.id)) {
-                window.notifiedHarvestSeasons.add(n.id);
-                window.showToast(`🌱 Takip ettiğiniz "${n.productName}" hasat sezonuna girdi! Gelen kutunuza bakın.`, "success");
-            }
-        });
-    }
+    // Yeşil kutu: her ürün için ayda yalnızca bir kez (sayfa yenilense de tekrar çıkmaz)
+    notifs.forEach(n => {
+        if (!n.inSeason) return;
+        window.maybeToastOnce(
+            n.key,
+            `🌱 Takip ettiğiniz "${n.productName}" hasat sezonuna girdi! Gelen kutunuza bakın.`,
+            "success"
+        );
+    });
 };
 
 /* ------------------------- DÜZENLİ / ABONELİK SİPARİŞİ ------------------------- */
