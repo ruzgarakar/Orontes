@@ -12,6 +12,7 @@ const firebaseConfig = {
     appId: "1:220241708945:web:1a638ad256a7872282fc30",
     measurementId: "G-WP8LYJG7N9"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
@@ -330,6 +331,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         if (typeof window.refreshHarvestAlertBadge === 'function') window.refreshHarvestAlertBadge();
+        if (typeof window.refreshAdminButton === 'function') window.refreshAdminButton();
 
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
         window.activeOffersListener = onValue(window.activeOffersQuery, (snapshot) => {
@@ -379,6 +381,7 @@ onAuthStateChanged(auth, async (user) => {
         window.toastedNotifications = {};
         window.currentPendingOfferIds = [];
         window.updateNotificationBadge();
+        if (typeof window.refreshAdminButton === 'function') window.refreshAdminButton();
     }
     window.filterListings();
 });
@@ -1192,6 +1195,11 @@ window.openSellerProfileModal = async function(sellerUid) {
     document.getElementById('seller-profile-modal').classList.remove('hidden');
     if (typeof window.renderSellerRoleStats === 'function') window.renderSellerRoleStats(sellerUid);
 
+    const spVerif = document.getElementById('seller-profile-verified');
+    if (spVerif && typeof window.getVerifiedFullBadge === 'function') {
+        spVerif.innerHTML = window.getVerifiedFullBadge(sellerUid, true);
+    }
+
     try {
         const profileSnap = await get(ref(db, 'publicProfiles/' + sellerUid));
         if (profileSnap.exists()) {
@@ -1805,7 +1813,7 @@ function updateFavBtnStyle(id) {
 }
 
 function switchAccountTab(tab) {
-    ['listings', 'favorites', 'offers', 'buyrequests', 'settings'].forEach(t => {
+    ['listings', 'favorites', 'offers', 'buyrequests', 'verification', 'settings'].forEach(t => {
         const el = document.getElementById(`tab-content-${t}`);
         const btnEl = document.getElementById(`tab-btn-${t}`);
         if (el) el.classList.add('hidden');
@@ -1824,6 +1832,7 @@ function switchAccountTab(tab) {
     }
     if (tab === 'buyrequests' && typeof window.loadMyBuyRequests === 'function') window.loadMyBuyRequests();
     if (tab === 'buyrequests' && typeof window.loadMyGroupBuys === 'function') window.loadMyGroupBuys();
+    if (tab === 'verification' && typeof window.loadMyVerification === 'function') window.loadMyVerification();
 }
 
 /* Gelen kutusu görüntülendiğinde bildirim işaretini kaldırır ve
@@ -2383,6 +2392,7 @@ function renderListings() {
                         ${item.acceptsSubscription ? '<span class="bg-indigo-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🔁 DÜZENLİ SİPARİŞ</span>' : ''}
 
                         ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
+                        ${typeof window.getVerifiedCardBadge === 'function' ? window.getVerifiedCardBadge(item.uid) : ''}
                         ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
                     </div>
                 </div>
@@ -4861,6 +4871,11 @@ window.setupDetailExtras = function (item) {
         if (freqEl) freqEl.value = 'Aylık';
     }
 
+    const verifBadge = document.getElementById('detail-verified-badge');
+    if (verifBadge && typeof window.getVerifiedFullBadge === 'function') {
+        verifBadge.innerHTML = window.getVerifiedFullBadge(item.uid, false);
+    }
+
     const problemBtn = document.getElementById('detail-problem-btn');
     if (problemBtn) {
         problemBtn.onclick = () => window.openDisputeModal(null, item.uid, item.seller || '', item.title || '');
@@ -6372,7 +6387,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.09.10';
+window.ORONTES_BUILD = '2026.09.11';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
@@ -6399,4 +6414,642 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => window.checkOrontesBuild());
 } else {
     window.checkOrontesBuild();
+}
+
+/* =========================================================================================
+   ORONTES — MODÜL 5: KADEMELİ ÜRETİCİ DOĞRULAMA (HİBRİT MODEL)
+   Aşama 1 — Tarımsal Üreticiler: ÇKS Belgesi / Ziraat Odası Faaliyet Belgesi
+   Yapı, ileride yeni doğrulama katmanları eklenecek şekilde tasarlanmıştır.
+   ========================================================================================= */
+
+/* ------------------------------- YAPILANDIRMA ------------------------------- */
+
+/* Yeni bir doğrulama katmanı eklemek için bu nesneye yeni bir kayıt eklemek yeterlidir. */
+window.VERIFICATION_TYPES = {
+    cks: {
+        id: 'cks',
+        label: 'ÇKS Onaylı Çiftçi',
+        shortLabel: 'ÇKS ONAYLI',
+        icon: 'fa-wheat-awn',
+        docName: 'ÇKS Belgesi (Çiftçi Kayıt Sistemi)',
+        help: 'e-Devlet → "Çiftçi Kayıt Sistemi (ÇKS) Belgesi Sorgulama" ekranından barkodlu belgenizi alın; ekran görüntüsünü veya fotoğrafını yükleyin.',
+        forTypes: ['tarim']
+    },
+    ziraat_odasi: {
+        id: 'ziraat_odasi',
+        label: 'Ziraat Odası Onaylı Üretici',
+        shortLabel: 'ZİRAAT ODASI ONAYLI',
+        icon: 'fa-certificate',
+        docName: 'Ziraat Odası Faaliyet Belgesi',
+        help: 'Bağlı bulunduğunuz ilçe Ziraat Odası’ndan aldığınız Faaliyet Belgesi’nin fotoğrafını yükleyin.',
+        forTypes: ['tarim']
+    }
+};
+
+window.VERIFICATION_STATUS = {
+    PENDING: 'Beklemede',
+    APPROVED: 'Onaylandı',
+    REJECTED: 'Reddedildi'
+};
+
+/* Site sahibi e-postası — Firebase'de "admins" düğümü kurulana kadar yönetici girişi sağlar.
+   NOT: Asıl güvenlik Firebase kurallarındadır; bu yalnızca arayüzü açar. */
+window.ORONTES_ADMIN_EMAILS = ['orontesdestek@gmail.com'];
+
+window.verifiedProducers = {};   // { uid: { type, label, approvedAt } }  — herkese açık dizin
+window.adminUids = {};
+window.myVerification = null;
+window.adminVerificationList = [];
+window.activeReviewUid = null;
+
+/* ------------------------------- YARDIMCILAR ------------------------------- */
+
+window.isCurrentUserAdmin = function () {
+    if (!window.currentUser) return false;
+    if (window.adminUids && window.adminUids[window.currentUser.uid]) return true;
+    const email = String(window.currentUser.email || '').toLocaleLowerCase('tr-TR');
+    return (window.ORONTES_ADMIN_EMAILS || [])
+        .map(e => String(e).toLocaleLowerCase('tr-TR'))
+        .indexOf(email) !== -1;
+};
+
+window.getProducerVerification = function (uid) {
+    if (!uid || !window.verifiedProducers) return null;
+    return window.verifiedProducers[uid] || null;
+};
+
+window.isProducerVerified = function (uid) {
+    return !!window.getProducerVerification(uid);
+};
+
+/* İlan kartlarında görünen küçük rozet */
+window.getVerifiedCardBadge = function (uid) {
+    const v = window.getProducerVerification(uid);
+    if (!v) return '';
+    const t = window.VERIFICATION_TYPES[v.type] || {};
+    const label = t.shortLabel || 'DOĞRULANMIŞ ÜRETİCİ';
+    return '<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow" title="' +
+        escapeHtml(t.label || 'Doğrulanmış Üretici') + '">' +
+        '<i class="fa-solid fa-circle-check mr-0.5"></i>' + escapeHtml(label) + '</span>';
+};
+
+/* Detay / profil ekranlarında görünen geniş rozet */
+window.getVerifiedFullBadge = function (uid, dark) {
+    const v = window.getProducerVerification(uid);
+    if (!v) return '';
+    const t = window.VERIFICATION_TYPES[v.type] || {};
+    const tarih = v.approvedAt ? new Date(v.approvedAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' }) : '';
+    const cls = dark
+        ? 'bg-emerald-600 text-white border-emerald-400'
+        : 'bg-emerald-50 text-emerald-800 border-emerald-300';
+    return '<span class="' + cls + ' border text-[10px] font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5" ' +
+        'title="' + escapeHtml(tarih ? tarih + ' tarihinde onaylandı' : 'Onaylandı') + '">' +
+        '<i class="fa-solid ' + escapeHtml(t.icon || 'fa-circle-check') + '"></i>' +
+        escapeHtml(t.label || 'Doğrulanmış Üretici') + '</span>';
+};
+
+/* Belge görselini okunabilirliği koruyarak küçültür (QR'ın okunabilmesi için çözünürlük yüksek tutulur) */
+window.compressDocumentImage = function (file) {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+            reject(new Error('Lütfen belgenin ekran görüntüsünü veya fotoğrafını (JPG/PNG) yükleyin.'));
+            return;
+        }
+        const sizeMb = file.size / (1024 * 1024);
+        if (sizeMb > 10) {
+            reject(new Error('Dosya çok büyük (' + sizeMb.toFixed(1) + 'MB). En fazla 10MB olmalıdır.'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+        reader.readAsDataURL(file);
+        reader.onload = (ev) => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('Görsel işlenemedi.'));
+            img.onload = () => {
+                const MAX = 1400;   // belge metni ve karekod okunabilir kalsın
+                let w = img.width, h = img.height;
+                if (w > h && w > MAX) { h *= MAX / w; w = MAX; }
+                else if (h > MAX) { w *= MAX / h; h = MAX; }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.82));
+            };
+            img.src = ev.target.result;
+        };
+    });
+};
+
+/* ------------------------------- HERKESE AÇIK DİZİN ------------------------------- */
+
+window.startVerifiedProducersListener = function () {
+    try {
+        const q = ref(db, 'verifiedProducers');
+        onValue(q, (snap) => {
+            window.verifiedProducers = snap.val() || {};
+            // Rozetlerin anında görünmesi için listeleri tazele
+            if (typeof window.renderListings === 'function') window.renderListings();
+            if (typeof window.renderBuyRequests === 'function') window.renderBuyRequests();
+        }, (err) => {
+            console.warn('Doğrulanmış üretici listesi okunamadı:', err);
+        });
+    } catch (err) {
+        console.warn('Doğrulama dizini başlatılamadı:', err);
+    }
+
+    try {
+        onValue(ref(db, 'admins'), (snap) => {
+            window.adminUids = snap.val() || {};
+            window.refreshAdminButton();
+        }, () => { /* kural kısıtlıysa sessiz geç */ });
+    } catch (e) {}
+};
+
+window.refreshAdminButton = function () {
+    const btn = document.getElementById('admin-panel-btn');
+    if (!btn) return;
+    btn.classList.toggle('hidden', !window.isCurrentUserAdmin());
+};
+
+/* ------------------------------- ÜRETİCİ TARAFI ------------------------------- */
+
+window.loadMyVerification = async function () {
+    const box = document.getElementById('tab-content-verification');
+    if (!box) return;
+
+    if (!window.currentUser) {
+        box.innerHTML = '<p class="text-xs text-gray-400 italic">Doğrulama için giriş yapmalısınız.</p>';
+        return;
+    }
+
+    box.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+
+    let rec = null;
+    try {
+        const snap = await get(ref(db, 'verifications/' + window.currentUser.uid));
+        rec = snap.exists() ? snap.val() : null;
+    } catch (err) {
+        console.warn('Doğrulama kaydı okunamadı:', err);
+    }
+    window.myVerification = rec;
+    window.renderMyVerification(rec);
+};
+
+window.renderMyVerification = function (rec) {
+    const box = document.getElementById('tab-content-verification');
+    if (!box) return;
+
+    const status = rec && rec.status;
+    const type = rec && window.VERIFICATION_TYPES[rec.type];
+
+    let html = `
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 mb-3">
+            <span class="text-xs font-bold text-emerald-900 block mb-1">
+                <i class="fa-solid fa-shield-halved mr-1"></i> Doğrulanmış Üretici Rozeti
+            </span>
+            <p class="text-[11px] text-emerald-800 leading-relaxed">
+                Belgenizi doğrulattığınızda ilanlarınızda <b>yeşil onay rozeti</b> görünür.
+                Alıcılar doğrulanmış üreticilere daha çok güvenir ve daha çok teklif gönderir.
+            </p>
+        </div>
+    `;
+
+    if (status === window.VERIFICATION_STATUS.APPROVED) {
+        const tarih = rec.approvedAt ? new Date(rec.approvedAt).toLocaleDateString('tr-TR') : '-';
+        html += `
+            <div class="bg-white border-2 border-emerald-500 rounded-xl p-4 text-center">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-3xl block mb-2"></i>
+                <span class="text-sm font-bold text-emerald-800 block">${escapeHtml(type ? type.label : 'Doğrulanmış Üretici')}</span>
+                <span class="text-[11px] text-gray-500 block mt-1">Onay tarihi: ${escapeHtml(tarih)}</span>
+                <button onclick="window.openVerificationForm()" class="mt-3 text-[11px] text-lux-olive hover:underline font-semibold">
+                    Belgeyi güncelle / yeniden gönder
+                </button>
+            </div>
+        `;
+    } else if (status === window.VERIFICATION_STATUS.PENDING) {
+        html += `
+            <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 text-center">
+                <i class="fa-solid fa-hourglass-half text-amber-600 text-2xl block mb-2"></i>
+                <span class="text-sm font-bold text-amber-900 block">Başvurunuz inceleniyor</span>
+                <span class="text-[11px] text-amber-800 block mt-1">
+                    ${escapeHtml(type ? type.docName : 'Belge')} · ${rec.submittedAt ? escapeHtml(new Date(rec.submittedAt).toLocaleDateString('tr-TR')) : ''}
+                </span>
+                <button onclick="window.openVerificationForm()" class="mt-3 text-[11px] text-lux-olive hover:underline font-semibold">
+                    Başvuruyu güncelle
+                </button>
+            </div>
+        `;
+    } else if (status === window.VERIFICATION_STATUS.REJECTED) {
+        html += `
+            <div class="bg-red-50 border border-red-300 rounded-xl p-4">
+                <div class="text-center">
+                    <i class="fa-solid fa-circle-xmark text-red-600 text-2xl block mb-2"></i>
+                    <span class="text-sm font-bold text-red-900 block">Başvurunuz onaylanmadı</span>
+                </div>
+                ${rec.rejectReason ? `<p class="text-[11px] text-red-800 bg-white/70 border border-red-200 rounded-lg p-2 mt-2">
+                    <b>Gerekçe:</b> ${escapeHtml(rec.rejectReason)}</p>` : ''}
+                <button onclick="window.openVerificationForm()" class="w-full mt-3 bg-lux-dark hover:bg-lux-olive text-white font-bold py-2 rounded-lg text-xs transition">
+                    Yeniden Başvur
+                </button>
+            </div>
+        `;
+    } else {
+        html += `
+            <button onclick="window.openVerificationForm()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                <i class="fa-solid fa-id-card mr-1"></i> Doğrulama Başvurusu Yap
+            </button>
+            <div class="mt-3 space-y-2">
+                ${Object.keys(window.VERIFICATION_TYPES).map(k => {
+                    const t = window.VERIFICATION_TYPES[k];
+                    return `<div class="bg-lux-bg/50 border border-gray-200 rounded-lg p-2.5">
+                        <span class="text-[11px] font-bold text-lux-dark block"><i class="fa-solid ${escapeHtml(t.icon)} text-emerald-600 mr-1"></i>${escapeHtml(t.docName)}</span>
+                        <span class="text-[10px] text-gray-500 block mt-0.5">${escapeHtml(t.help)}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    box.innerHTML = html;
+};
+
+window.openVerificationForm = function () {
+    if (!window.currentUser) {
+        window.showToast("Doğrulama için giriş yapmalısınız.", "warning");
+        window.openAuthModal('login');
+        return;
+    }
+
+    const form = document.getElementById('verification-form');
+    if (form) form.reset();
+    document.getElementById('verif-doc-preview').innerHTML = '';
+    document.getElementById('verif-doc-base64').value = '';
+
+    const sel = document.getElementById('verif-type');
+    if (sel && !sel.options.length) {
+        Object.keys(window.VERIFICATION_TYPES).forEach(k => {
+            const t = window.VERIFICATION_TYPES[k];
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.innerText = t.docName;
+            sel.appendChild(opt);
+        });
+    }
+    window.onVerificationTypeChange();
+
+    const nameEl = document.getElementById('verif-fullname');
+    if (nameEl) nameEl.value = window.userExtraData.username || window.currentUser.displayName || '';
+
+    document.getElementById('account-modal').classList.add('hidden');
+    document.getElementById('verification-modal').classList.remove('hidden');
+};
+
+window.closeVerificationModal = function () {
+    document.getElementById('verification-modal').classList.add('hidden');
+};
+
+window.onVerificationTypeChange = function () {
+    const sel = document.getElementById('verif-type');
+    const help = document.getElementById('verif-help');
+    if (!sel || !help) return;
+    const t = window.VERIFICATION_TYPES[sel.value];
+    help.innerText = t ? t.help : '';
+};
+
+window.previewVerificationDoc = async function (input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    const preview = document.getElementById('verif-doc-preview');
+    preview.innerHTML = '<p class="text-[11px] text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Belge işleniyor...</p>';
+
+    try {
+        const base64 = await window.compressDocumentImage(file);
+        document.getElementById('verif-doc-base64').value = base64;
+        preview.innerHTML = `<img src="${base64}" class="w-full rounded-lg border border-gray-200 max-h-56 object-contain bg-white">`;
+    } catch (err) {
+        preview.innerHTML = `<p class="text-[11px] text-red-600">${escapeHtml(err.message)}</p>`;
+        document.getElementById('verif-doc-base64').value = '';
+        input.value = '';
+    }
+};
+
+window.submitVerificationRequest = async function (e) {
+    e.preventDefault();
+    if (!window.currentUser) return;
+
+    const type = document.getElementById('verif-type').value;
+    const fullname = document.getElementById('verif-fullname').value.trim();
+    const docNo = document.getElementById('verif-docno').value.trim();
+    const note = document.getElementById('verif-note').value.trim();
+    const doc = document.getElementById('verif-doc-base64').value;
+
+    if (!type || !fullname) {
+        window.showToast("Lütfen belge türünü ve ad soyadınızı girin.", "warning");
+        return;
+    }
+    if (!doc) {
+        window.showToast("Lütfen belgenizin görselini yükleyin.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('verif-submit-btn');
+    btn.disabled = true;
+    btn.innerText = "Gönderiliyor...";
+
+    try {
+        await update(ref(db, 'verifications/' + window.currentUser.uid), {
+            uid: window.currentUser.uid,
+            type: type,
+            fullname: fullname,
+            docNo: docNo || null,
+            note: note || null,
+            docImage: doc,
+            email: window.currentUser.email,
+            phone: window.userExtraData.phone || null,
+            username: window.userExtraData.username || window.currentUser.displayName || null,
+            status: window.VERIFICATION_STATUS.PENDING,
+            submittedAt: Date.now(),
+            rejectReason: null
+        });
+
+        window.showToast("✅ Doğrulama başvurunuz alındı. İncelendikten sonra bilgilendirileceksiniz.", "success");
+        window.closeVerificationModal();
+        window.openAccountModal();
+        window.switchAccountTab('verification');
+    } catch (err) {
+        console.error(err);
+        window.showToast("Başvuru gönderilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Başvuruyu Gönder";
+    }
+};
+
+/* ------------------------------- YÖNETİCİ TARAFI ------------------------------- */
+
+window.openAdminPanel = async function () {
+    if (!window.isCurrentUserAdmin()) {
+        window.showToast("Bu alana erişim yetkiniz yok.", "error");
+        return;
+    }
+    document.getElementById('admin-modal').classList.remove('hidden');
+    await window.loadAdminVerifications();
+};
+
+window.closeAdminPanel = function () {
+    document.getElementById('admin-modal').classList.add('hidden');
+};
+
+window.loadAdminVerifications = async function () {
+    const list = document.getElementById('admin-verif-list');
+    if (!list) return;
+    list.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+
+    try {
+        const snap = await get(ref(db, 'verifications'));
+        const data = snap.val() || {};
+        window.adminVerificationList = Object.keys(data).map(uid => ({ uid, ...data[uid] }));
+        window.renderAdminVerifications();
+    } catch (err) {
+        console.error(err);
+        list.innerHTML = `<div class="bg-red-50 border border-red-200 text-red-700 text-[11px] p-3 rounded-lg">
+            Başvurular okunamadı. Firebase kurallarında <b>verifications</b> düğümü için yönetici okuma izni tanımlı mı?
+        </div>`;
+    }
+};
+
+window.renderAdminVerifications = function () {
+    const list = document.getElementById('admin-verif-list');
+    const filterEl = document.getElementById('admin-verif-filter');
+    if (!list) return;
+
+    const filter = filterEl ? filterEl.value : window.VERIFICATION_STATUS.PENDING;
+    let items = window.adminVerificationList || [];
+    if (filter) items = items.filter(x => (x.status || '') === filter);
+    items.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+
+    const countEl = document.getElementById('admin-verif-count');
+    const pending = (window.adminVerificationList || []).filter(x => x.status === window.VERIFICATION_STATUS.PENDING).length;
+    if (countEl) countEl.innerText = `${pending} bekleyen başvuru · toplam ${(window.adminVerificationList || []).length}`;
+
+    list.innerHTML = '';
+    if (items.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-400 italic py-4 text-center">Bu durumda başvuru yok.</p>';
+        return;
+    }
+
+    items.forEach(v => {
+        const t = window.VERIFICATION_TYPES[v.type] || {};
+        const renk = v.status === window.VERIFICATION_STATUS.APPROVED ? 'emerald'
+            : (v.status === window.VERIFICATION_STATUS.REJECTED ? 'red' : 'amber');
+        const row = document.createElement('div');
+        row.className = `bg-white border border-${renk}-200 rounded-xl p-3 mb-2`;
+        row.innerHTML = `
+            <div class="flex justify-between items-start gap-2 flex-wrap">
+                <div class="min-w-0">
+                    <span class="font-bold text-lux-dark text-xs block">${escapeHtml(v.fullname || v.username || 'İsimsiz')}</span>
+                    <span class="text-[10px] text-gray-500 block">${escapeHtml(t.docName || v.type || '-')}</span>
+                    <span class="text-[10px] text-gray-400 block">${escapeHtml(v.email || '')} ${v.phone ? '· ' + escapeHtml(v.phone) : ''}</span>
+                </div>
+                <span class="text-[9px] font-bold px-2 py-1 rounded bg-${renk}-100 text-${renk}-800 whitespace-nowrap">${escapeHtml(v.status || '-')}</span>
+            </div>
+            <div class="flex gap-1.5 mt-2">
+                <button onclick="window.openVerificationReview('${escapeHtml(v.uid)}')" class="flex-1 bg-lux-dark hover:bg-lux-olive text-white font-bold py-1.5 rounded-lg text-[11px] transition">
+                    <i class="fa-solid fa-file-magnifying-glass mr-1"></i> Belgeyi İncele
+                </button>
+            </div>
+        `;
+        list.appendChild(row);
+    });
+};
+
+window.openVerificationReview = function (uid) {
+    const v = (window.adminVerificationList || []).find(x => x.uid === uid);
+    if (!v) return;
+    window.activeReviewUid = uid;
+
+    const t = window.VERIFICATION_TYPES[v.type] || {};
+    document.getElementById('review-name').innerText = v.fullname || v.username || 'İsimsiz';
+    document.getElementById('review-type').innerText = t.docName || v.type || '-';
+    document.getElementById('review-meta').innerText =
+        `${v.email || ''}${v.phone ? ' · ' + v.phone : ''}${v.docNo ? ' · Belge No: ' + v.docNo : ''}`;
+    document.getElementById('review-note').innerText = v.note || 'Ek not girilmemiş.';
+    document.getElementById('review-status').innerText = v.status || '-';
+
+    const img = document.getElementById('review-doc-img');
+    img.src = v.docImage || '';
+    document.getElementById('review-qr-result').innerHTML =
+        '<span class="text-[11px] text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Karekod taranıyor...</span>';
+
+    document.getElementById('review-reject-reason').value = '';
+    document.getElementById('verification-review-modal').classList.remove('hidden');
+
+    // Belgedeki karekodu otomatik oku
+    setTimeout(() => window.scanDocumentQr(v.docImage), 250);
+};
+
+window.closeVerificationReview = function () {
+    document.getElementById('verification-review-modal').classList.add('hidden');
+    window.activeReviewUid = null;
+};
+
+/* Belge görselindeki karekodu okur ve e-Devlet doğrulama bağlantısını gösterir */
+window.scanDocumentQr = function (dataUrl) {
+    const out = document.getElementById('review-qr-result');
+    if (!out) return;
+
+    if (typeof jsQR === 'undefined') {
+        out.innerHTML = '<span class="text-[11px] text-gray-400">Karekod okuyucu yüklenemedi. Belgeyi görsel olarak inceleyebilirsiniz.</span>';
+        return;
+    }
+    if (!dataUrl) {
+        out.innerHTML = '<span class="text-[11px] text-gray-400">Belge görseli yok.</span>';
+        return;
+    }
+
+    const img = new Image();
+    img.onload = function () {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imgData.data, imgData.width, imgData.height);
+
+            if (code && code.data) {
+                const val = String(code.data);
+                const isUrl = /^https?:\/\//i.test(val);
+                out.innerHTML = `
+                    <div class="bg-emerald-50 border border-emerald-300 rounded-lg p-2.5">
+                        <span class="text-[10px] font-bold text-emerald-900 block mb-1"><i class="fa-solid fa-qrcode mr-1"></i>Karekod okundu</span>
+                        ${isUrl
+                            ? `<a href="${escapeHtml(val)}" target="_blank" rel="noopener" class="text-[11px] text-emerald-800 underline break-all font-semibold">${escapeHtml(val)}</a>
+                               <p class="text-[10px] text-emerald-700 mt-1">Bağlantıyı açıp e-Devlet üzerinden teyit edin.</p>`
+                            : `<span class="text-[11px] text-emerald-800 break-all">${escapeHtml(val)}</span>`}
+                    </div>`;
+            } else {
+                out.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-300 rounded-lg p-2.5">
+                        <span class="text-[10px] font-bold text-amber-900 block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Karekod okunamadı</span>
+                        <p class="text-[10px] text-amber-800 mt-0.5">Belgeyi gözle inceleyin veya belge numarasıyla
+                        <a href="https://www.turkiye.gov.tr/belge-dogrulama" target="_blank" rel="noopener" class="underline font-semibold">e-Devlet Belge Doğrulama</a>
+                        sayfasından teyit edin.</p>
+                    </div>`;
+            }
+        } catch (err) {
+            out.innerHTML = '<span class="text-[11px] text-red-500">Karekod taranırken hata oluştu.</span>';
+        }
+    };
+    img.onerror = function () {
+        out.innerHTML = '<span class="text-[11px] text-red-500">Belge görseli yüklenemedi.</span>';
+    };
+    img.src = dataUrl;
+};
+
+window.approveVerification = async function () {
+    const uid = window.activeReviewUid;
+    const v = (window.adminVerificationList || []).find(x => x.uid === uid);
+    if (!uid || !v || !window.isCurrentUserAdmin()) return;
+
+    const btn = document.getElementById('review-approve-btn');
+    btn.disabled = true;
+    btn.innerText = "Onaylanıyor...";
+
+    const t = window.VERIFICATION_TYPES[v.type] || {};
+    const now = Date.now();
+
+    try {
+        await update(ref(db, 'verifications/' + uid), {
+            status: window.VERIFICATION_STATUS.APPROVED,
+            approvedAt: now,
+            reviewedBy: window.currentUser.uid,
+            rejectReason: null
+        });
+        // Herkese açık dizin — rozetlerin görünmesi için
+        await update(ref(db, 'verifiedProducers/' + uid), {
+            type: v.type,
+            label: t.label || 'Doğrulanmış Üretici',
+            approvedAt: now
+        });
+
+        window.showToast("✅ Üretici doğrulandı, rozeti aktif edildi.", "success");
+        window.closeVerificationReview();
+        await window.loadAdminVerifications();
+    } catch (err) {
+        console.error(err);
+        window.showToast("Onaylanamadı: " + (err && err.message ? err.message : ''), "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Onayla ve Rozeti Ver";
+    }
+};
+
+window.rejectVerification = async function () {
+    const uid = window.activeReviewUid;
+    if (!uid || !window.isCurrentUserAdmin()) return;
+
+    const reason = document.getElementById('review-reject-reason').value.trim();
+    if (!reason) {
+        window.showToast("Lütfen red gerekçesini yazın (üreticiye gösterilecek).", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('review-reject-btn');
+    btn.disabled = true;
+    btn.innerText = "Kaydediliyor...";
+
+    try {
+        await update(ref(db, 'verifications/' + uid), {
+            status: window.VERIFICATION_STATUS.REJECTED,
+            rejectReason: reason,
+            reviewedBy: window.currentUser.uid,
+            reviewedAt: Date.now()
+        });
+        try { await remove(ref(db, 'verifiedProducers/' + uid)); } catch (e) {}
+
+        window.showToast("Başvuru reddedildi ve üreticiye gerekçe iletildi.", "success");
+        window.closeVerificationReview();
+        await window.loadAdminVerifications();
+    } catch (err) {
+        window.showToast("İşlem başarısız: " + (err && err.message ? err.message : ''), "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Reddet";
+    }
+};
+
+/* Onaylı bir üreticinin rozetini geri alma */
+window.revokeVerification = async function () {
+    const uid = window.activeReviewUid;
+    if (!uid || !window.isCurrentUserAdmin()) return;
+    if (!confirm("Bu üreticinin doğrulama rozeti kaldırılsın mı?")) return;
+
+    try {
+        await remove(ref(db, 'verifiedProducers/' + uid));
+        await update(ref(db, 'verifications/' + uid), {
+            status: window.VERIFICATION_STATUS.REJECTED,
+            rejectReason: 'Rozet yönetici tarafından geri alındı.',
+            reviewedBy: window.currentUser.uid,
+            reviewedAt: Date.now()
+        });
+        window.showToast("Rozet geri alındı.", "success");
+        window.closeVerificationReview();
+        await window.loadAdminVerifications();
+    } catch (err) {
+        window.showToast("İşlem başarısız: " + err.message, "error");
+    }
+};
+
+/* ------------------------------- BAŞLATMA ------------------------------- */
+
+window.startVerifiedProducersListener();
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.refreshAdminButton());
+} else {
+    window.refreshAdminButton();
 }
