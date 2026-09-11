@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- app.js ile eşleşmesi gereken sürüm damgası (ikisi de aynı olmalı) -->
-    <meta name="orontes-build" content="2026.09.10">
+    <meta name="orontes-build" content="2026.09.11">
     <title>ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -36,6 +36,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- YENİ: QR Kod Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- YENİ: Belge karekodu okuyucu (yönetici doğrulama paneli için) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <!-- YENİ: Sosyal medya link önizlemesi -->
     <meta property="og:title" content="ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı">
     <meta property="og:description" content="Hatay'da üreticiden, el emeğinden ve yerel ustadan doğrudan alıcıya; komisyonsuz dijital pazar yeri.">
@@ -109,6 +111,13 @@
                         </button>
                         <span id="notification-badge" class="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-lux-dark hidden shadow-md">0</span>
                     </div>
+
+                    <!-- YENİ: YÖNETİCİ PANELİ (yalnızca yöneticilere görünür) -->
+                    <button id="admin-panel-btn" onclick="window.openAdminPanel()" title="Yönetici Paneli" class="hidden bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-emerald-400/40 transition items-center space-x-1">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span class="hidden sm:inline">Yönetim</span>
+                    </button>
+
 
                     <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
                         <i class="fa-solid fa-user-gear"></i>
@@ -566,6 +575,7 @@
                 <button id="tab-btn-favorites" onclick="switchAccountTab('favorites')" data-i18n="acc.favorites" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Favorilerim</button>
                 <button id="tab-btn-offers" onclick="switchAccountTab('offers')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Gelen / Gönderilen / Bildirimler</button>
                 <button id="tab-btn-buyrequests" onclick="switchAccountTab('buyrequests')" data-i18n="acc.myRequests" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Alım Taleplerim</button>
+                <button id="tab-btn-verification" onclick="switchAccountTab('verification')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Üretici Doğrulama</button>
                 <button id="tab-btn-settings" onclick="switchAccountTab('settings')" class="pb-2 px-3 border-b-2 border-transparent hover:text-lux-dark shrink-0">Profil Ayarları</button>
             </div>
 
@@ -574,6 +584,7 @@
             <div id="tab-content-favorites" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
             <div id="tab-content-offers" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
             <div id="tab-content-buyrequests" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+            <div id="tab-content-verification" class="hidden space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
 
             <div id="tab-content-settings" class="hidden space-y-4">
                 <div class="bg-lux-bg/50 p-3.5 rounded-xl border border-gray-200 space-y-2.5">
@@ -752,6 +763,7 @@
                     <div>
                         <span class="text-[9px] text-gray-400 uppercase font-bold block" data-i18n="detail.owner">İlan Sahibi</span>
                         <span id="detail-seller" class="font-bold text-lux-dark text-sm">İsim</span>
+                        <span id="detail-verified-badge" class="block mt-1"></span>
                     </div>
                     <div class="flex items-center space-x-1.5 flex-wrap gap-1">
                         <button id="detail-sharecard-btn" title="Paylaşım Kartı & QR Kod" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark p-2 rounded-lg transition text-xs font-bold"><i class="fa-solid fa-qrcode"></i></button>
@@ -795,6 +807,8 @@
                 <div id="seller-profile-badges" class="flex flex-wrap mt-3 gap-1.5"></div>
                 <!-- YENİ: Rol bazlı puan dökümü (satıcı/alıcı) ve yorumlar -->
                 <div id="seller-profile-roles"></div>
+                <!-- YENİ: Doğrulanmış üretici rozeti -->
+                <div id="seller-profile-verified" class="mt-2"></div>
 
 
             </div>
@@ -1426,6 +1440,108 @@
                 <button onclick="window.shareGroupBuy()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
                     <i class="fa-brands fa-whatsapp"></i> Kampanyayı WhatsApp'ta Paylaş — Katılımcı Topla
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== YENİ: ÜRETİCİ DOĞRULAMA BAŞVURU MODALI ==================== -->
+    <div id="verification-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
+            <button onclick="window.closeVerificationModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-bold mb-1 text-lux-dark"><i class="fa-solid fa-id-card text-emerald-600 mr-1"></i> Üretici Doğrulama Başvurusu</h3>
+
+            <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 p-2.5 rounded-xl text-[11px] mb-3 leading-relaxed">
+                Belgeniz yalnızca <b>ORONTES yönetimi</b> tarafından görülür, ilanlarınızda yayınlanmaz.
+                Onaylandığında ilanlarınızda <b>yeşil doğrulama rozeti</b> görünür.
+            </div>
+
+            <form id="verification-form" onsubmit="window.submitVerificationRequest(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase text-gray-500 mb-1">Belge Türü*</label>
+                    <select id="verif-type" onchange="window.onVerificationTypeChange()" required class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none"></select>
+                    <p id="verif-help" class="text-[10px] text-gray-500 mt-1 leading-relaxed"></p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="verif-fullname" required placeholder="Belgedeki Ad Soyad*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="text" id="verif-docno" placeholder="Belge / Doğrulama No" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                </div>
+
+                <div class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2">
+                    <label class="block text-[11px] font-semibold uppercase text-gray-500">Belge Görseli*</label>
+                    <input type="file" id="verif-doc-file" accept="image/*" onchange="window.previewVerificationDoc(this)" class="w-full border border-gray-200 p-1.5 rounded-xl text-xs bg-white text-gray-500">
+                    <p class="text-[10px] text-gray-400">Belgenin ekran görüntüsü veya net bir fotoğrafı (JPG/PNG). Karekod görünür olsun; doğrulama saniyeler içinde yapılır.</p>
+                    <input type="hidden" id="verif-doc-base64">
+                    <div id="verif-doc-preview"></div>
+                </div>
+
+                <textarea id="verif-note" rows="2" placeholder="Eklemek istediğiniz not (isteğe bağlı)..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+
+                <button type="submit" id="verif-submit-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs">Başvuruyu Gönder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== YENİ: YÖNETİCİ PANELİ ==================== -->
+    <div id="admin-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
+            <button onclick="window.closeAdminPanel()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-bold mb-1 text-lux-dark"><i class="fa-solid fa-shield-halved text-emerald-700 mr-1"></i> Yönetim — Üretici Doğrulama</h3>
+            <p id="admin-verif-count" class="text-[11px] text-gray-500 mb-3">Yükleniyor...</p>
+
+            <div class="flex gap-2 mb-3">
+                <select id="admin-verif-filter" onchange="window.renderAdminVerifications()" class="flex-1 border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                    <option value="Beklemede">⏳ Bekleyen Başvurular</option>
+                    <option value="Onaylandı">✅ Onaylananlar</option>
+                    <option value="Reddedildi">❌ Reddedilenler</option>
+                    <option value="">📋 Tümü</option>
+                </select>
+                <button onclick="window.loadAdminVerifications()" title="Yenile" class="bg-lux-bg hover:bg-gray-200 text-lux-dark px-3 rounded-xl text-xs transition"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+
+            <div id="admin-verif-list" class="max-h-96 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- ==================== YENİ: BELGE İNCELEME EKRANI (YÖNETİCİ) ==================== -->
+    <div id="verification-review-modal" class="fixed inset-0 bg-lux-dark/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative max-h-[92vh] overflow-y-auto border border-gray-100">
+            <button onclick="window.closeVerificationReview()" class="absolute top-3 right-3 bg-lux-dark/60 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+
+            <div class="bg-lux-dark text-white p-4">
+                <h3 class="text-base font-bold" id="review-name">Başvuru Sahibi</h3>
+                <p class="text-[11px] text-lux-sage mt-0.5" id="review-type">Belge türü</p>
+                <p class="text-[10px] text-lux-sage/80 mt-0.5" id="review-meta"></p>
+                <span class="inline-block mt-2 text-[9px] font-bold bg-lux-gold text-lux-dark px-2 py-0.5 rounded" id="review-status">-</span>
+            </div>
+
+            <div class="p-4 space-y-3">
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Karekod Doğrulaması</h4>
+                    <div id="review-qr-result"></div>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Başvuru Notu</h4>
+                    <p id="review-note" class="text-[11px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2">-</p>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Yüklenen Belge</h4>
+                    <img id="review-doc-img" src="" class="w-full rounded-xl border border-gray-200 bg-lux-bg/30" style="max-height:60vh; object-fit:contain;">
+                </div>
+
+                <div class="border-t border-gray-200 pt-3 space-y-2">
+                    <button id="review-approve-btn" onclick="window.approveVerification()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Onayla ve Rozeti Ver
+                    </button>
+
+                    <textarea id="review-reject-reason" rows="2" placeholder="Red gerekçesi (üreticiye gösterilir)..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                    <div class="flex gap-2">
+                        <button id="review-reject-btn" onclick="window.rejectVerification()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl text-xs transition">Reddet</button>
+                        <button onclick="window.revokeVerification()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-3 rounded-xl text-xs transition whitespace-nowrap">Rozeti Geri Al</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
