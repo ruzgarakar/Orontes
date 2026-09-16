@@ -770,6 +770,25 @@ window.handleFormSubmit = async function(e) {
         }
     }
 
+    /* ANONİM İLAN ENGELİ — gerçek ad soyad ve mahalle / köy zorunludur */
+    const sellerEl = document.getElementById('form-seller');
+    const nameCheck = window.validateRealName(sellerEl ? sellerEl.value : '');
+    if (!nameCheck.ok) {
+        window.showToast(nameCheck.message, "warning");
+        if (sellerEl) { sellerEl.focus(); }
+        return;
+    }
+    if (sellerEl) sellerEl.value = nameCheck.value;
+
+    const neighborhoodEl = document.getElementById('form-neighborhood');
+    const neighborhoodCheck = window.validateNeighborhood(neighborhoodEl ? neighborhoodEl.value : '');
+    if (!neighborhoodCheck.ok) {
+        window.showToast(neighborhoodCheck.message, "warning");
+        if (neighborhoodEl) { neighborhoodEl.focus(); }
+        return;
+    }
+    if (neighborhoodEl) neighborhoodEl.value = neighborhoodCheck.value;
+
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
     submitBtn.innerText = "İlan kaydediliyor...";
@@ -835,6 +854,7 @@ window.handleFormSubmit = async function(e) {
             videoUrl: document.getElementById('form-video-url') ? (document.getElementById('form-video-url').value.trim() || null) : null,
             acceptsSubscription: document.getElementById('form-accepts-subscription') ? document.getElementById('form-accepts-subscription').checked : false,
             district: document.getElementById('form-district').value,
+            neighborhood: neighborhoodCheck.value,
             address: document.getElementById('form-address').value || null,
             outsideHatay: isOutside,
             realProvince: isOutside ? window.locationOutsideHatay.province : null,
@@ -844,7 +864,7 @@ window.handleFormSubmit = async function(e) {
             price: newPrice,
             priceHistory: priceHistory,
             unit: document.getElementById('form-unit').value || 'KG',
-            seller: document.getElementById('form-seller').value,
+            seller: nameCheck.value,
             phone: document.getElementById('form-phone').value,
             desc: document.getElementById('form-desc').value,
             businessType: document.getElementById('form-business-type').value,
@@ -1483,6 +1503,107 @@ window.getListingLocationText = function(item) {
     return item.district || '';
 };
 
+/* ---------------- GERÇEK KİMLİK & MAHALLE / KÖY GÖRÜNÜRLÜĞÜ ----------------
+   Anonim ilan yayınlanamaz: ilan sahibinin gerçek ad soyadı (veya firma ünvanı)
+   ve mahalle / köy bilgisi zorunludur ve ilanda herkese görünür. */
+
+/* İlanın mahalle / köy bilgisi (eski kayıtlarda bulunmayabilir) */
+window.getListingNeighborhoodText = function (item) {
+    if (!item) return '';
+    return String(item.neighborhood || '').trim();
+};
+
+/* İlçe + mahalle/köy birleşik konum metni */
+window.getListingPlaceText = function (item) {
+    const base = window.getListingLocationText(item);
+    const mah = window.getListingNeighborhoodText(item);
+    if (base && mah) return base + ' · ' + mah;
+    return base || mah || '';
+};
+
+/* Anonim/rumuz kabul edilmeyen ifadeler */
+window.ORONTES_ANON_NAME_WORDS = [
+    'anonim', 'anonymous', 'gizli', 'isimsiz', 'adsiz', 'bilinmiyor', 'belirsiz', 'belirtilmedi',
+    'kullanici', 'user', 'misafir', 'guest', 'test', 'deneme', 'admin', 'yonetici',
+    'satici', 'alici', 'kisi', 'sahis', 'yok', 'nickname', 'rumuz', 'takmaad',
+    'xxx', 'yyy', 'zzz', 'abc', 'asd', 'asdf', 'qwe', 'qwerty', 'aaa', 'sss', 'ddd', '123', '1234'
+];
+
+/* Türkçe karakterleri sadeleştirip karşılaştırmaya hazırlar */
+window.orontesNormalizeText = function (value) {
+    return String(value ?? '')
+        .toLocaleLowerCase('tr-TR')
+        .replace(/ı/g, 'i').replace(/İ/g, 'i')
+        .replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+        .replace(/ö/g, 'o').replace(/ç/g, 'c')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+/* Boşlukları sadeleştirir (form girdileri için) */
+window.orontesTidySpaces = function (value) {
+    return String(value ?? '').replace(/\s+/g, ' ').trim();
+};
+
+/* İlan sahibinin gerçek adı mı? { ok, message } döndürür. */
+window.validateRealName = function (rawName) {
+    const name = window.orontesTidySpaces(rawName);
+
+    if (name.length < 5) {
+        return { ok: false, message: 'Lütfen gerçek ad ve soyadınızı (veya firma ünvanınızı) tam olarak yazın.' };
+    }
+    if (name.length > 70) {
+        return { ok: false, message: 'Ad soyad / firma ünvanı en fazla 70 karakter olabilir.' };
+    }
+    // İzin verilen karakterler: harfler, rakamlar, boşluk ve . ' - & /
+    if (!/^[\p{L}0-9 .'\-&/]+$/u.test(name)) {
+        return { ok: false, message: 'Ad soyad yalnızca harf, rakam ve . - & / işaretleri içerebilir.' };
+    }
+
+    const tokens = name.split(' ').filter(Boolean);
+    const letterTokens = tokens.filter(tk => /^[\p{L}.'\-]{2,}$/u.test(tk));
+    if (letterTokens.length < 2) {
+        return { ok: false, message: 'Anonim ilan yayınlanamaz: en az ad ve soyad olacak şekilde gerçek adınızı yazın (örn: Ahmet Yılmaz).' };
+    }
+
+    const normalized = window.orontesNormalizeText(name);
+    const normTokens = normalized.split(' ').filter(Boolean);
+    const anonHit = normTokens.some(tk => window.ORONTES_ANON_NAME_WORDS.indexOf(tk) !== -1)
+        || window.ORONTES_ANON_NAME_WORDS.indexOf(normalized.replace(/ /g, '')) !== -1;
+    if (anonHit) {
+        return { ok: false, message: 'Anonim / takma ad kullanılamaz. Lütfen gerçek ad soyadınızı yazın.' };
+    }
+
+    // "aaa bbb" gibi tek harfin tekrarından oluşan uydurma isimleri engelle
+    if (normTokens.some(tk => tk.length >= 3 && /^(.)\1+$/.test(tk))) {
+        return { ok: false, message: 'Geçerli bir ad soyad girin (tekrar eden harflerden oluşan isim kabul edilmez).' };
+    }
+
+    return { ok: true, value: name };
+};
+
+/* Mahalle / köy bilgisi doğrulaması — { ok, message } döndürür. */
+window.validateNeighborhood = function (rawValue) {
+    const value = window.orontesTidySpaces(rawValue);
+
+    if (value.length < 3) {
+        return { ok: false, message: 'Mahalle / köy bilgisi zorunludur (örn: Kışlak Mahallesi).' };
+    }
+    if (value.length > 60) {
+        return { ok: false, message: 'Mahalle / köy bilgisi en fazla 60 karakter olabilir.' };
+    }
+    if (!/\p{L}{2,}/u.test(value)) {
+        return { ok: false, message: 'Geçerli bir mahalle / köy adı girin.' };
+    }
+
+    const normalized = window.orontesNormalizeText(value);
+    if (window.ORONTES_ANON_NAME_WORDS.indexOf(normalized.replace(/ /g, '')) !== -1) {
+        return { ok: false, message: 'Mahalle / köy bilgisi gizlenemez. Lütfen gerçek mahalle veya köy adını yazın.' };
+    }
+
+    return { ok: true, value: value };
+};
+
 const categoryEmojis = {
     "Zeytin & Yağ": "🫒",
     "Narenciye": "🍊",
@@ -1681,6 +1802,16 @@ window.resolveLocation = async function(lat, lng) {
         document.getElementById('form-lng').value = lng;
 
         const addr = data.address;
+
+        /* YENİ: Mahalle / köy bilgisini konumdan otomatik doldur (bulunamazsa mevcut değer korunur) */
+        const nbEl = document.getElementById('form-neighborhood');
+        if (nbEl) {
+            const detectedNeighborhood =
+                addr.neighbourhood || addr.quarter || addr.village ||
+                addr.hamlet || addr.suburb || addr.city_district || '';
+            if (detectedNeighborhood) nbEl.value = String(detectedNeighborhood).trim();
+        }
+
         const province = addr.province || addr.state || '';
         const isInsideHatay = province && province.toLocaleLowerCase('tr-TR').includes('hatay');
 
@@ -1906,7 +2037,7 @@ function loadFavoriteListings() {
                 <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                 <div>
                     <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                    <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
+                    <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingPlaceText(item))}</span>
                 </div>
             </div>
             <button onclick="openDetailModal('${escapeHtml(item.id)}'); closeAccountModal();" class="bg-lux-dark text-white text-[10px] px-2.5 py-1 rounded whitespace-nowrap">${primaryBtnText}</button>
@@ -1927,6 +2058,29 @@ function getTimeAgo(timestamp) {
     if (days < 30) return `${days} gün önce`;
     return `${Math.floor(days / 30)} ay önce`;
 }
+
+/* Canlı Piyasa Endeksi'ndeki yükseliş/düşüş okunun görünür kalma süresi (2 hafta).
+   Bu süre dolduktan sonra ok işareti kendiliğinden kaybolur; fiyat geçmişi silinmez. */
+window.PRICE_TREND_VISIBLE_MS = 14 * 24 * 60 * 60 * 1000;
+
+/* Bir ilanın SON fiyat değişimini döndürür.
+   Değişim yoksa ya da üzerinden 2 haftadan fazla geçtiyse null döner. */
+window.getRecentPriceTrend = function (item) {
+    if (!item || !item.priceHistory || !item.priceHistory.length) return null;
+    const last = item.priceHistory[item.priceHistory.length - 1];
+    if (!last) return null;
+
+    const oldPrice = Number(last.price);
+    const newPrice = Number(item.price);
+    if (!isFinite(oldPrice) || !isFinite(newPrice) || oldPrice === newPrice) return null;
+
+    const changedAt = Number(last.date);
+    // Tarihi olmayan eski kayıtlar için ok gösterilmez (süre hesaplanamaz).
+    if (!changedAt || !isFinite(changedAt)) return null;
+    if ((Date.now() - changedAt) > window.PRICE_TREND_VISIBLE_MS) return null;
+
+    return { oldPrice: oldPrice, newPrice: newPrice, date: changedAt, isDrop: newPrice < oldPrice };
+};
 
 function updateMarqueeData() {
     const container = document.getElementById('marquee-container');
@@ -1968,11 +2122,11 @@ function updateMarqueeData() {
         if (catListings.length > 0) {
             let drops = 0; let rises = 0;
             catListings.forEach(i => {
-                if (i.priceHistory && i.priceHistory.length > 0) {
-                    const oldPrice = i.priceHistory[i.priceHistory.length - 1].price;
-                    if (i.price < oldPrice) drops++;
-                    if (i.price > oldPrice) rises++;
-                }
+                // Yalnızca son 2 hafta içindeki fiyat değişimleri oka dahil edilir
+                const trend = window.getRecentPriceTrend(i);
+                if (!trend) return;
+                if (trend.isDrop) drops++;
+                else rises++;
             });
             
             let trendIcon = '';
@@ -2041,7 +2195,7 @@ function renderCategoryModalContent() {
         div.innerHTML = `
             <div class="min-w-0 pr-2">
                 <span class="font-bold text-lux-dark block text-xs line-clamp-1">${emoji} ${escapeHtml(item.title)}</span>
-                <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
+                <span class="text-[10px] text-gray-500">${escapeHtml(item.seller || '')} · ${escapeHtml(window.getListingPlaceText(item))}${item.outsideHatay ? ' ⚠️' : ''}</span>
             </div>
             <div class="text-right shrink-0">
                 <span class="font-extrabold text-emerald-700 text-sm">${item.price} TL</span>
@@ -2129,7 +2283,7 @@ function openAccountModal() {
                     <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
                     <div>
                         <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                        <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingLocationText(item))}</span>
+                        <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingPlaceText(item))}</span>
                     </div>
                 </div>
                 <div class="flex space-x-1">
@@ -2158,6 +2312,7 @@ function openFormModal() {
     document.getElementById('form-lat').value = '';
     document.getElementById('form-lng').value = '';
     document.getElementById('form-address').value = '';
+    if (document.getElementById('form-neighborhood')) document.getElementById('form-neighborhood').value = '';
     if (document.getElementById('form-harvest-date')) document.getElementById('form-harvest-date').value = '';
     if (document.getElementById('form-producer-story')) document.getElementById('form-producer-story').value = '';
     if (document.getElementById('form-video-url')) document.getElementById('form-video-url').value = '';
@@ -2222,6 +2377,7 @@ function openFormModalForEdit() {
     if (document.getElementById('form-accepts-subscription')) document.getElementById('form-accepts-subscription').checked = item.acceptsSubscription || false;
 
     document.getElementById('form-district').value = item.district;
+    if (document.getElementById('form-neighborhood')) document.getElementById('form-neighborhood').value = item.neighborhood || '';
     document.getElementById('form-address').value = item.address || '';
     window.locationOutsideHatay = item.outsideHatay ? { province: item.realProvince, district: item.realDistrict } : null;
     const editOwBanner = document.getElementById('outside-hatay-warning');
@@ -2301,25 +2457,82 @@ function openReportModal() {
         openAuthModal('login');
         return;
     }
+    if (!window.activeListingId) {
+        window.showToast("Şikayet edilecek ilan seçilmedi.", "warning");
+        return;
+    }
+
+    const item = (window.listings || []).find(l => l.id === window.activeListingId);
+    if (item && item.uid === window.currentUser.uid) {
+        window.showToast("Kendi ilanınızı şikayet edemezsiniz.", "warning");
+        return;
+    }
+
+    const reasonEl = document.getElementById('report-reason');
+    const noteEl = document.getElementById('report-note');
+    if (reasonEl) reasonEl.value = '';
+    if (noteEl) noteEl.value = '';
+
     document.getElementById('report-modal').classList.remove('hidden'); 
 }
 function closeReportModal() { document.getElementById('report-modal').classList.add('hidden'); }
 
+/* Şikayet kaydı, yönetici panelinde incelenebilmesi için
+   ilan ve bildiren kişi bilgileriyle birlikte "Yeni" durumunda açılır. */
 async function handleReportSubmit(e) {
     e.preventDefault();
+
+    if (!window.currentUser) {
+        window.showToast("Şikayet bildirimi için giriş yapmalısınız.", "warning");
+        openAuthModal('login');
+        return;
+    }
+
+    const listingId = window.activeListingId;
+    if (!listingId) {
+        window.showToast("Şikayet edilecek ilan bulunamadı.", "warning");
+        return;
+    }
+
+    const reason = document.getElementById('report-reason').value;
+    if (!reason) {
+        window.showToast("Lütfen şikayet nedenini seçin.", "warning");
+        return;
+    }
+
+    const item = (window.listings || []).find(l => l.id === listingId) || null;
+    if (item && item.uid === window.currentUser.uid) {
+        window.showToast("Kendi ilanınızı şikayet edemezsiniz.", "warning");
+        return;
+    }
+
+    const btn = document.getElementById('report-btn');
+    const originalText = btn ? btn.innerText : '';
+    if (btn) { btn.disabled = true; btn.innerText = "Gönderiliyor..."; }
+
     try {
-        await window.push(window.ref(window.db, 'reports'), {
-            listingId: window.activeListingId,
+        await push(ref(db, 'reports'), {
+            listingId: listingId,
+            listingTitle: item ? (item.title || null) : null,
+            listingOwnerUid: item ? (item.uid || null) : null,
+            listingOwnerName: item ? (item.seller || null) : null,
             reporterUid: window.currentUser.uid,
-            reason: document.getElementById('report-reason').value,
-            note: document.getElementById('report-note').value,
+            reporterName: window.userExtraData.username || window.currentUser.displayName || null,
+            reporterEmail: window.currentUser.email || null,
+            reporterPhone: window.userExtraData.phone || null,
+            reason: reason,
+            note: document.getElementById('report-note').value.trim() || null,
+            status: window.REPORT_STATUS ? window.REPORT_STATUS.NEW : 'Yeni',
+            adminNote: null,
             date: Date.now()
         });
-        window.showToast("Şikayetiniz iletildi.", "success");
+        window.showToast("✅ Şikayetiniz yönetici onayına iletildi. İnceleme sonrası gerekli işlem yapılacaktır.", "success");
         closeReportModal();
     } catch(err) {
-        window.showToast("Hata: " + err.message, "error");
-        window.showErrorPage(400, "Şikayet Gönderilemedi");
+        console.error('Şikayet gönderilemedi:', err);
+        window.showToast("Şikayet gönderilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerText = originalText || "Gönder"; }
     }
 }
 
@@ -2397,10 +2610,11 @@ function renderListings() {
                 </div>
                 <div class="p-3.5">
                     <div class="flex justify-between items-center text-[10px] text-gray-400 mb-1">
-                        <span><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingLocationText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
+                        <span class="truncate pr-1"><i class="fa-solid fa-location-dot text-lux-gold"></i> ${escapeHtml(window.getListingPlaceText(item))}${item.outsideHatay ? ' ⚠️' : ''}${window.nearbyModeActive && item._distanceKm !== null && item._distanceKm !== undefined ? ` · ${item._distanceKm.toFixed(1)} km` : ''}</span>
                         <span class="text-gray-400 text-[9px]"><i class="fa-regular fa-clock mr-0.5"></i>${getTimeAgo(item.date)}</span>
                     </div>
                     <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
+                    ${item.seller ? `<p class="text-[10px] text-gray-500 line-clamp-1" title="${escapeHtml(item.seller)}"><i class="fa-solid fa-user text-lux-olive mr-0.5"></i>${escapeHtml(item.seller)}</p>` : ''}
                 </div>
             </div>
             <div class="px-3.5 pb-3.5">
@@ -2521,7 +2735,7 @@ function openDetailModal(id) {
     
     document.getElementById('detail-time-badge').innerText = getTimeAgo(item.date);
     const locationPrefix = item.outsideHatay ? '' : 'Hatay / ';
-    document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingLocationText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
+    document.getElementById('detail-location').innerHTML = `<i class="fa-solid fa-location-dot text-lux-gold"></i> ${locationPrefix}${escapeHtml(window.getListingPlaceText(item))}${item.address ? ` · ${escapeHtml(item.address)}` : ''}`;
     
     let priceHTML = `${item.price} TL`;
     if (item.priceHistory && item.priceHistory.length > 0) {
@@ -3214,7 +3428,7 @@ window.openBuyRequestDetail = function (id) {
                         <img src="${escapeHtml(item.image)}" class="w-9 h-9 rounded-lg object-cover shrink-0">
                         <div class="min-w-0">
                             <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
-                            <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(window.getListingLocationText(item))}</span>
+                            <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(window.getListingPlaceText(item))}</span>
                         </div>
                     </div>
                     <i class="fa-solid fa-chevron-right text-gray-400 text-[10px]"></i>
@@ -6278,7 +6492,7 @@ window.translateDom = function (root) {
 
         list.forEach(el => {
             const tag = el.tagName;
-            if (!tag || tag === 'SCRIPT' || tag === 'STYLE' || tag === 'CANVAS' || tag === 'IFRAME' || tag === 'SVG') return;
+            if (!tag || tag === 'SCRIPT' || tag === 'STYLE' || tag === 'CANVAS' || tag === 'IFRAME' || tag === 'SVG' || tag === 'PRE' || tag === 'CODE') return;
 
             /* Metin düğümleri (data-i18n olanlar anahtar sistemine bırakılır) */
             if (!el.hasAttribute('data-i18n')) {
@@ -6386,7 +6600,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.09.11';
+window.ORONTES_BUILD = '2026.09.16';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
@@ -6565,10 +6779,244 @@ window.startVerifiedProducersListener = function () {
     } catch (e) {}
 };
 
+/* ---------------- YÖNETİCİ BİLDİRİM MERKEZİ ---------------- */
+
+window.REPORT_STATUS = {
+    NEW: 'Yeni',
+    REVIEWING: 'İnceleniyor',
+    RESOLVED: 'İşlem Yapıldı',
+    DISMISSED: 'Reddedildi'
+};
+
+/* "Sorun Bildir" (anlaşmazlık) kayıtları — açık bildirim 'İnceleniyor' durumuyla gelir */
+window.DISPUTE_STATUS = {
+    OPEN: 'İnceleniyor',
+    RESOLVED: 'Çözüldü',
+    DISMISSED: 'Reddedildi'
+};
+
+window.adminReportList = [];
+window.adminDisputeList = [];
+window.activeReportId = null;
+window.activeAdminDisputeId = null;
+window.adminActiveTab = 'verifications';
+window.adminVerifError = null;
+window.adminReportError = null;
+window.adminDisputeError = null;
+window.adminVerificationsUnsub = null;
+window.adminReportsUnsub = null;
+window.adminDisputesUnsub = null;
+window.adminListenersActive = false;
+window.adminVerifFirstLoad = true;
+window.adminReportsFirstLoad = true;
+window.adminDisputesFirstLoad = true;
+window.adminLastPendingVerif = 0;
+window.adminLastNewReports = 0;
+window.adminLastOpenDisputes = 0;
+
+/* Eski kayıtlarda durum alanı bulunmayabilir; bunlar "Yeni" sayılır. */
+window.getReportStatus = function (report) {
+    return (report && report.status) ? report.status : window.REPORT_STATUS.NEW;
+};
+
+window.getDisputeStatus = function (dispute) {
+    return (dispute && dispute.status) ? dispute.status : window.DISPUTE_STATUS.OPEN;
+};
+
+window.isPermissionError = function (err) {
+    const code = String((err && (err.code || err.message)) || '').toLowerCase();
+    return code.indexOf('permission') !== -1 || code.indexOf('denied') !== -1;
+};
+
+/* Yönetici oturumdayken doğrulama başvuruları ve şikâyetler canlı dinlenir:
+   yeni bir kayıt geldiği anda rozet ve listeler kendiliğinden güncellenir. */
+window.startAdminListeners = function () {
+    if (window.adminListenersActive || !window.isCurrentUserAdmin()) return;
+    window.adminListenersActive = true;
+
+    try {
+        window.adminVerificationsUnsub = onValue(ref(db, 'verifications'), (snap) => {
+            const data = snap.val() || {};
+            window.adminVerificationList = Object.keys(data).map(uid => Object.assign({ uid: uid }, data[uid]));
+            window.adminVerifError = null;
+
+            const bekleyen = window.getAdminPendingVerificationCount();
+            if (!window.adminVerifFirstLoad && bekleyen > window.adminLastPendingVerif) {
+                window.showToast('🔔 Yeni üretici doğrulama başvurusu geldi. (' + bekleyen + ' bekliyor)', 'success');
+            }
+            window.adminLastPendingVerif = bekleyen;
+            window.adminVerifFirstLoad = false;
+
+            window.onAdminDataChanged();
+        }, (err) => {
+            console.warn('Doğrulama başvuruları okunamadı:', err);
+            window.adminVerifError = err;
+            window.adminVerificationList = [];
+            window.onAdminDataChanged();
+        });
+    } catch (err) {
+        window.adminVerifError = err;
+    }
+
+    try {
+        window.adminReportsUnsub = onValue(ref(db, 'reports'), (snap) => {
+            const data = snap.val() || {};
+            window.adminReportList = Object.keys(data).map(id => Object.assign({ id: id }, data[id]));
+            window.adminReportError = null;
+
+            const yeni = window.getAdminNewReportCount();
+            if (!window.adminReportsFirstLoad && yeni > window.adminLastNewReports) {
+                window.showToast('🚩 Yeni ilan şikâyeti bildirildi. (' + yeni + ' yeni)', 'warning');
+            }
+            window.adminLastNewReports = yeni;
+            window.adminReportsFirstLoad = false;
+
+            window.onAdminDataChanged();
+        }, (err) => {
+            console.warn('İlan şikâyetleri okunamadı:', err);
+            window.adminReportError = err;
+            window.adminReportList = [];
+            window.onAdminDataChanged();
+        });
+    } catch (err) {
+        window.adminReportError = err;
+    }
+
+    try {
+        window.adminDisputesUnsub = onValue(ref(db, 'disputes'), (snap) => {
+            const data = snap.val() || {};
+            window.adminDisputeList = Object.keys(data).map(id => Object.assign({ id: id }, data[id]));
+            window.adminDisputeError = null;
+
+            const acik = window.getAdminOpenDisputeCount();
+            if (!window.adminDisputesFirstLoad && acik > window.adminLastOpenDisputes) {
+                window.showToast('🛡️ Yeni sorun bildirimi geldi. (' + acik + ' açık)', 'warning');
+            }
+            window.adminLastOpenDisputes = acik;
+            window.adminDisputesFirstLoad = false;
+
+            window.onAdminDataChanged();
+        }, (err) => {
+            console.warn('Sorun bildirimleri okunamadı:', err);
+            window.adminDisputeError = err;
+            window.adminDisputeList = [];
+            window.onAdminDataChanged();
+        });
+    } catch (err) {
+        window.adminDisputeError = err;
+    }
+};
+
+window.stopAdminListeners = function () {
+    try { if (typeof window.adminVerificationsUnsub === 'function') window.adminVerificationsUnsub(); } catch (e) {}
+    try { if (typeof window.adminReportsUnsub === 'function') window.adminReportsUnsub(); } catch (e) {}
+    try { if (typeof window.adminDisputesUnsub === 'function') window.adminDisputesUnsub(); } catch (e) {}
+    window.adminVerificationsUnsub = null;
+    window.adminReportsUnsub = null;
+    window.adminDisputesUnsub = null;
+    window.adminListenersActive = false;
+    window.adminVerificationList = [];
+    window.adminReportList = [];
+    window.adminDisputeList = [];
+    window.adminVerifError = null;
+    window.adminReportError = null;
+    window.adminDisputeError = null;
+    window.adminVerifFirstLoad = true;
+    window.adminReportsFirstLoad = true;
+    window.adminDisputesFirstLoad = true;
+    window.adminLastPendingVerif = 0;
+    window.adminLastNewReports = 0;
+    window.adminLastOpenDisputes = 0;
+    window.updateAdminBadge();
+};
+
+/* Yönetici verisi her değiştiğinde rozet + açık olan liste tazelenir */
+window.onAdminDataChanged = function () {
+    window.updateAdminBadge();
+    const modal = document.getElementById('admin-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+        window.renderAdminVerifications();
+        window.renderAdminReports();
+        window.renderAdminDisputes();
+    }
+    window.refreshAdminRulesWarning();
+};
+
+window.getAdminPendingVerificationCount = function () {
+    return (window.adminVerificationList || [])
+        .filter(v => v && v.status === window.VERIFICATION_STATUS.PENDING).length;
+};
+
+window.getAdminNewReportCount = function () {
+    return (window.adminReportList || [])
+        .filter(r => window.getReportStatus(r) === window.REPORT_STATUS.NEW).length;
+};
+
+window.getAdminOpenDisputeCount = function () {
+    return (window.adminDisputeList || [])
+        .filter(d => window.getDisputeStatus(d) === window.DISPUTE_STATUS.OPEN).length;
+};
+
+/* Yalnızca yöneticiye görünen "kaç yeni bildirim var" sayacı */
+window.updateAdminBadge = function () {
+    const badge = document.getElementById('admin-notif-badge');
+    const isAdmin = window.isCurrentUserAdmin();
+
+    const pendingVerif = isAdmin ? window.getAdminPendingVerificationCount() : 0;
+    const newReports = isAdmin ? window.getAdminNewReportCount() : 0;
+    const openDisputes = isAdmin ? window.getAdminOpenDisputeCount() : 0;
+    const total = pendingVerif + newReports + openDisputes;
+
+    if (badge) {
+        if (isAdmin && total > 0) {
+            badge.innerText = total > 99 ? '99+' : String(total);
+            badge.title = `${pendingVerif} bekleyen doğrulama başvurusu · ${newReports} yeni ilan şikâyeti · ${openDisputes} açık sorun bildirimi`;
+            badge.classList.remove('hidden');
+            badge.style.display = 'flex';
+        } else {
+            badge.classList.add('hidden');
+            badge.style.display = 'none';
+        }
+    }
+
+    const vTabBadge = document.getElementById('admin-tab-badge-verifications');
+    if (vTabBadge) {
+        vTabBadge.innerText = String(pendingVerif);
+        vTabBadge.classList.toggle('hidden', !(isAdmin && pendingVerif > 0));
+    }
+
+    const rTabBadge = document.getElementById('admin-tab-badge-reports');
+    if (rTabBadge) {
+        rTabBadge.innerText = String(newReports);
+        rTabBadge.classList.toggle('hidden', !(isAdmin && newReports > 0));
+    }
+
+    const dTabBadge = document.getElementById('admin-tab-badge-disputes');
+    if (dTabBadge) {
+        dTabBadge.innerText = String(openDisputes);
+        dTabBadge.classList.toggle('hidden', !(isAdmin && openDisputes > 0));
+    }
+
+    const summary = document.getElementById('admin-summary');
+    if (summary) {
+        summary.innerHTML = total > 0
+            ? `<b class="text-red-600">${total} yeni bildirim</b> · ${pendingVerif} bekleyen doğrulama başvurusu · ${newReports} yeni ilan şikâyeti · ${openDisputes} açık sorun bildirimi`
+            : 'Bekleyen yeni bildiriminiz yok.';
+    }
+};
+
 window.refreshAdminButton = function () {
     const btn = document.getElementById('admin-panel-btn');
-    if (!btn) return;
-    btn.classList.toggle('hidden', !window.isCurrentUserAdmin());
+    const wrap = document.getElementById('admin-panel-btn-wrap');
+    const isAdmin = window.isCurrentUserAdmin();
+
+    if (btn) btn.classList.toggle('hidden', !isAdmin);
+    if (wrap) wrap.classList.toggle('hidden', !isAdmin);
+
+    if (isAdmin) window.startAdminListeners();
+    else window.stopAdminListeners();
+
+    window.updateAdminBadge();
 };
 
 /* ------------------------------- ÜRETİCİ TARAFI ------------------------------- */
@@ -6778,8 +7226,11 @@ window.submitVerificationRequest = async function (e) {
         window.openAccountModal();
         window.switchAccountTab('verification');
     } catch (err) {
-        console.error(err);
-        window.showToast("Başvuru gönderilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
+        console.error('Doğrulama başvurusu gönderilemedi:', err);
+        const mesaj = window.isPermissionError(err)
+            ? "Başvuru kaydedilemedi: Firebase kuralları /verifications düğümüne yazma izni vermiyor."
+            : "Başvuru gönderilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata');
+        window.showToast(mesaj, "error");
     } finally {
         btn.disabled = false;
         btn.innerText = "Başvuruyu Gönder";
@@ -6794,29 +7245,80 @@ window.openAdminPanel = async function () {
         return;
     }
     document.getElementById('admin-modal').classList.remove('hidden');
-    await window.loadAdminVerifications();
+    window.startAdminListeners();
+    window.switchAdminTab(window.adminActiveTab || 'verifications');
+    await Promise.all([window.loadAdminVerifications(), window.loadAdminReports(), window.loadAdminDisputes()]);
 };
 
 window.closeAdminPanel = function () {
     document.getElementById('admin-modal').classList.add('hidden');
 };
 
-window.loadAdminVerifications = async function () {
+window.switchAdminTab = function (tab) {
+    window.adminActiveTab = (['reports', 'disputes'].indexOf(tab) !== -1) ? tab : 'verifications';
+
+    ['verifications', 'reports', 'disputes'].forEach(t => {
+        const pane = document.getElementById('admin-tab-' + t);
+        const btn = document.getElementById('admin-tab-btn-' + t);
+        const isActive = (t === window.adminActiveTab);
+        if (pane) pane.classList.toggle('hidden', !isActive);
+        if (btn) {
+            btn.classList.toggle('border-lux-dark', isActive);
+            btn.classList.toggle('text-lux-dark', isActive);
+            btn.classList.toggle('border-transparent', !isActive);
+            btn.classList.toggle('text-gray-500', !isActive);
+        }
+    });
+
+    window.refreshAdminRulesWarning();
+};
+
+/* Canlı dinleyici yanında tek seferlik okuma: panel açılır açılmaz
+   (ya da "Yenile" düğmesiyle) veriyi tazeler, izin hatasını netleştirir. */
+window.loadAdminVerifications = async function (showToastOnError) {
     const list = document.getElementById('admin-verif-list');
     if (!list) return;
-    list.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+    if (!(window.adminVerificationList || []).length) {
+        list.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+    }
 
     try {
         const snap = await get(ref(db, 'verifications'));
         const data = snap.val() || {};
-        window.adminVerificationList = Object.keys(data).map(uid => ({ uid, ...data[uid] }));
-        window.renderAdminVerifications();
+        window.adminVerificationList = Object.keys(data).map(uid => Object.assign({ uid: uid }, data[uid]));
+        window.adminVerifError = null;
     } catch (err) {
-        console.error(err);
-        list.innerHTML = `<div class="bg-red-50 border border-red-200 text-red-700 text-[11px] p-3 rounded-lg">
-            Başvurular okunamadı. Firebase kurallarında <b>verifications</b> düğümü için yönetici okuma izni tanımlı mı?
-        </div>`;
+        console.error('Doğrulama başvuruları okunamadı:', err);
+        window.adminVerifError = err;
+        if (showToastOnError) window.showToast("Başvurular okunamadı — Firebase kural izni gerekiyor.", "error");
     }
+
+    window.renderAdminVerifications();
+    window.updateAdminBadge();
+    window.refreshAdminRulesWarning();
+};
+
+window.loadAdminReports = async function (showToastOnError) {
+    const list = document.getElementById('admin-report-list');
+    if (!list) return;
+    if (!(window.adminReportList || []).length) {
+        list.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+    }
+
+    try {
+        const snap = await get(ref(db, 'reports'));
+        const data = snap.val() || {};
+        window.adminReportList = Object.keys(data).map(id => Object.assign({ id: id }, data[id]));
+        window.adminReportError = null;
+    } catch (err) {
+        console.error('İlan şikâyetleri okunamadı:', err);
+        window.adminReportError = err;
+        if (showToastOnError) window.showToast("Şikâyetler okunamadı — Firebase kural izni gerekiyor.", "error");
+    }
+
+    window.renderAdminReports();
+    window.updateAdminBadge();
+    window.refreshAdminRulesWarning();
 };
 
 window.renderAdminVerifications = function () {
@@ -6830,10 +7332,16 @@ window.renderAdminVerifications = function () {
     items.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
 
     const countEl = document.getElementById('admin-verif-count');
-    const pending = (window.adminVerificationList || []).filter(x => x.status === window.VERIFICATION_STATUS.PENDING).length;
+    const pending = window.getAdminPendingVerificationCount();
     if (countEl) countEl.innerText = `${pending} bekleyen başvuru · toplam ${(window.adminVerificationList || []).length}`;
 
     list.innerHTML = '';
+
+    if (window.adminVerifError) {
+        list.innerHTML = window.buildAdminErrorBox('Başvurular okunamadı.', '/verifications', window.adminVerifError);
+        return;
+    }
+
     if (items.length === 0) {
         list.innerHTML = '<p class="text-xs text-gray-400 italic py-4 text-center">Bu durumda başvuru yok.</p>';
         return;
@@ -6862,6 +7370,458 @@ window.renderAdminVerifications = function () {
         `;
         list.appendChild(row);
     });
+};
+
+/* Yönetici listelerinde gösterilen hata kutusu: izin hatası ile diğer hataları ayırır */
+window.buildAdminErrorBox = function (baslik, dugum, err) {
+    const izinHatasi = window.isPermissionError(err);
+    const detay = (err && err.message) ? String(err.message) : '';
+
+    if (!izinHatasi) {
+        return `<div class="bg-amber-50 border border-amber-200 text-amber-800 text-[11px] p-3 rounded-lg leading-relaxed">
+            <b>${escapeHtml(baslik)}</b> Bağlantı hatası olabilir, lütfen "Yenile" ile tekrar deneyin.
+            ${detay ? '<span class="block mt-1 text-[10px] text-amber-700">' + escapeHtml(detay) + '</span>' : ''}
+        </div>`;
+    }
+
+    return `<div class="bg-red-50 border border-red-200 text-red-700 text-[11px] p-3 rounded-lg leading-relaxed">
+        <b>${escapeHtml(baslik)}</b> Firebase kurallarında <b>${escapeHtml(dugum)}</b> düğümü için yönetici okuma izni tanımlı değil.
+        Realtime Database'de okuma izni, okunan yolun kendisinde ya da bir üst düğümünde tanımlanmalıdır.
+        <button onclick="window.openAdminRulesHelp()" class="block mt-2 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-[11px] transition">
+            <i class="fa-solid fa-wrench mr-1"></i> Gerekli kuralları göster ve kopyala
+        </button>
+    </div>`;
+};
+
+/* ------------------------------- YÖNETİCİ: İLAN ŞİKÂYETLERİ ------------------------------- */
+
+window.getReportStatusStyle = function (status) {
+    switch (status) {
+        case window.REPORT_STATUS.RESOLVED:  return { box: 'border-emerald-200', chip: 'bg-emerald-100 text-emerald-800' };
+        case window.REPORT_STATUS.REVIEWING: return { box: 'border-amber-200',   chip: 'bg-amber-100 text-amber-800' };
+        case window.REPORT_STATUS.DISMISSED: return { box: 'border-gray-200',    chip: 'bg-gray-100 text-gray-600' };
+        default:                             return { box: 'border-red-200',     chip: 'bg-red-100 text-red-800' };
+    }
+};
+
+window.renderAdminReports = function () {
+    const list = document.getElementById('admin-report-list');
+    const filterEl = document.getElementById('admin-report-filter');
+    if (!list) return;
+
+    const filter = filterEl ? filterEl.value : window.REPORT_STATUS.NEW;
+    let items = (window.adminReportList || []).slice();
+    if (filter) items = items.filter(r => window.getReportStatus(r) === filter);
+    items.sort((a, b) => (b.date || 0) - (a.date || 0));
+
+    const countEl = document.getElementById('admin-report-count');
+    if (countEl) {
+        countEl.innerText = `${window.getAdminNewReportCount()} yeni şikâyet · toplam ${(window.adminReportList || []).length}`;
+    }
+
+    list.innerHTML = '';
+
+    if (window.adminReportError) {
+        list.innerHTML = window.buildAdminErrorBox('Şikâyetler okunamadı.', '/reports', window.adminReportError);
+        return;
+    }
+
+    if (items.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-400 italic py-4 text-center">Bu durumda şikâyet yok.</p>';
+        return;
+    }
+
+    items.forEach(r => {
+        const status = window.getReportStatus(r);
+        const style = window.getReportStatusStyle(status);
+        const baslik = r.listingTitle || 'İlan (başlık kaydedilmemiş)';
+        const row = document.createElement('div');
+        row.className = `bg-white border ${style.box} rounded-xl p-3 mb-2`;
+        row.innerHTML = `
+            <div class="flex justify-between items-start gap-2 flex-wrap">
+                <div class="min-w-0">
+                    <span class="font-bold text-lux-dark text-xs block line-clamp-1">${escapeHtml(baslik)}</span>
+                    <span class="text-[10px] text-red-700 font-semibold block"><i class="fa-solid fa-flag mr-1"></i>${escapeHtml(r.reason || 'Neden belirtilmemiş')}</span>
+                    <span class="text-[10px] text-gray-500 block">Bildiren: ${escapeHtml(r.reporterName || r.reporterEmail || r.reporterUid || '-')}</span>
+                    <span class="text-[10px] text-gray-400 block">${escapeHtml(getTimeAgo(r.date))}${r.listingOwnerName ? ' · İlan sahibi: ' + escapeHtml(r.listingOwnerName) : ''}</span>
+                </div>
+                <span class="text-[9px] font-bold px-2 py-1 rounded ${style.chip} whitespace-nowrap">${escapeHtml(status)}</span>
+            </div>
+            ${r.note ? `<p class="text-[10px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2 mt-2 line-clamp-2">${escapeHtml(r.note)}</p>` : ''}
+            <div class="flex gap-1.5 mt-2">
+                <button onclick="window.openReportReview('${escapeHtml(r.id)}')" class="flex-1 bg-lux-dark hover:bg-lux-olive text-white font-bold py-1.5 rounded-lg text-[11px] transition">
+                    <i class="fa-solid fa-gavel mr-1"></i> Şikâyeti İncele
+                </button>
+            </div>
+        `;
+        list.appendChild(row);
+    });
+};
+
+window.openReportReview = async function (reportId) {
+    const r = (window.adminReportList || []).find(x => x.id === reportId);
+    if (!r) return;
+    window.activeReportId = reportId;
+
+    const status = window.getReportStatus(r);
+    document.getElementById('report-review-listing').innerText = r.listingTitle || 'İlan (başlık kaydedilmemiş)';
+    document.getElementById('report-review-reason').innerText = r.reason || 'Neden belirtilmemiş';
+    document.getElementById('report-review-meta').innerText =
+        `Bildiren: ${r.reporterName || r.reporterEmail || r.reporterUid || '-'}` +
+        `${r.reporterPhone ? ' · ' + r.reporterPhone : ''}` +
+        `${r.date ? ' · ' + new Date(r.date).toLocaleString('tr-TR') : ''}`;
+    document.getElementById('report-review-note').innerText = r.note || 'Ek not girilmemiş.';
+    document.getElementById('report-review-status').innerText = status;
+    document.getElementById('report-admin-note').value = r.adminNote || '';
+
+    const box = document.getElementById('report-review-listing-box');
+    box.innerHTML = '<span class="text-[11px] text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>İlan bilgisi yükleniyor...</span>';
+    document.getElementById('report-review-modal').classList.remove('hidden');
+
+    let listing = null;
+    if (r.listingId) {
+        try {
+            const snap = await get(ref(db, 'listings/' + r.listingId));
+            listing = snap.exists() ? snap.val() : null;
+        } catch (err) {
+            console.warn('Şikâyet edilen ilan okunamadı:', err);
+        }
+    }
+
+    if (window.activeReportId !== reportId) return;   // arada başka kayda geçildiyse yazma
+
+    if (!listing) {
+        box.innerHTML = `<span class="text-[11px] text-gray-500">
+            Bu ilan veritabanında bulunamadı (silinmiş olabilir).
+            ${r.listingTitle ? '<br>Kayıtlı başlık: <b>' + escapeHtml(r.listingTitle) + '</b>' : ''}
+            ${r.listingOwnerName ? '<br>İlan sahibi: <b>' + escapeHtml(r.listingOwnerName) + '</b>' : ''}
+        </span>`;
+        const rmBtn = document.getElementById('report-remove-listing-btn');
+        if (rmBtn) rmBtn.classList.add('hidden');
+        return;
+    }
+
+    const rmBtn = document.getElementById('report-remove-listing-btn');
+    if (rmBtn) rmBtn.classList.remove('hidden');
+
+    box.innerHTML = `
+        <div class="flex gap-2 items-start">
+            <img src="${escapeHtml(listing.image || '')}" class="w-16 h-16 rounded-lg object-cover border border-gray-200 bg-lux-bg/40 shrink-0">
+            <div class="min-w-0">
+                <span class="font-bold text-lux-dark text-xs block line-clamp-2">${escapeHtml(listing.title || '-')}</span>
+                <span class="text-[10px] text-gray-500 block">${escapeHtml(listing.seller || '-')} · ${escapeHtml(window.getListingPlaceText(listing))}</span>
+                <span class="text-[10px] text-emerald-700 font-bold block">${escapeHtml(String(listing.price ?? '-'))} TL ${escapeHtml(listing.unit || '')}</span>
+                <span class="text-[10px] text-gray-400 block">${escapeHtml(listing.phone || '')} ${listing.userEmail ? '· ' + escapeHtml(listing.userEmail) : ''}</span>
+            </div>
+        </div>`;
+};
+
+window.closeReportReview = function () {
+    document.getElementById('report-review-modal').classList.add('hidden');
+    window.activeReportId = null;
+};
+
+/* Şikâyeti karara bağlar (İnceleniyor / İşlem Yapıldı / Reddedildi) */
+window.setReportStatus = async function (status, extra, silent) {
+    const id = window.activeReportId;
+    if (!id || !window.isCurrentUserAdmin()) return false;
+
+    const noteEl = document.getElementById('report-admin-note');
+    const payload = Object.assign({
+        status: status,
+        adminNote: noteEl && noteEl.value.trim() ? noteEl.value.trim() : null,
+        reviewedBy: window.currentUser.uid,
+        reviewedAt: Date.now()
+    }, extra || {});
+
+    try {
+        await update(ref(db, 'reports/' + id), payload);
+        const local = (window.adminReportList || []).find(x => x.id === id);
+        if (local) Object.assign(local, payload);
+        if (!silent) window.showToast('Şikâyet durumu güncellendi: ' + status, 'success');
+        window.closeReportReview();
+        window.renderAdminReports();
+        window.updateAdminBadge();
+        return true;
+    } catch (err) {
+        console.error('Şikâyet güncellenemedi:', err);
+        window.showToast('Şikâyet güncellenemedi: ' + (err && err.message ? err.message : ''), 'error');
+        return false;
+    }
+};
+
+/* Şikâyet haklı bulunduğunda ilanı kaldırır ve kaydı kapatır */
+window.adminRemoveReportedListing = async function () {
+    const id = window.activeReportId;
+    const r = (window.adminReportList || []).find(x => x.id === id);
+    if (!id || !r || !window.isCurrentUserAdmin()) return;
+    if (!r.listingId) {
+        window.showToast('Bu şikâyette ilan kimliği kayıtlı değil.', 'warning');
+        return;
+    }
+    if (!confirm('Şikâyet edilen ilan kalıcı olarak kaldırılsın mı?')) return;
+
+    const btn = document.getElementById('report-remove-listing-btn');
+    if (btn) { btn.disabled = true; btn.innerText = 'Kaldırılıyor...'; }
+
+    try {
+        await remove(ref(db, 'listings/' + r.listingId));
+        await window.setReportStatus(window.REPORT_STATUS.RESOLVED, { listingRemoved: true }, true);
+        window.showToast('İlan kaldırıldı ve şikâyet kapatıldı.', 'success');
+    } catch (err) {
+        console.error(err);
+        window.showToast('İlan kaldırılamadı: ' + (err && err.message ? err.message : ''), 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-trash mr-1"></i> İlanı Kaldır ve Şikâyeti Kapat'; }
+    }
+};
+
+/* ------------------------------- YÖNETİCİ: SORUN BİLDİRİMLERİ ------------------------------- */
+
+window.loadAdminDisputes = async function (showToastOnError) {
+    const list = document.getElementById('admin-dispute-list');
+    if (!list) return;
+    if (!(window.adminDisputeList || []).length) {
+        list.innerHTML = '<p class="text-xs text-gray-400">Yükleniyor...</p>';
+    }
+
+    try {
+        const snap = await get(ref(db, 'disputes'));
+        const data = snap.val() || {};
+        window.adminDisputeList = Object.keys(data).map(id => Object.assign({ id: id }, data[id]));
+        window.adminDisputeError = null;
+    } catch (err) {
+        console.error('Sorun bildirimleri okunamadı:', err);
+        window.adminDisputeError = err;
+        if (showToastOnError) window.showToast("Sorun bildirimleri okunamadı — Firebase kural izni gerekiyor.", "error");
+    }
+
+    window.renderAdminDisputes();
+    window.updateAdminBadge();
+    window.refreshAdminRulesWarning();
+};
+
+window.getDisputeStatusStyle = function (status) {
+    switch (status) {
+        case window.DISPUTE_STATUS.RESOLVED:  return { box: 'border-emerald-200', chip: 'bg-emerald-100 text-emerald-800' };
+        case window.DISPUTE_STATUS.DISMISSED: return { box: 'border-gray-200',    chip: 'bg-gray-100 text-gray-600' };
+        default:                              return { box: 'border-red-200',     chip: 'bg-red-100 text-red-800' };
+    }
+};
+
+window.renderAdminDisputes = function () {
+    const list = document.getElementById('admin-dispute-list');
+    const filterEl = document.getElementById('admin-dispute-filter');
+    if (!list) return;
+
+    const filter = filterEl ? filterEl.value : window.DISPUTE_STATUS.OPEN;
+    let items = (window.adminDisputeList || []).slice();
+    if (filter) items = items.filter(d => window.getDisputeStatus(d) === filter);
+    items.sort((a, b) => (b.date || 0) - (a.date || 0));
+
+    const countEl = document.getElementById('admin-dispute-count');
+    if (countEl) {
+        countEl.innerText = `${window.getAdminOpenDisputeCount()} açık bildirim · toplam ${(window.adminDisputeList || []).length}`;
+    }
+
+    list.innerHTML = '';
+
+    if (window.adminDisputeError) {
+        list.innerHTML = window.buildAdminErrorBox('Sorun bildirimleri okunamadı.', '/disputes', window.adminDisputeError);
+        return;
+    }
+
+    if (items.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-400 italic py-4 text-center">Bu durumda bildirim yok.</p>';
+        return;
+    }
+
+    items.forEach(d => {
+        const status = window.getDisputeStatus(d);
+        const style = window.getDisputeStatusStyle(status);
+        const row = document.createElement('div');
+        row.className = `bg-white border ${style.box} rounded-xl p-3 mb-2`;
+        row.innerHTML = `
+            <div class="flex justify-between items-start gap-2 flex-wrap">
+                <div class="min-w-0">
+                    <span class="font-bold text-lux-dark text-xs block line-clamp-1">${escapeHtml(d.contextTitle || 'Genel bildirim')}</span>
+                    <span class="text-[10px] text-red-700 font-semibold block"><i class="fa-solid fa-shield-halved mr-1"></i>${escapeHtml(d.reason || 'Neden belirtilmemiş')}</span>
+                    <span class="text-[10px] text-gray-500 block">Bildiren: ${escapeHtml(d.reporterName || d.reporterEmail || d.reporterUid || '-')}${d.counterpartyName ? ' · Karşı taraf: ' + escapeHtml(d.counterpartyName) : ''}</span>
+                    <span class="text-[10px] text-gray-400 block">${escapeHtml(getTimeAgo(d.date))}</span>
+                </div>
+                <span class="text-[9px] font-bold px-2 py-1 rounded ${style.chip} whitespace-nowrap">${escapeHtml(status)}</span>
+            </div>
+            ${d.desc ? `<p class="text-[10px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2 mt-2 line-clamp-2">${escapeHtml(d.desc)}</p>` : ''}
+            <div class="flex gap-1.5 mt-2">
+                <button onclick="window.openDisputeReview('${escapeHtml(d.id)}')" class="flex-1 bg-lux-dark hover:bg-lux-olive text-white font-bold py-1.5 rounded-lg text-[11px] transition">
+                    <i class="fa-solid fa-gavel mr-1"></i> Bildirimi İncele
+                </button>
+            </div>
+        `;
+        list.appendChild(row);
+    });
+};
+
+window.openDisputeReview = function (disputeId) {
+    const d = (window.adminDisputeList || []).find(x => x.id === disputeId);
+    if (!d) return;
+    window.activeAdminDisputeId = disputeId;
+
+    document.getElementById('dispute-review-context').innerText = d.contextTitle || 'Genel bildirim';
+    document.getElementById('dispute-review-reason').innerText = d.reason || 'Neden belirtilmemiş';
+    document.getElementById('dispute-review-meta').innerText =
+        `${d.reporterEmail || ''}${d.reporterPhone ? ' · ' + d.reporterPhone : ''}` +
+        `${d.date ? ' · ' + new Date(d.date).toLocaleString('tr-TR') : ''}`;
+    document.getElementById('dispute-review-desc').innerText = d.desc || 'Açıklama girilmemiş.';
+    document.getElementById('dispute-review-status').innerText = window.getDisputeStatus(d);
+    document.getElementById('dispute-admin-note').value = d.adminNote || '';
+    document.getElementById('dispute-review-parties').innerHTML =
+        `<span class="block"><b>Bildiren:</b> ${escapeHtml(d.reporterName || '-')} ${d.reporterEmail ? '· ' + escapeHtml(d.reporterEmail) : ''}</span>` +
+        `<span class="block"><b>Karşı taraf:</b> ${escapeHtml(d.counterpartyName || '-')}</span>` +
+        (d.dealId ? `<span class="block text-gray-400">İşlem kimliği: ${escapeHtml(d.dealId)}</span>` : '');
+
+    document.getElementById('dispute-review-modal').classList.remove('hidden');
+};
+
+window.closeDisputeReview = function () {
+    document.getElementById('dispute-review-modal').classList.add('hidden');
+    window.activeAdminDisputeId = null;
+};
+
+window.setDisputeStatus = async function (status) {
+    const id = window.activeAdminDisputeId;
+    if (!id || !window.isCurrentUserAdmin()) return;
+
+    const noteEl = document.getElementById('dispute-admin-note');
+    const payload = {
+        status: status,
+        adminNote: noteEl && noteEl.value.trim() ? noteEl.value.trim() : null,
+        reviewedBy: window.currentUser.uid,
+        reviewedAt: Date.now()
+    };
+
+    try {
+        await update(ref(db, 'disputes/' + id), payload);
+        const local = (window.adminDisputeList || []).find(x => x.id === id);
+        if (local) Object.assign(local, payload);
+        window.showToast('Sorun bildirimi güncellendi: ' + status, 'success');
+        window.closeDisputeReview();
+        window.renderAdminDisputes();
+        window.updateAdminBadge();
+    } catch (err) {
+        console.error('Sorun bildirimi güncellenemedi:', err);
+        window.showToast('Bildirim güncellenemedi: ' + (err && err.message ? err.message : ''), 'error');
+    }
+};
+
+/* ------------------------------- YÖNETİCİ: FIREBASE KURAL YARDIMCISI ------------------------------- */
+
+/* Kural dosyası okunamazsa gösterilecek asgari kural örneği */
+window.ORONTES_FALLBACK_RULES = [
+    '{',
+    '  "rules": {',
+    '    "verifications": {',
+    '      ".read": "auth != null && (root.child(\'admins\').child(auth.uid).exists() || auth.token.email === \'orontesdestek@gmail.com\')",',
+    '      "$uid": {',
+    '        ".read": "auth != null && (auth.uid === $uid || root.child(\'admins\').child(auth.uid).exists() || auth.token.email === \'orontesdestek@gmail.com\')",',
+    '        ".write": "auth != null && (auth.uid === $uid || root.child(\'admins\').child(auth.uid).exists() || auth.token.email === \'orontesdestek@gmail.com\')"',
+    '      }',
+    '    },',
+    '    "reports": {',
+    '      ".read": "auth != null && (root.child(\'admins\').child(auth.uid).exists() || auth.token.email === \'orontesdestek@gmail.com\')",',
+    '      "$reportId": {',
+    '        ".write": "auth != null"',
+    '      }',
+    '    },',
+    '    "disputes": {',
+    '      ".read": "auth != null && (root.child(\'admins\').child(auth.uid).exists() || auth.token.email === \'orontesdestek@gmail.com\')",',
+    '      "$disputeId": {',
+    '        ".write": "auth != null"',
+    '      }',
+    '    }',
+    '  }',
+    '}',
+    '',
+    '// NOT: Bu yalnızca yönetici okuması gereken düğümlerin kuralıdır.',
+    '// Projedeki database.rules.json dosyası tüm düğümleri kapsar.'
+].join('\n');
+
+window.adminRulesText = null;
+
+window.openAdminRulesHelp = async function () {
+    const modal = document.getElementById('admin-rules-modal');
+    const pre = document.getElementById('admin-rules-text');
+    if (!modal || !pre) return;
+
+    modal.classList.remove('hidden');
+
+    if (window.adminRulesText) {
+        pre.textContent = window.adminRulesText;
+        return;
+    }
+
+    pre.textContent = 'Kural dosyası yükleniyor...';
+    try {
+        const res = await fetch('database.rules.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        window.adminRulesText = await res.text();
+    } catch (err) {
+        console.warn('database.rules.json okunamadı, asgari kural gösteriliyor:', err);
+        window.adminRulesText = window.ORONTES_FALLBACK_RULES;
+    }
+    pre.textContent = window.adminRulesText;
+};
+
+window.closeAdminRulesHelp = function () {
+    const modal = document.getElementById('admin-rules-modal');
+    if (modal) modal.classList.add('hidden');
+};
+
+window.copyAdminRules = async function () {
+    const text = window.adminRulesText || window.ORONTES_FALLBACK_RULES;
+    const basarili = 'Kurallar kopyalandı. Firebase Console → Realtime Database → Rules alanına yapıştırıp Publish deyin.';
+
+    try {
+        await navigator.clipboard.writeText(text);
+        window.showToast(basarili, 'success');
+        return;
+    } catch (err) { /* aşağıdaki yedek yönteme geç */ }
+
+    try {
+        const tmp = document.createElement('textarea');
+        tmp.value = text;
+        tmp.style.position = 'fixed';
+        tmp.style.opacity = '0';
+        document.body.appendChild(tmp);
+        tmp.select();
+        const ok = document.execCommand('copy');
+        tmp.remove();
+        window.showToast(ok ? basarili : 'Kopyalanamadı. Aşağıdaki kuralları elle seçip kopyalayın.', ok ? 'success' : 'warning');
+    } catch (err) {
+        window.showToast('Kopyalanamadı. Aşağıdaki kuralları elle seçip kopyalayın.', 'warning');
+    }
+};
+
+/* İzin hatası varsa panelin üstünde uyarı şeridini gösterir */
+window.refreshAdminRulesWarning = function () {
+    const box = document.getElementById('admin-rules-warning');
+    const txt = document.getElementById('admin-rules-warning-text');
+    if (!box || !txt) return;
+
+    const eksik = [];
+    if (window.isPermissionError(window.adminVerifError)) eksik.push('/verifications (doğrulama başvuruları)');
+    if (window.isPermissionError(window.adminReportError)) eksik.push('/reports (ilan şikâyetleri)');
+    if (window.isPermissionError(window.adminDisputeError)) eksik.push('/disputes (sorun bildirimleri)');
+
+    if (!eksik.length) {
+        box.classList.add('hidden');
+        return;
+    }
+
+    txt.innerHTML = 'Yönetici hesabı şu düğümleri okuyamıyor: <b>' + escapeHtml(eksik.join(', ')) + '</b>. ' +
+        'Firebase Realtime Database kurallarında bu düğümler için yöneticiye okuma izni tanımlanmalıdır ' +
+        '(izin, okunan yolun kendisinde ya da bir üst düğümünde tanımlı olmalıdır).';
+    box.classList.remove('hidden');
 };
 
 window.openVerificationReview = function (uid) {

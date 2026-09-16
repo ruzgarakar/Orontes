@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- app.js ile eşleşmesi gereken sürüm damgası (ikisi de aynı olmalı) -->
-    <meta name="orontes-build" content="2026.09.11">
+    <meta name="orontes-build" content="2026.09.16">
     <title>ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -112,10 +112,14 @@
                     </div>
 
                     <!-- YENİ: YÖNETİCİ PANELİ (yalnızca yöneticilere görünür) -->
-                    <button id="admin-panel-btn" onclick="window.openAdminPanel()" title="Yönetici Paneli" class="hidden bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-emerald-400/40 transition items-center space-x-1">
-                        <i class="fa-solid fa-shield-halved"></i>
-                        <span class="hidden sm:inline">Yönetim</span>
-                    </button>
+                    <div id="admin-panel-btn-wrap" class="relative hidden">
+                        <button id="admin-panel-btn" onclick="window.openAdminPanel()" title="Yönetici Paneli" class="hidden bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-emerald-400/40 transition items-center space-x-1">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span class="hidden sm:inline">Yönetim</span>
+                        </button>
+                        <!-- Yalnızca yöneticiye görünen yeni bildirim sayacı -->
+                        <span id="admin-notif-badge" title="Bekleyen yönetici bildirimi" class="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[10px] font-bold min-w-[20px] h-5 px-1 flex items-center justify-center rounded-full border-2 border-lux-dark hidden shadow-md">0</span>
+                    </div>
 
 
                     <button onclick="openAccountModal()" class="bg-lux-olive/40 hover:bg-lux-olive text-lux-gold font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl text-xs border border-lux-gold/30 transition flex items-center space-x-1">
@@ -916,7 +920,7 @@
                     <div id="outside-hatay-warning" class="hidden bg-red-50 border border-red-300 text-red-700 text-[11px] font-semibold p-2 rounded-lg"></div>
                     <div id="form-map"></div>
                     <div class="flex items-center justify-between pt-1">
-                        <label class="text-[10px] text-gray-500 uppercase font-semibold">Tespit edilen ilçe:</label>
+                        <label class="text-[10px] text-gray-500 uppercase font-semibold" for="form-district">Tespit edilen ilçe:</label>
                         <select id="form-district" required class="border border-gray-200 p-1.5 rounded-lg text-xs bg-white outline-none">
                             <option value="Altınözü">Altınözü</option>
                             <option value="Antakya">Antakya</option>
@@ -936,6 +940,13 @@
                             <option value="Hatay Dışı">⚠️ Hatay Dışı</option>
                         </select>
                     </div>
+
+                    <!-- YENİ: Mahalle / Köy (zorunlu — ilanda herkese görünür) -->
+                    <div class="pt-1">
+                        <label class="block text-[10px] text-gray-500 uppercase font-semibold mb-1" for="form-neighborhood">Mahalle / Köy*</label>
+                        <input type="text" id="form-neighborhood" required maxlength="60" placeholder="Örn: Kışlak Mahallesi / Karaali Köyü" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <p class="text-[10px] text-gray-400 mt-1">Haritadan konum seçtiğinizde otomatik doldurulur; yanlışsa elle düzeltebilirsiniz. Bu bilgi ilanınızda görünür.</p>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -943,8 +954,15 @@
                     <input type="text" id="form-unit" placeholder="Birim (KG / Saatlik / Günlük)" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="text" id="form-seller" required placeholder="Ad Soyad / Firma*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <input type="text" id="form-seller" required maxlength="70" placeholder="Gerçek Ad Soyad / Firma Ünvanı*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="tel" id="form-phone" required placeholder="WhatsApp Tel*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                </div>
+                <div class="bg-lux-bg/50 border border-gray-200 rounded-xl p-2.5 flex items-start gap-2">
+                    <i class="fa-solid fa-id-card text-lux-olive mt-0.5"></i>
+                    <span class="text-[10px] text-gray-600 leading-relaxed">
+                        <b>Anonim ilan yayınlanamaz.</b> Güven için <b>gerçek ad soyadınız</b> (veya firma ünvanınız) ve
+                        <b>mahalle / köy</b> bilginiz ilanınızda herkese görünür. Takma ad, rumuz veya "gizli" gibi ifadeler kabul edilmez.
+                    </span>
                 </div>
 
                 <div id="business-type-container" class="bg-lux-bg/50 p-3 rounded-xl border border-gray-200 space-y-2.5">
@@ -1485,20 +1503,195 @@
     <div id="admin-modal" class="fixed inset-0 bg-lux-dark/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-xl rounded-2xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto border border-gray-100">
             <button onclick="window.closeAdminPanel()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            <h3 class="text-lg font-bold mb-1 text-lux-dark"><i class="fa-solid fa-shield-halved text-emerald-700 mr-1"></i> Yönetim — Üretici Doğrulama</h3>
-            <p id="admin-verif-count" class="text-[11px] text-gray-500 mb-3">Yükleniyor...</p>
+            <h3 class="text-lg font-bold mb-1 text-lux-dark"><i class="fa-solid fa-shield-halved text-emerald-700 mr-1"></i> Yönetim Paneli</h3>
+            <p id="admin-summary" class="text-[11px] text-gray-500 mb-3">Yükleniyor...</p>
 
-            <div class="flex gap-2 mb-3">
-                <select id="admin-verif-filter" onchange="window.renderAdminVerifications()" class="flex-1 border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
-                    <option value="Beklemede">⏳ Bekleyen Başvurular</option>
-                    <option value="Onaylandı">✅ Onaylananlar</option>
-                    <option value="Reddedildi">❌ Reddedilenler</option>
-                    <option value="">📋 Tümü</option>
-                </select>
-                <button onclick="window.loadAdminVerifications()" title="Yenile" class="bg-lux-bg hover:bg-gray-200 text-lux-dark px-3 rounded-xl text-xs transition"><i class="fa-solid fa-rotate-right"></i></button>
+            <!-- Sekmeler -->
+            <div class="flex gap-2 border-b border-gray-200 mb-3 text-xs font-semibold">
+                <button id="admin-tab-btn-verifications" onclick="window.switchAdminTab('verifications')" class="pb-2 px-3 border-b-2 border-lux-dark text-lux-dark flex items-center gap-1.5">
+                    <i class="fa-solid fa-id-card"></i> Doğrulama
+                    <span id="admin-tab-badge-verifications" class="hidden bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </button>
+                <button id="admin-tab-btn-reports" onclick="window.switchAdminTab('reports')" class="pb-2 px-3 border-b-2 border-transparent text-gray-500 hover:text-lux-dark flex items-center gap-1.5">
+                    <i class="fa-solid fa-flag"></i> İlan Şikâyetleri
+                    <span id="admin-tab-badge-reports" class="hidden bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </button>
+                <button id="admin-tab-btn-disputes" onclick="window.switchAdminTab('disputes')" class="pb-2 px-3 border-b-2 border-transparent text-gray-500 hover:text-lux-dark flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved"></i> Sorun Bildirimleri
+                    <span id="admin-tab-badge-disputes" class="hidden bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </button>
             </div>
 
-            <div id="admin-verif-list" class="max-h-96 overflow-y-auto pr-1"></div>
+            <!-- Kural uyarısı (yalnızca izin hatasında görünür) -->
+            <div id="admin-rules-warning" class="hidden bg-red-50 border border-red-200 text-red-800 text-[11px] p-3 rounded-xl mb-3">
+                <b><i class="fa-solid fa-triangle-exclamation mr-1"></i> Firebase kuralları bu veriyi yöneticiye kapatıyor.</b>
+                <p class="mt-1 leading-relaxed" id="admin-rules-warning-text"></p>
+                <button onclick="window.openAdminRulesHelp()" class="mt-2 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-[11px] transition">
+                    <i class="fa-solid fa-wrench mr-1"></i> Kuralları göster ve kopyala
+                </button>
+            </div>
+
+            <!-- DOĞRULAMA BAŞVURULARI -->
+            <div id="admin-tab-verifications">
+                <div class="flex gap-2 mb-3">
+                    <select id="admin-verif-filter" onchange="window.renderAdminVerifications()" class="flex-1 border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="Beklemede">⏳ Bekleyen Başvurular</option>
+                        <option value="Onaylandı">✅ Onaylananlar</option>
+                        <option value="Reddedildi">❌ Reddedilenler</option>
+                        <option value="">📋 Tümü</option>
+                    </select>
+                    <button onclick="window.loadAdminVerifications(true)" title="Yenile" class="bg-lux-bg hover:bg-gray-200 text-lux-dark px-3 rounded-xl text-xs transition"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <p id="admin-verif-count" class="text-[11px] text-gray-500 mb-2">Yükleniyor...</p>
+                <div id="admin-verif-list" class="max-h-96 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- İLAN ŞİKÂYETLERİ -->
+            <div id="admin-tab-reports" class="hidden">
+                <div class="flex gap-2 mb-3">
+                    <select id="admin-report-filter" onchange="window.renderAdminReports()" class="flex-1 border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="Yeni">🔔 Yeni Şikâyetler</option>
+                        <option value="İnceleniyor">🔍 İncelemede</option>
+                        <option value="İşlem Yapıldı">✅ İşlem Yapılanlar</option>
+                        <option value="Reddedildi">❌ Reddedilenler</option>
+                        <option value="">📋 Tümü</option>
+                    </select>
+                    <button onclick="window.loadAdminReports(true)" title="Yenile" class="bg-lux-bg hover:bg-gray-200 text-lux-dark px-3 rounded-xl text-xs transition"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <p id="admin-report-count" class="text-[11px] text-gray-500 mb-2">Yükleniyor...</p>
+                <div id="admin-report-list" class="max-h-96 overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- SORUN BİLDİRİMLERİ (anlaşmazlıklar) -->
+            <div id="admin-tab-disputes" class="hidden">
+                <div class="flex gap-2 mb-3">
+                    <select id="admin-dispute-filter" onchange="window.renderAdminDisputes()" class="flex-1 border border-gray-200 p-2 rounded-xl text-xs bg-white outline-none">
+                        <option value="İnceleniyor">🛡️ Açık Bildirimler</option>
+                        <option value="Çözüldü">✅ Çözülenler</option>
+                        <option value="Reddedildi">❌ Reddedilenler</option>
+                        <option value="">📋 Tümü</option>
+                    </select>
+                    <button onclick="window.loadAdminDisputes(true)" title="Yenile" class="bg-lux-bg hover:bg-gray-200 text-lux-dark px-3 rounded-xl text-xs transition"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+                <p id="admin-dispute-count" class="text-[11px] text-gray-500 mb-2">Yükleniyor...</p>
+                <div id="admin-dispute-list" class="max-h-96 overflow-y-auto pr-1"></div>
+            </div>
+
+            <div class="border-t border-gray-200 mt-4 pt-3 flex justify-end">
+                <button onclick="window.openAdminRulesHelp()" class="text-[11px] text-gray-500 hover:text-lux-dark font-semibold transition">
+                    <i class="fa-solid fa-database mr-1"></i> Firebase kuralları
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== YENİ: ŞİKÂYET İNCELEME EKRANI (YÖNETİCİ) ==================== -->
+    <div id="report-review-modal" class="fixed inset-0 bg-lux-dark/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative max-h-[92vh] overflow-y-auto border border-gray-100">
+            <button onclick="window.closeReportReview()" class="absolute top-3 right-3 bg-lux-dark/60 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+
+            <div class="bg-lux-dark text-white p-4">
+                <h3 class="text-base font-bold" id="report-review-listing">İlan</h3>
+                <p class="text-[11px] text-lux-sage mt-0.5" id="report-review-reason">Şikâyet nedeni</p>
+                <p class="text-[10px] text-lux-sage/80 mt-0.5" id="report-review-meta"></p>
+                <span class="inline-block mt-2 text-[9px] font-bold bg-lux-gold text-lux-dark px-2 py-0.5 rounded" id="report-review-status">-</span>
+            </div>
+
+            <div class="p-4 space-y-3">
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Şikâyet Notu</h4>
+                    <p id="report-review-note" class="text-[11px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2 whitespace-pre-line">-</p>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Şikâyet Edilen İlan</h4>
+                    <div id="report-review-listing-box" class="text-[11px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2">-</div>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Yönetici Notu (şikâyet kaydına işlenir)</h4>
+                    <textarea id="report-admin-note" rows="2" placeholder="Karar gerekçesi / yapılan işlem..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                </div>
+
+                <div class="border-t border-gray-200 pt-3 space-y-2">
+                    <button id="report-reviewing-btn" onclick="window.setReportStatus('İnceleniyor')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> İncelemeye Al
+                    </button>
+                    <button id="report-remove-listing-btn" onclick="window.adminRemoveReportedListing()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-trash mr-1"></i> İlanı Kaldır ve Şikâyeti Kapat
+                    </button>
+                    <div class="flex gap-2">
+                        <button id="report-resolve-btn" onclick="window.setReportStatus('İşlem Yapıldı')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition">İşlem Yapıldı</button>
+                        <button id="report-dismiss-btn" onclick="window.setReportStatus('Reddedildi')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl text-xs transition">Şikâyeti Reddet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== YENİ: SORUN BİLDİRİMİ İNCELEME (YÖNETİCİ) ==================== -->
+    <div id="dispute-review-modal" class="fixed inset-0 bg-lux-dark/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl relative max-h-[92vh] overflow-y-auto border border-gray-100">
+            <button onclick="window.closeDisputeReview()" class="absolute top-3 right-3 bg-lux-dark/60 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+
+            <div class="bg-lux-dark text-white p-4">
+                <h3 class="text-base font-bold" id="dispute-review-context">Sorun Bildirimi</h3>
+                <p class="text-[11px] text-lux-sage mt-0.5" id="dispute-review-reason">Bildirim nedeni</p>
+                <p class="text-[10px] text-lux-sage/80 mt-0.5" id="dispute-review-meta"></p>
+                <span class="inline-block mt-2 text-[9px] font-bold bg-lux-gold text-lux-dark px-2 py-0.5 rounded" id="dispute-review-status">-</span>
+            </div>
+
+            <div class="p-4 space-y-3">
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Bildirim Açıklaması</h4>
+                    <p id="dispute-review-desc" class="text-[11px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2 whitespace-pre-line">-</p>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Taraflar</h4>
+                    <div id="dispute-review-parties" class="text-[11px] text-gray-600 bg-lux-bg/40 border border-gray-200 rounded-lg p-2">-</div>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase text-gray-400 mb-1">Yönetici Notu</h4>
+                    <textarea id="dispute-admin-note" rows="2" placeholder="Karar gerekçesi / yapılan işlem..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
+                </div>
+
+                <div class="border-t border-gray-200 pt-3 flex gap-2">
+                    <button onclick="window.setDisputeStatus('Çözüldü')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition">Çözüldü Olarak Kapat</button>
+                    <button onclick="window.setDisputeStatus('Reddedildi')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl text-xs transition">Reddet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== YENİ: FIREBASE KURAL YARDIMCISI (YÖNETİCİ) ==================== -->
+    <div id="admin-rules-modal" class="fixed inset-0 bg-lux-dark/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl relative max-h-[92vh] overflow-y-auto border border-gray-100">
+            <button onclick="window.closeAdminRulesHelp()" class="absolute top-3 right-3 bg-lux-dark/60 hover:bg-lux-dark text-white w-7 h-7 rounded-full flex items-center justify-center z-10 transition text-xs"><i class="fa-solid fa-xmark"></i></button>
+            <div class="bg-lux-dark text-white p-4">
+                <h3 class="text-base font-bold"><i class="fa-solid fa-database mr-1"></i> Firebase Realtime Database Kuralları</h3>
+                <p class="text-[11px] text-lux-sage mt-1 leading-relaxed">
+                    Yönetici panelinin başvuruları ve şikâyetleri görebilmesi için kuralların
+                    <b>/verifications</b> ve <b>/reports</b> düğümlerinde yöneticiye okuma izni vermesi gerekir.
+                    Aşağıdaki kuralları kopyalayıp <b>Firebase Console → Realtime Database → Rules</b> alanına yapıştırın ve <b>Publish</b> deyin.
+                </p>
+            </div>
+            <div class="p-4 space-y-3">
+                <div class="flex gap-2">
+                    <button onclick="window.copyAdminRules()" id="admin-rules-copy-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-copy mr-1"></i> Kuralları Kopyala
+                    </button>
+                    <a href="https://console.firebase.google.com/" target="_blank" rel="noopener" class="bg-lux-dark hover:bg-lux-olive text-white font-bold py-2 px-3 rounded-xl text-xs transition flex items-center">
+                        Firebase Console <i class="fa-solid fa-arrow-up-right-from-square ml-1.5"></i>
+                    </a>
+                </div>
+                <pre id="admin-rules-text" class="text-[10px] leading-relaxed bg-lux-bg/60 border border-gray-200 rounded-xl p-3 overflow-x-auto whitespace-pre text-gray-700" style="max-height:52vh;">Yükleniyor...</pre>
+                <p class="text-[10px] text-gray-500 leading-relaxed">
+                    Yönetici e-postası: <b>orontesdestek@gmail.com</b> · Ek yönetici eklemek için Realtime Database'de
+                    <code class="bg-lux-bg px-1 rounded">admins/&lt;UID&gt;: true</code> kaydını oluşturun.
+                </p>
+            </div>
         </div>
     </div>
 
