@@ -468,7 +468,10 @@ window.executeLocalFilters = function() {
         const matchesSearch = String(item.title || '').toLowerCase().includes(search) || String(item.desc || '').toLowerCase().includes(search);
         const matchesDistrict = district === "" || item.district === district;
         const matchesPrice = item.price >= minPrice && item.price <= maxPrice;
-        return matchesSearch && matchesDistrict && matchesPrice;
+        // "Sadece Doğrulanmış Üreticiler" filtresi
+        const matchesVerified = !window.verifiedOnlyFilter
+            || (typeof window.isProducerVerified === 'function' && window.isProducerVerified(item.uid));
+        return matchesSearch && matchesDistrict && matchesPrice && matchesVerified;
     });
 
     if (window.nearbyModeActive && window.userGeoLocation) {
@@ -816,30 +819,6 @@ window.handleFormSubmit = async function(e) {
             priceHistory.push({ price: existingItem.price, date: Date.now() });
         }
 
-        let isFirst100 = false;
-        if (!editId) {
-            const counterRef = ref(db, 'listingCounter');
-            const result = await runTransaction(counterRef, (currentData) => {
-                let count = (currentData && currentData.count) || 0;
-                isFirst100 = (count < 100);
-                return { count: count + 1 };
-            });
-            if (!result.committed) throw new Error('Sayaç güncellenemedi.');
-        }
-
-        const userVipChoice = document.getElementById('form-vip').checked;
-        const finalVip = (!editId && isFirst100) ? true : userVipChoice;
-        const threeMonthsInMs = 90 * 24 * 60 * 60 * 1000;
-
-        let finalExpireDate = null;
-        if (finalVip) {
-            if (existingItem && existingItem.isVip && existingItem.vipExpireDate) {
-                finalExpireDate = existingItem.vipExpireDate;
-            } else {
-                finalExpireDate = Date.now() + threeMonthsInMs;
-            }
-        }
-
         const isOutside = !!window.locationOutsideHatay;
 
         const listingData = {
@@ -872,8 +851,6 @@ window.handleFormSubmit = async function(e) {
                 ? (document.getElementById('form-min-order').value || null)
                 : null,
             image: imageUrl || window.getDefaultImage(category),
-            isVip: finalVip,
-            vipExpireDate: finalExpireDate,
             isUrgent: document.getElementById('form-urgent').checked,
             isDiscount: document.getElementById('form-discount').checked,
             date: existingItem ? existingItem.date : Date.now()
@@ -884,11 +861,7 @@ window.handleFormSubmit = async function(e) {
             window.showToast('İlan başarıyla güncellendi!', "success");
         } else {
             await push(ref(db, 'listings'), listingData);
-            if (isFirst100) {
-                window.showToast('🚀 İlan yayınlandı! İlk 100 ilana özel 3 AYLIK ÜCRETSİZ VIP tanımlandı.', "success");
-            } else {
-                window.showToast('İlanınız yayına alındı!', "success");
-            }
+            window.showToast('İlanınız yayına alındı!', "success");
         }
         closeFormModal();
         closeDetailModal();
@@ -2395,7 +2368,6 @@ function openFormModalForEdit() {
     document.getElementById('form-phone').value = item.phone;
     document.getElementById('form-desc').value = item.desc || '';
     document.getElementById('form-image').value = item.image;
-    document.getElementById('form-vip').checked = item.isVip || false;
     document.getElementById('form-urgent').checked = item.isUrgent || false;
     document.getElementById('form-discount').checked = item.isDiscount || false;
     
@@ -2550,7 +2522,13 @@ function renderListings() {
     grid.innerHTML = '';
 
     if (items.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">${window.orontesT('list.empty', 'Aradığınız kriterlere uygun sonuç bulunamadı.')}</div>`;
+        grid.innerHTML = window.verifiedOnlyFilter
+            ? `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-500 text-xs">
+                <i class="fa-solid fa-circle-check text-lux-gold text-xl block mb-2"></i>
+                Bu kriterlere uyan doğrulanmış üretici ilanı bulunamadı.
+                <button onclick="window.toggleVerifiedOnly()" class="block mx-auto mt-3 bg-lux-bg hover:bg-lux-sage/30 text-lux-dark font-semibold px-3 py-1.5 rounded-lg text-[11px] transition">Tüm ilanları göster</button>
+               </div>`
+            : `<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-gray-200 text-gray-400 text-xs">${window.orontesT('list.empty', 'Aradığınız kriterlere uygun sonuç bulunamadı.')}</div>`;
         const pagContainer = document.getElementById('pagination-container');
         if (pagContainer) pagContainer.innerHTML = '';
         return;
@@ -2562,11 +2540,8 @@ function renderListings() {
     paginatedItems.forEach(item => {
         const card = document.createElement('div');
 
-        const isVipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
-
         let cardStyle = 'border border-gray-200/70';
-        if (isVipActive) cardStyle = 'vip-card';
-        else if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
+        if (item.isUrgent) cardStyle = 'border-[1.5px] border-red-500 shadow-sm';
 
         const isFav = window.userExtraData.favorites && window.userExtraData.favorites[item.id];
         const emoji = categoryEmojis[item.category] || '📦';
@@ -2592,20 +2567,9 @@ function renderListings() {
                     <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
                         <i class="fa-solid fa-heart"></i>
                     </button>
-                    <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
-                        ${isVipActive ? '<span class="bg-lux-gold text-lux-dark font-extrabold text-[9px] px-2 py-0.5 rounded shadow">VIP</span>' : ''}
-                        ${item.isUrgent ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded animate-pulse shadow">ACİL</span>' : ''}
-                        
-                        ${item.listingType === 'hizmet' ? '<span class="bg-blue-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🛠️ HİZMET</span>' : ''}
-                        ${item.listingType === 'el_yapimi' ? '<span class="bg-purple-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎨 EL YAPIMI</span>' : ''}
-                        ${item.isCustomizable ? '<span class="bg-pink-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">SİPARİŞ ÜZERİNE</span>' : ''}
-                        ${item.harvestDate ? '<span class="bg-orange-500 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🌱 ÖN SİPARİŞ</span>' : ''}
-                        ${(item.producerStory || item.videoUrl) ? '<span class="bg-teal-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🎥 ÜRETİCİ HİKAYESİ</span>' : ''}
-                        ${item.acceptsSubscription ? '<span class="bg-indigo-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🔁 DÜZENLİ SİPARİŞ</span>' : ''}
-
-                        ${item.businessType === 'Toptancı' && item.listingType !== 'hizmet' ? '<span class="bg-lux-olive text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">🏢 TOPTANCI</span>' : ''}
+                    <!-- Görsel üzerinde yalnızca doğrulanmış üretici rozeti -->
+                    <div class="card-verified-slot absolute top-2.5 left-2.5">
                         ${typeof window.getVerifiedCardBadge === 'function' ? window.getVerifiedCardBadge(item.uid) : ''}
-                        ${item.outsideHatay ? '<span class="bg-red-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">⚠️ HATAY DIŞI</span>' : ''}
                     </div>
                 </div>
                 <div class="p-3.5">
@@ -2615,6 +2579,7 @@ function renderListings() {
                     </div>
                     <h3 onclick="openDetailModal('${escapeHtml(item.id)}')" class="font-bold text-lux-dark text-xs hover:text-lux-olive cursor-pointer line-clamp-2 mb-1.5">${emoji} ${escapeHtml(item.title)}</h3>
                     ${item.seller ? `<p class="text-[10px] text-gray-500 line-clamp-1" title="${escapeHtml(item.seller)}"><i class="fa-solid fa-user text-lux-olive mr-0.5"></i>${escapeHtml(item.seller)}</p>` : ''}
+                    ${typeof window.getListingChipsHtml === 'function' ? window.getListingChipsHtml(item) : ''}
                 </div>
             </div>
             <div class="px-3.5 pb-3.5">
@@ -2716,6 +2681,10 @@ function resetAllFilters() {
     window.nearbyModeActive = false;
     const nearbyBtn = document.getElementById('nearby-btn');
     if (nearbyBtn) nearbyBtn.className = "bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs";
+
+    window.verifiedOnlyFilter = false;
+    if (typeof window.renderVerifiedToggle === 'function') window.renderVerifiedToggle();
+
     window.filterListings();
 }
 
@@ -3903,7 +3872,7 @@ window.renderHarvestCalendar = function () {
             if (isActive) cellClass = isPeak ? 'bg-lux-gold text-lux-dark font-extrabold' : 'bg-lux-sage/60 text-lux-dark font-semibold';
             monthBar += `<div title="${window.TR_MONTHS[m - 1]}${isPeak ? ' (Rekolte zirvesi)' : (isActive ? ' (Hasat var)' : ' (Sezon dışı)')}"
                 class="text-center text-[8px] leading-none py-1.5 rounded ${cellClass} ${isSelected ? 'ring-2 ring-lux-dark' : ''}">
-                ${window.TR_MONTHS_SHORT[m - 1]}
+                ${window.currentLang === 'ar' ? m : window.TR_MONTHS_SHORT[m - 1]}
             </div>`;
         }
         monthBar += '</div>';
@@ -4786,8 +4755,7 @@ window.buildShareCard = async function (item) {
         ctx.textBaseline = 'alphabetic';
         bx += w + 14;
     };
-    const vipActive = item.isVip && (!item.vipExpireDate || Date.now() < item.vipExpireDate);
-    if (vipActive) drawTag('VIP', '#bca879', '#07332c');
+    if (typeof window.isProducerVerified === 'function' && window.isProducerVerified(item.uid)) drawTag('✓ DOĞRULANMIŞ ÜRETİCİ', '#07332c', '#bca879');
     if (item.isUrgent) drawTag('ACİL', '#dc2626', '#ffffff');
     if (item.businessType === 'Toptancı') drawTag('TOPTANCI', '#485b46', '#ffffff');
     if (item.harvestDate) drawTag('ÖN SİPARİŞ', '#f97316', '#ffffff');
@@ -5918,7 +5886,6 @@ window.I18N_TR2AR = {
     /* Başlık / duyuru */
     "ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı": "أورونتس | سوق هاتاي المحلي وشبكة الخدمات",
     "🚀 ORONTES PAZARYERİ LANSMANINA ÖZEL:": "🚀 بمناسبة إطلاق سوق أورونتس:",
-    "İlk 100 İlana 3 Aylık VIP Vitrin ÜCRETSİZ!": "أول 100 إعلان يحصل على واجهة VIP مجاناً لمدة 3 أشهر!",
 
     /* Üst menü */
     "Filtre": "تصفية",
@@ -5993,7 +5960,6 @@ window.I18N_TR2AR = {
     "İncele": "عرض التفاصيل",
     "Teklif Al": "اطلب عرض سعر",
     "Teklif Al / İncele": "اطلب عرضاً / التفاصيل",
-    "VIP": "VIP",
     "ACİL": "عاجل",
     "🛠️ HİZMET": "🛠️ خدمة",
     "🎨 EL YAPIMI": "🎨 صناعة يدوية",
@@ -6264,8 +6230,6 @@ window.I18N_TR2AR = {
     "Ücretsiz İlan Oluştur": "أنشئ إعلاناً مجانياً",
     "İlanı Düzenle": "تعديل الإعلان",
     "İlanı Kaydet": "حفظ الإعلان",
-    "Lansman Fırsatı:": "عرض الإطلاق:",
-    "3 Aylık Ücretsiz VIP Vitrin": "واجهة VIP مجانية لمدة 3 أشهر",
     "🌾 Tarım / Ürün": "🌾 زراعة / منتج",
     "🎨 El Sanatları / Girişim": "🎨 حرف يدوية / ريادة",
     "🛠️ Yerel Hizmet / Usta": "🛠️ خدمة محلية / حرفي",
@@ -6294,7 +6258,6 @@ window.I18N_TR2AR = {
     "Görsel (Ürün / Hizmet)": "صورة (منتج / خدمة)",
     "Maksimum dosya boyutu: 8MB": "الحد الأقصى لحجم الملف: 8 ميغابايت",
     "İlan detayları, açıklamalar...": "تفاصيل الإعلان والوصف...",
-    "⭐ VIP Vitrin Rozeti": "⭐ شارة واجهة VIP",
     "🔥 Acil Rozeti": "🔥 شارة عاجل",
     "🏷️ Fiyatı Düşen İlan": "🏷️ إعلان انخفض سعره",
 
@@ -6302,8 +6265,6 @@ window.I18N_TR2AR = {
     "Sıkça Sorulan Sorular": "الأسئلة الشائعة",
     "İlan vermek gerçekten ücretsiz mi?": "هل نشر الإعلان مجاني فعلاً؟",
     "Evet, ORONTES üzerinde tüm üretici, toptancı ve zanaatkarlar ücretsiz ilan açabilir.": "نعم، يمكن لكل المنتجين وتجار الجملة والحرفيين نشر إعلانات مجاناً على أورونتس.",
-    "3 Aylık Hediye VIP Vitrin Rozeti nedir?": "ما هي شارة واجهة VIP المجانية لثلاثة أشهر؟",
-    "Lansmanımıza özel açılan ilk 100 ilana otomatik olarak 3 ay boyunca geçerli VIP Vitrin rozeti ücretsiz tanımlanır.": "تُمنح أول 100 إعلان عند الإطلاق شارة واجهة VIP مجاناً لمدة 3 أشهر تلقائياً.",
     "Destek & İletişim": "الدعم والتواصل",
     "Soru, öneri veya destek talepleriniz için bize e-posta ile ulaşabilirsiniz.": "لأي سؤال أو اقتراح أو طلب دعم راسلنا عبر البريد الإلكتروني.",
     "Yasal Uyarı ve Sorumluluk Reddi": "إخلاء المسؤولية القانونية",
@@ -6600,7 +6561,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.09.16';
+window.ORONTES_BUILD = '2026.09.18';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
@@ -6695,26 +6656,27 @@ window.isProducerVerified = function (uid) {
     return !!window.getProducerVerification(uid);
 };
 
-/* İlan kartlarında görünen küçük rozet */
+/* İlan kartlarında, görselin üzerinde görünen rozet — sitenin koyu yeşil + altın paleti.
+   Kartta sade tek bir etiket; belge türü (ÇKS / Ziraat Odası) ipucu metninde ve ilan detayında. */
 window.getVerifiedCardBadge = function (uid) {
     const v = window.getProducerVerification(uid);
     if (!v) return '';
     const t = window.VERIFICATION_TYPES[v.type] || {};
-    const label = t.shortLabel || 'DOĞRULANMIŞ ÜRETİCİ';
-    return '<span class="bg-emerald-600 text-white font-bold text-[9px] px-2 py-0.5 rounded shadow" title="' +
+    return '<span class="verified-card-badge inline-flex items-center gap-1 bg-lux-dark/90 text-lux-gold border border-lux-gold/60 font-bold text-[9px] px-2 py-0.5 rounded-md shadow-sm backdrop-blur-sm" title="' +
         escapeHtml(t.label || 'Doğrulanmış Üretici') + '">' +
-        '<i class="fa-solid fa-circle-check mr-0.5"></i>' + escapeHtml(label) + '</span>';
+        '<i class="fa-solid fa-circle-check"></i><span>Doğrulanmış Üretici</span></span>';
 };
 
-/* Detay / profil ekranlarında görünen geniş rozet */
+/* Detay / profil ekranlarında görünen geniş rozet (belge türüyle birlikte) */
 window.getVerifiedFullBadge = function (uid, dark) {
     const v = window.getProducerVerification(uid);
     if (!v) return '';
     const t = window.VERIFICATION_TYPES[v.type] || {};
     const tarih = v.approvedAt ? new Date(v.approvedAt).toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' }) : '';
+    // Açık zeminde koyu yeşil+altın; koyu zeminde (satıcı profili başlığı) altın+koyu yeşil
     const cls = dark
-        ? 'bg-emerald-600 text-white border-emerald-400'
-        : 'bg-emerald-50 text-emerald-800 border-emerald-300';
+        ? 'bg-lux-gold text-lux-dark border-lux-gold'
+        : 'bg-lux-dark text-lux-gold border-lux-dark';
     return '<span class="' + cls + ' border text-[10px] font-bold px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5" ' +
         'title="' + escapeHtml(tarih ? tarih + ' tarihinde onaylandı' : 'Onaylandı') + '">' +
         '<i class="fa-solid ' + escapeHtml(t.icon || 'fa-circle-check') + '"></i>' +
@@ -6761,8 +6723,10 @@ window.startVerifiedProducersListener = function () {
         const q = ref(db, 'verifiedProducers');
         onValue(q, (snap) => {
             window.verifiedProducers = snap.val() || {};
-            // Rozetlerin anında görünmesi için listeleri tazele
-            if (typeof window.renderListings === 'function') window.renderListings();
+            // Rozetlerin anında görünmesi için listeleri tazele.
+            // "Sadece doğrulanmış" filtresi açıksa sonuç kümesi değişir; filtreyi yeniden uygula.
+            if (window.verifiedOnlyFilter && typeof window.executeLocalFilters === 'function') window.executeLocalFilters();
+            else if (typeof window.renderListings === 'function') window.renderListings();
             if (typeof window.renderBuyRequests === 'function') window.renderBuyRequests();
         }, (err) => {
             console.warn('Doğrulanmış üretici listesi okunamadı:', err);
@@ -8012,3 +7976,98 @@ if (document.readyState === 'loading') {
 } else {
     window.refreshAdminButton();
 }
+
+/* =========================================================================================
+   ORONTES — MODÜL 7: SADE İLAN ROZETLERİ + "SADECE DOĞRULANMIŞ ÜRETİCİLER" FİLTRESİ
+   • İlan özellikleri görselin üstünden kartın beyaz bilgi alanına, sade çipler olarak taşındı
+   • Görselin üzerinde yalnızca doğrulanmış üretici rozeti kalır
+   • Filtre çubuğunda "Sadece Doğrulanmış Üreticiler" anahtarı
+   ========================================================================================= */
+
+/* İlan özelliklerini kartın beyaz alanında sade çipler olarak üretir.
+   Uyarı niteliğindekiler (Acil, Hatay Dışı) hafif kırmızı tonda; diğerleri sitenin nötr tonunda.
+   Tüm metinler sabittir (kullanıcı girdisi içermez). */
+window.getListingChipsHtml = function (item) {
+    if (!item) return '';
+    const chips = [];
+    const chip = function (icon, text, warn) {
+        const cls = warn
+            ? 'bg-red-50 text-red-700 border-red-200'
+            : 'bg-lux-bg/70 text-lux-olive border-gray-200';
+        return '<span class="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-md border ' + cls + '">' +
+            '<i class="fa-solid ' + icon + ' text-[8px] opacity-80"></i><span>' + text + '</span></span>';
+    };
+
+    if (item.isUrgent) chips.push(chip('fa-bolt', 'Acil', true));
+    if (item.outsideHatay) chips.push(chip('fa-triangle-exclamation', 'Hatay Dışı', true));
+    if (item.listingType === 'hizmet') chips.push(chip('fa-screwdriver-wrench', 'Hizmet'));
+    if (item.listingType === 'el_yapimi') chips.push(chip('fa-palette', 'El Yapımı'));
+    if (item.businessType === 'Toptancı' && item.listingType !== 'hizmet') chips.push(chip('fa-warehouse', 'Toptancı'));
+    if (item.isCustomizable) chips.push(chip('fa-wand-magic-sparkles', 'Sipariş Üzerine'));
+    if (item.harvestDate) chips.push(chip('fa-seedling', 'Ön Sipariş'));
+    if (item.acceptsSubscription) chips.push(chip('fa-rotate', 'Düzenli Sipariş'));
+    if (item.producerStory || item.videoUrl) chips.push(chip('fa-book-open', 'Üretici Hikayesi'));
+
+    if (!chips.length) return '';
+    return '<div class="flex flex-wrap gap-1 mt-2">' + chips.join('') + '</div>';
+};
+
+/* ------------------------------- DOĞRULANMIŞ ÜRETİCİ FİLTRESİ ------------------------------- */
+
+window.verifiedOnlyFilter = false;
+
+window.renderVerifiedToggle = function () {
+    const btn = document.getElementById('verified-only-btn');
+    const icon = document.getElementById('verified-only-icon');
+    if (!btn) return;
+    const on = !!window.verifiedOnlyFilter;
+    btn.className = on
+        ? 'inline-flex items-center gap-1.5 bg-lux-dark text-lux-gold border border-lux-dark px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition'
+        : 'inline-flex items-center gap-1.5 bg-white text-gray-600 border border-gray-200 hover:border-lux-gold hover:text-lux-dark px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (icon) icon.className = on ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle';
+};
+
+window.toggleVerifiedOnly = function () {
+    window.verifiedOnlyFilter = !window.verifiedOnlyFilter;
+    window.renderVerifiedToggle();
+    if (typeof window.executeLocalFilters === 'function') window.executeLocalFilters();
+};
+
+/* ------------------------------- ARAPÇA KARŞILIKLAR ------------------------------- */
+
+if (window.I18N_TR2AR) {
+    Object.assign(window.I18N_TR2AR, {
+        "Acil": "عاجل",
+        "Hatay Dışı": "خارج هاتاي",
+        "Hizmet": "خدمة",
+        "El Yapımı": "صناعة يدوية",
+        "Toptancı": "تاجر جملة",
+        "Sipariş Üzerine": "حسب الطلب",
+        "Ön Sipariş": "حجز مسبق",
+        "Düzenli Sipariş": "طلب دوري",
+        "Üretici Hikayesi": "قصة المنتِج",
+        "Doğrulanmış Üretici": "منتج موثّق",
+        "ÇKS Onaylı Çiftçi": "مزارع موثّق بنظام ÇKS",
+        "Ziraat Odası Onaylı Üretici": "منتج موثّق من غرفة الزراعة",
+        "Sadece Doğrulanmış Üreticiler": "المنتجون الموثّقون فقط",
+        "Bu kriterlere uyan doğrulanmış üretici ilanı bulunamadı.": "لا توجد إعلانات لمنتجين موثّقين بهذه المعايير.",
+        "Tüm ilanları göster": "عرض كل الإعلانات",
+        "Ücretsiz İlan · Sıfır Komisyon": "إعلان مجاني · بدون عمولة",
+        "Doğrulanmış Üretici rozeti nedir?": "ما هي شارة المنتج الموثّق؟",
+        "ÇKS belgesi veya Ziraat Odası faaliyet belgesi yönetim tarafından incelenip onaylanan üreticilere verilir. Filtredeki “Sadece Doğrulanmış Üreticiler” seçeneğiyle yalnızca bu üreticilerin ilanlarını görebilirsiniz.":
+            "تُمنح للمنتجين الذين راجعت الإدارة ووافقت على شهادة نظام تسجيل المزارعين (ÇKS) أو شهادة نشاط غرفة الزراعة الخاصة بهم. ومن خيار “المنتجون الموثّقون فقط” في الفلاتر يمكنك عرض إعلانات هؤلاء المنتجين فقط."
+    });
+}
+
+/* ------------------------------- BAŞLATMA ------------------------------- */
+
+(function () {
+    function modul7Baslat() {
+        window.renderVerifiedToggle();
+        // Sayfa Arapça açıldıysa yeni metinleri de hemen çevir
+        if (window.currentLang === 'ar' && typeof window.translateDom === 'function') window.translateDom(document.body);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', modul7Baslat);
+    else modul7Baslat();
+})();
