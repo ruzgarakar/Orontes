@@ -1,4 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -13,6 +14,21 @@ const firebaseConfig = {
     measurementId: "G-WP8LYJG7N9"
 };
 const app = initializeApp(firebaseConfig);
+
+/* App Check: veritabanına yalnızca bu siteden gelen isteklerin ulaşmasını sağlar.
+   Firebase Console > App Check bölümünde reCAPTCHA v3 anahtarı oluşturup aşağıya yapıştır.
+   Anahtar boşken App Check devre dışı kalır, site normal çalışır. */
+const APP_CHECK_SITE_KEY = '';
+if (APP_CHECK_SITE_KEY) {
+    try {
+        initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+            isTokenAutoRefreshEnabled: true
+        });
+    } catch (err) {
+        console.warn('App Check başlatılamadı:', err);
+    }
+}
 const db = getDatabase(app);
 const auth = getAuth(app);
 window.AVAILABLE_REVIEW_BADGES = ["Hızlı Teslimat", "Doğal / Organik Ürün", "İyi İletişim", "Güvenilir", "Kaliteli Hizmet", "Özenli Paketleme"];
@@ -822,7 +838,6 @@ window.handleFormSubmit = async function(e) {
 
         const listingData = {
             uid: window.currentUser.uid,
-            userEmail: window.currentUser.email,
             title: document.getElementById('form-title').value,
             category: category,
             listingType: listingType,          
@@ -849,7 +864,7 @@ window.handleFormSubmit = async function(e) {
             minOrderQty: document.getElementById('form-business-type').value === 'Toptancı'
                 ? (document.getElementById('form-min-order').value || null)
                 : null,
-            image: imageUrl || window.getDefaultImage(category),
+            image: (imageUrl && window.hasRealImage({ image: imageUrl })) ? imageUrl : null,
             isUrgent: document.getElementById('form-urgent').checked,
             isDiscount: document.getElementById('form-discount').checked,
             date: existingItem ? existingItem.date : Date.now()
@@ -1263,7 +1278,7 @@ window.openSellerProfileModal = async function(sellerUid) {
             row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
             row.innerHTML = `
                 <div class="flex items-center gap-2 min-w-0">
-                    <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover shrink-0">
+                    <img src="${escapeHtml(window.listingImage(item))}" class="w-10 h-10 rounded-lg object-cover shrink-0">
                     <div class="min-w-0">
                         <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                         <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
@@ -1595,23 +1610,34 @@ const categoryEmojis = {
     "Diğer": "📦"
 };
 
+/* İlanda fotoğraf yoksa gösterilen yer tutucu.
+   Önceden stok (Unsplash) fotoğraflar kullanılıyordu; alıcı bunları gerçek ürün fotoğrafı sanabilirdi.
+   Artık kategori adını taşıyan sade bir görsel üretiliyor ve veritabanına kaydedilmiyor. */
+window.DEFAULT_IMAGE_ICONS = {
+    'Zeytin & Yağ': '🫒', 'Narenciye': '🍊', 'Salça & Sos': '🍅', 'Bakliyat & Hububat': '🌾',
+    'Sebze & Sera': '🥬', 'Nakliye & Lojistik': '🚚', 'El Sanatları': '🧶', 'Giyim & Aksesuar': '👕',
+    'Ev Yapımı Ürünler': '🫙', 'Tadilat & Tamirat': '🛠️', 'Özel Ders': '📚', 'Temizlik': '🧽',
+    'Tarım İşçiliği': '👩‍🌾'
+};
 window.getDefaultImage = function(category) {
-    switch(category) {
-        case 'Zeytin & Yağ': return 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80';
-        case 'Narenciye': return 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?auto=format&fit=crop&w=600&q=80';
-        case 'Salça & Sos': return 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=600&q=80';
-        case 'Bakliyat & Hububat': return 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80';
-        case 'Sebze & Sera': return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80';
-        case 'Nakliye & Lojistik': return 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=600&q=80';
-        case 'El Sanatları': return 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=600&q=80';
-        case 'Giyim & Aksesuar': return 'https://images.unsplash.com/photo-1551232864-3f0890e580d9?auto=format&fit=crop&w=600&q=80';
-        case 'Ev Yapımı Ürünler': return 'https://images.unsplash.com/photo-1589301773727-2c9388147d34?auto=format&fit=crop&w=600&q=80';
-        case 'Tadilat & Tamirat': return 'https://images.unsplash.com/photo-1581141849291-1125c7b692b5?auto=format&fit=crop&w=600&q=80';
-        case 'Özel Ders': return 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=600&q=80';
-        case 'Temizlik': return 'https://images.unsplash.com/photo-1584820927498-cafe8c1c5a98?auto=format&fit=crop&w=600&q=80';
-        case 'Tarım İşçiliği': return 'https://images.unsplash.com/photo-1592982537447-6f2b6a066c0d?auto=format&fit=crop&w=600&q=80';
-        default: return 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
-    }
+    const icon = window.DEFAULT_IMAGE_ICONS[category] || '📦';
+    const label = String(category || 'Ürün').replace(/[<>&"']/g, '');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">`
+        + `<rect width="600" height="400" fill="#f3efe4"/>`
+        + `<text x="300" y="190" font-size="96" text-anchor="middle">${icon}</text>`
+        + `<text x="300" y="268" font-family="sans-serif" font-size="30" font-weight="600" fill="#07332c" text-anchor="middle">${label}</text>`
+        + `<text x="300" y="310" font-family="sans-serif" font-size="22" fill="#7a7466" text-anchor="middle">Fotoğraf eklenmedi</text>`
+        + `</svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+};
+
+/* Eski ilanlarda kayıtlı stok görselleri de yer tutucuyla değiştirir. */
+window.hasRealImage = function(item) {
+    const src = item && item.image;
+    return !!src && !/images\.unsplash\.com/.test(src) && !src.startsWith('data:image/svg+xml');
+};
+window.listingImage = function(item) {
+    return window.hasRealImage(item) ? item.image : window.getDefaultImage(item && item.category);
 };
 
 const districtCoords = {
@@ -1659,7 +1685,7 @@ window.renderGlobalMap = function(containerId = 'global-map') {
             const marker = L.marker([item.lat, item.lng])
                 .bindPopup(`
                     <div style="text-align:center; min-width: 120px;">
-                        <img src="${escapeHtml(item.image)}" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
+                        <img src="${escapeHtml(window.listingImage(item))}" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
                         <b style="font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</b>
                         <span style="color:#10b981; font-weight:bold; font-size:11px;">${item.price} TL</span><br>
                         <button onclick="openDetailModal('${escapeHtml(item.id)}')" style="margin-top:6px; padding:4px 10px; background:#1a1a1a; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:10px; width:100%;">İncele</button>
@@ -2006,7 +2032,7 @@ function loadFavoriteListings() {
         
         div.innerHTML = `
             <div class="flex items-center space-x-2">
-                <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
+                <img src="${escapeHtml(window.listingImage(item))}" class="w-10 h-10 rounded-lg object-cover">
                 <div>
                     <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                     <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingPlaceText(item))}</span>
@@ -2252,7 +2278,7 @@ function openAccountModal() {
             row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
             row.innerHTML = `
                 <div class="flex items-center space-x-2">
-                    <img src="${escapeHtml(item.image)}" class="w-10 h-10 rounded-lg object-cover">
+                    <img src="${escapeHtml(window.listingImage(item))}" class="w-10 h-10 rounded-lg object-cover">
                     <div>
                         <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                         <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingPlaceText(item))}</span>
@@ -2366,7 +2392,7 @@ function openFormModalForEdit() {
     document.getElementById('form-seller').value = item.seller;
     document.getElementById('form-phone').value = item.phone;
     document.getElementById('form-desc').value = item.desc || '';
-    document.getElementById('form-image').value = item.image;
+    document.getElementById('form-image').value = window.hasRealImage(item) ? item.image : '';
     document.getElementById('form-urgent').checked = item.isUrgent || false;
     document.getElementById('form-discount').checked = item.isDiscount || false;
     
@@ -2562,7 +2588,7 @@ function renderListings() {
         card.innerHTML = `
             <div>
                 <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
-                    <img src="${escapeHtml(item.image)}" class="w-full h-full object-cover">
+                    <img src="${escapeHtml(window.listingImage(item))}" class="w-full h-full object-cover">
                     <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
                         <i class="fa-solid fa-heart"></i>
                     </button>
@@ -2697,7 +2723,7 @@ function openDetailModal(id) {
 
     window.activeListingId = id;
     window.activeSellerUid = item.uid;
-    document.getElementById('detail-img').src = item.image;
+    document.getElementById('detail-img').src = window.listingImage(item);
     document.getElementById('detail-title').innerText = item.title;
     document.getElementById('detail-category').innerText = item.category;
     
@@ -3279,7 +3305,6 @@ window.handleBuyRequestSubmit = async function (e) {
 
     const payload = {
         uid: window.currentUser.uid,
-        userEmail: window.currentUser.email,
         buyerName: buyerName,
         phone: phone,
         buyerType: document.getElementById('br-buyer-type').value,
@@ -3393,7 +3418,7 @@ window.openBuyRequestDetail = function (id) {
                 row.onclick = () => { window.closeBuyRequestDetail(); window.openDetailModal(item.id); };
                 row.innerHTML = `
                     <div class="flex items-center gap-2 min-w-0">
-                        <img src="${escapeHtml(item.image)}" class="w-9 h-9 rounded-lg object-cover shrink-0">
+                        <img src="${escapeHtml(window.listingImage(item))}" class="w-9 h-9 rounded-lg object-cover shrink-0">
                         <div class="min-w-0">
                             <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                             <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(window.getListingPlaceText(item))}</span>
@@ -4701,7 +4726,7 @@ window.buildShareCard = async function (item) {
     ctx.fillRect(0, 0, W, H);
 
     const imgH = 720;
-    const img = await window.loadImageForCanvas(item.image);
+    const img = await window.loadImageForCanvas(window.hasRealImage(item) ? item.image : null);
     if (img) {
         const scale = Math.max(W / img.width, imgH / img.height);
         const dw = img.width * scale, dh = img.height * scale;
@@ -7469,7 +7494,7 @@ window.openReportReview = async function (reportId) {
 
     box.innerHTML = `
         <div class="flex gap-2 items-start">
-            <img src="${escapeHtml(listing.image || '')}" class="w-16 h-16 rounded-lg object-cover border border-gray-200 bg-lux-bg/40 shrink-0">
+            <img src="${escapeHtml(window.listingImage(listing))}" class="w-16 h-16 rounded-lg object-cover border border-gray-200 bg-lux-bg/40 shrink-0">
             <div class="min-w-0">
                 <span class="font-bold text-lux-dark text-xs block line-clamp-2">${escapeHtml(listing.title || '-')}</span>
                 <span class="text-[10px] text-gray-500 block">${escapeHtml(listing.seller || '-')} · ${escapeHtml(window.getListingPlaceText(listing))}</span>
