@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
 import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -31,6 +32,13 @@ if (APP_CHECK_SITE_KEY) {
 }
 const db = getDatabase(app);
 const auth = getAuth(app);
+
+/* Fotoğraf deposu (Firebase Storage, Blaze planında açılır). Kova adı Firebase Console > Storage sayfasının üstünde yazar.
+   Depo açılana kadar fotoğraflar ücretsiz planda veritabanına kaydedilir: ilanda küçük önizleme,
+   büyük fotoğraf ayrı "listingImages" düğümünde. Depo açıldığı gün yeni fotoğraflar otomatik olarak depoya gider. */
+const STORAGE_BUCKET = 'gs://orontes-886a3.firebasestorage.app';
+let storage = null;
+try { storage = getStorage(app, STORAGE_BUCKET); } catch (err) { console.warn('Fotoğraf deposu başlatılamadı:', err); }
 window.AVAILABLE_REVIEW_BADGES = ["Hızlı Teslimat", "Doğal / Organik Ürün", "İyi İletişim", "Güvenilir", "Kaliteli Hizmet", "Özenli Paketleme"];
 /* ---------------------------------------------------------------------------
    BİLDİRİM DURUMU
@@ -813,11 +821,23 @@ window.handleFormSubmit = async function(e) {
 
     try {
         let imageUrl = document.getElementById('form-image').value;
+        let thumbUrl = existingItem ? (existingItem.thumb || null) : null;
+        let hasFullImage = existingItem ? !!existingItem.hasFullImage : false;
+        let fullData = null, dropFullNode = false, replacedUrls = [];
         const fileInput = document.getElementById('form-file');
-        
+        const listingId = editId || push(ref(db, 'listings')).key;   // anahtar önceden alınır, fotoğraf yolu buna bağlı
+
         if (fileInput.files && fileInput.files[0]) {
             const file = fileInput.files[0];
-            imageUrl = await window.compressImage(file);
+            if (file.size / (1024 * 1024) > window.MAX_IMAGE_SIZE_MB) {
+                throw new Error(`Görsel çok büyük. Maksimum ${window.MAX_IMAGE_SIZE_MB}MB olmalıdır.`);
+            }
+            const photo = await window.storeListingPhoto(file, window.currentUser.uid, listingId);
+            if (existingItem) replacedUrls = [existingItem.image, existingItem.thumb];
+            imageUrl = photo.image;
+            thumbUrl = photo.thumb;
+            if (photo.fullData) { fullData = photo.fullData; hasFullImage = true; }
+            else { dropFullNode = hasFullImage; hasFullImage = false; }
         }
 
         const category = document.getElementById('form-category').value;
@@ -865,18 +885,22 @@ window.handleFormSubmit = async function(e) {
                 ? (document.getElementById('form-min-order').value || null)
                 : null,
             image: (imageUrl && window.hasRealImage({ image: imageUrl })) ? imageUrl : null,
+            thumb: thumbUrl || null,
+            hasFullImage: hasFullImage || null,
             isUrgent: document.getElementById('form-urgent').checked,
             isDiscount: document.getElementById('form-discount').checked,
             date: existingItem ? existingItem.date : Date.now()
         };
 
-        if (editId) {
-            await update(ref(db, 'listings/' + editId), listingData);
-            window.showToast('İlan başarıyla güncellendi!', "success");
-        } else {
-            await push(ref(db, 'listings'), listingData);
-            window.showToast('İlanınız yayına alındı!', "success");
+        await update(ref(db, 'listings/' + listingId), listingData);
+        if (fullData) {
+            await update(ref(db, 'listingImages/' + listingId), { uid: window.currentUser.uid, data: fullData });
+            delete window.fullImageCache[listingId];
+        } else if (dropFullNode) {
+            try { await remove(ref(db, 'listingImages/' + listingId)); } catch (e) {}
         }
+        window.showToast(editId ? 'İlan başarıyla güncellendi!' : 'İlanınız yayına alındı!', "success");
+        if (replacedUrls.length) window.deleteStoredImages(replacedUrls);
         closeFormModal();
         closeDetailModal();
     } catch (err) {
@@ -988,9 +1012,13 @@ window.deleteUserAccount = async function() {
         const credential = EmailAuthProvider.credential(window.currentUser.email, password);
         await window.reauthenticateWithCredential(window.currentUser, credential);
 
-        const myListings = (window.listings || []).filter(l => l.uid === window.currentUser.uid);
-        for (const listing of myListings) {
-            try { await remove(ref(db, 'listings/' + listing.id)); } catch(e) {}
+        // Yalnızca ekrandaki son ilanlar değil, kullanıcının bütün ilanları silinir
+        const mySnap = await get(query(ref(db, 'listings'), orderByChild('uid'), equalTo(window.currentUser.uid)));
+        for (const [listingId, listing] of Object.entries(mySnap.val() || {})) {
+            try {
+                await remove(ref(db, 'listings/' + listingId));
+                await window.deleteListingPhotos(listingId, listing);
+            } catch(e) {}
         }
 
         try {
@@ -1022,6 +1050,7 @@ window.deleteCurrentListing = async function(id) {
     if (confirm("Bu ilanı silmek istediğinizden emin misiniz?")) {
         try {
             await remove(ref(db, 'listings/' + targetId));
+            window.deleteListingPhotos(targetId, target);
             window.showToast("İlan silindi.", "success");
             closeDetailModal();
             closeAccountModal();
@@ -1278,7 +1307,7 @@ window.openSellerProfileModal = async function(sellerUid) {
             row.onclick = () => { closeSellerProfileModal(); openDetailModal(item.id); };
             row.innerHTML = `
                 <div class="flex items-center gap-2 min-w-0">
-                    <img src="${escapeHtml(window.listingImage(item))}" class="w-10 h-10 rounded-lg object-cover shrink-0">
+                    <img src="${escapeHtml(window.listingThumb(item))}" loading="lazy" class="w-10 h-10 rounded-lg object-cover shrink-0">
                     <div class="min-w-0">
                         <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                         <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(item.outsideHatay ? (item.realDistrict || item.realProvince || 'Hatay dışı') : item.district)}</span>
@@ -1636,8 +1665,184 @@ window.hasRealImage = function(item) {
     const src = item && item.image;
     return !!src && !/images\.unsplash\.com/.test(src) && !src.startsWith('data:image/svg+xml');
 };
+window.isValidThumb = function(src) {
+    return typeof src === 'string' && (/^https:\/\//.test(src) || src.startsWith('data:image/'));
+};
 window.listingImage = function(item) {
-    return window.hasRealImage(item) ? item.image : window.getDefaultImage(item && item.category);
+    if (window.hasRealImage(item)) return item.image;
+    if (item && window.isValidThumb(item.thumb)) return item.thumb;
+    return window.getDefaultImage(item && item.category);
+};
+
+/* Listelerde küçük önizleme kullanılır; büyük fotoğraf yalnızca ilan detayında indirilir. */
+window.listingThumb = function(item) {
+    if (item && window.isValidThumb(item.thumb)) return item.thumb;
+    return window.listingImage(item);
+};
+
+/* ------------------------------- FOTOĞRAF DEPOSU ------------------------------- */
+
+window.LISTING_IMAGE_SIZES = { full: 1200, thumb: 480 };
+window.MAX_UPLOAD_BYTES = 900 * 1024;   // Storage kuralı 1 MB'a izin verir; payı korumak için 900 KB
+
+/* Bir görseli (dosya ya da base64) istenen kenar uzunluğuna küçültüp JPEG Blob'a çevirir.
+   Sonuç sınırı aşarsa kaliteyi düşürerek tekrar dener. */
+window.resizeImageToBlob = function(source, maxSide, quality, maxBytes) {
+    const limit = maxBytes || window.MAX_UPLOAD_BYTES;
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Görsel işlenemedi. Lütfen başka bir dosya deneyin.'));
+        img.onload = () => {
+            let w = img.width, h = img.height;
+            const scale = Math.min(1, maxSide / Math.max(w, h));
+            w = Math.round(w * scale); h = Math.round(h * scale);
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const tryEncode = (q) => canvas.toBlob((blob) => {
+                if (!blob) { reject(new Error('Görsel sıkıştırılamadı.')); return; }
+                if (blob.size > limit && q > 0.4) tryEncode(q - 0.1);
+                else resolve(blob);
+            }, 'image/jpeg', q);
+            tryEncode(quality);
+        };
+        if (typeof source === 'string') { img.src = source; return; }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Dosya okunamadı. Lütfen tekrar deneyin.'));
+        reader.onload = (ev) => { img.src = ev.target.result; };
+        reader.readAsDataURL(source);
+    });
+};
+
+/* İlan fotoğrafını büyük + küçük iki boyutta depoya yükler ve linklerini döndürür.
+   Servis değişirse yalnızca bu fonksiyon değişir; veritabanında sadece link tutulur. */
+window.uploadListingImages = async function(source, ownerUid, listingId) {
+    if (!storage) throw new Error('Fotoğraf deposu hazır değil.');
+    const [fullBlob, thumbBlob] = await Promise.all([
+        window.resizeImageToBlob(source, window.LISTING_IMAGE_SIZES.full, 0.8),
+        window.resizeImageToBlob(source, window.LISTING_IMAGE_SIZES.thumb, 0.72)
+    ]);
+    const stamp = Date.now();
+    const meta = { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000' };
+    const fullRef = storageRef(storage, `listings/${ownerUid}/${listingId}/full_${stamp}.jpg`);
+    const thumbRef = storageRef(storage, `listings/${ownerUid}/${listingId}/thumb_${stamp}.jpg`);
+    await Promise.all([uploadBytes(fullRef, fullBlob, meta), uploadBytes(thumbRef, thumbBlob, meta)]);
+    const [image, thumb] = await Promise.all([getDownloadURL(fullRef), getDownloadURL(thumbRef)]);
+    return { image, thumb };
+};
+
+window.blobToDataUrl = function(blob) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result);
+        r.onerror = () => reject(new Error('Görsel okunamadı.'));
+        r.readAsDataURL(blob);
+    });
+};
+
+/* Ücretsiz plan: büyük fotoğraf veritabanında ayrı düğüme, önizleme ilanın içine (ikisi de base64). */
+window.FREE_PLAN_SIZES = { full: 1000, thumb: 400, fullMaxBytes: 700 * 1024 };
+window.makeDatabasePhoto = async function(source) {
+    const [fullBlob, thumbBlob] = await Promise.all([
+        window.resizeImageToBlob(source, window.FREE_PLAN_SIZES.full, 0.75, window.FREE_PLAN_SIZES.fullMaxBytes),
+        window.resizeImageToBlob(source, window.FREE_PLAN_SIZES.thumb, 0.65, 120 * 1024)
+    ]);
+    const [fullData, thumb] = await Promise.all([window.blobToDataUrl(fullBlob), window.blobToDataUrl(thumbBlob)]);
+    return { image: null, thumb, fullData };
+};
+
+/* Fotoğrafı saklamanın TEK giriş noktası: önce depoyu dener, depo yoksa veritabanı yöntemine geçer.
+   Dönüş: { image, thumb, fullData } — fullData doluysa listingImages/{ilan} düğümüne yazılır. */
+window.storageUnavailable = false;
+window.storeListingPhoto = async function(source, ownerUid, listingId) {
+    if (storage && !window.storageUnavailable) {
+        try {
+            const urls = await window.uploadListingImages(source, ownerUid, listingId);
+            return { image: urls.image, thumb: urls.thumb, fullData: null };
+        } catch (err) {
+            window.storageUnavailable = true;   // bu oturumda tekrar denenmez
+            console.info('Fotoğraf deposu kullanılamıyor, ücretsiz yöntemle kaydediliyor:', err && err.code);
+        }
+    }
+    return window.makeDatabasePhoto(source);
+};
+
+/* Ücretsiz yöntemde büyük fotoğraf yalnızca ilan detayı açılınca indirilir. */
+window.fullImageCache = {};
+window.loadFullImage = async function(item) {
+    if (!item || !item.id || !item.hasFullImage) return null;
+    if (window.fullImageCache[item.id]) return window.fullImageCache[item.id];
+    try {
+        const snap = await get(ref(db, 'listingImages/' + item.id + '/data'));
+        const data = snap.val();
+        if (data) window.fullImageCache[item.id] = data;
+        return data || null;
+    } catch (err) { console.warn('Büyük fotoğraf alınamadı:', err); return null; }
+};
+
+/* Bir ilanın bütün fotoğraflarını (depo + veritabanı) siler. Hata verse de devam eder. */
+window.deleteListingPhotos = async function(listingId, item) {
+    if (item) await window.deleteStoredImages([item.image, item.thumb]);
+    try { await remove(ref(db, 'listingImages/' + listingId)); } catch (err) { /* yoksa sorun değil */ }
+};
+
+/* Depodaki fotoğrafları siler (yalnızca Storage linkleri; diğerlerine dokunmaz). Hata verse de devam eder. */
+window.deleteStoredImages = async function(urls) {
+    if (!storage) return;
+    for (const url of urls) {
+        if (typeof url !== 'string' || !url.includes('firebasestorage.googleapis.com')) continue;
+        try { await deleteObject(storageRef(storage, url)); } catch (err) { console.warn('Fotoğraf silinemedi:', err); }
+    }
+};
+
+/* YÖNETİCİ ARACI (tarayıcı konsolunda: await migrateImages())
+   - Eski ilanlardaki büyük base64 fotoğrafları önizleme + ayrı büyük fotoğraf düzenine geçirir
+   - Depo (Blaze) açıldıktan sonra tekrar çalıştırılırsa veritabanındaki fotoğrafları depoya taşır
+   - İlanlardaki e-postaları ve toplu alım katılımcılarındaki telefonları temizler
+   Birden fazla kez çalıştırmak güvenlidir. */
+window.migrateImages = async function() {
+    if (!window.isCurrentUserAdmin()) { console.warn('Bu işlem yalnızca yönetici içindir.'); return; }
+    window.storageUnavailable = false;   // depo yeni açılmış olabilir, yeniden dene
+    const report = { düzenlenen: 0, depoyaTaşınan: 0, hatalı: 0, telefonSilinen: 0 };
+    const snap = await get(ref(db, 'listings'));
+    for (const [id, item] of Object.entries(snap.val() || {})) {
+        const patch = {};
+        let fullData = null, dropFullNode = false;
+        try {
+            let source = null;
+            if (typeof item.image === 'string' && item.image.startsWith('data:image/')) source = item.image;
+            else if (item.hasFullImage && !window.storageUnavailable && storage) {
+                const fullSnap = await get(ref(db, 'listingImages/' + id + '/data'));
+                source = fullSnap.val();
+            }
+            if (source && item.uid) {
+                const res = await window.storeListingPhoto(source, item.uid, id);
+                patch.image = res.image; patch.thumb = res.thumb;
+                if (res.fullData) { fullData = res.fullData; patch.hasFullImage = true; report.düzenlenen++; }
+                else { patch.hasFullImage = null; dropFullNode = !!item.hasFullImage; report.depoyaTaşınan++; }
+            }
+        } catch (err) { console.warn('Fotoğraf işlenemedi:', id, err); report.hatalı++; }
+        if (item.userEmail) patch.userEmail = null;
+        if (!Object.keys(patch).length) continue;
+        try {
+            if (fullData) await update(ref(db, 'listingImages/' + id), { uid: item.uid, data: fullData });
+            await update(ref(db, 'listings/' + id), patch);
+            if (dropFullNode) await remove(ref(db, 'listingImages/' + id));
+        } catch (err) { console.warn('İlan güncellenemedi:', id, err); report.hatalı++; }
+    }
+    const gbSnap = await get(ref(db, 'groupBuys'));
+    for (const [gbId, gb] of Object.entries(gbSnap.val() || {})) {
+        for (const [uid, part] of Object.entries(gb.participants || {})) {
+            if (part && part.phone !== undefined) {
+                try {
+                    await update(ref(db, `groupBuys/${gbId}/participants/${uid}`), { phone: null });
+                    report.telefonSilinen++;
+                } catch (err) { console.warn('Telefon silinemedi:', gbId, uid, err); }
+            }
+        }
+    }
+    console.log('Taşıma bitti:', report);
+    return report;
 };
 
 const districtCoords = {
@@ -1685,7 +1890,7 @@ window.renderGlobalMap = function(containerId = 'global-map') {
             const marker = L.marker([item.lat, item.lng])
                 .bindPopup(`
                     <div style="text-align:center; min-width: 120px;">
-                        <img src="${escapeHtml(window.listingImage(item))}" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
+                        <img src="${escapeHtml(window.listingThumb(item))}" loading="lazy" style="width:100%; height:70px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
                         <b style="font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.title)}</b>
                         <span style="color:#10b981; font-weight:bold; font-size:11px;">${item.price} TL</span><br>
                         <button onclick="openDetailModal('${escapeHtml(item.id)}')" style="margin-top:6px; padding:4px 10px; background:#1a1a1a; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:10px; width:100%;">İncele</button>
@@ -2032,7 +2237,7 @@ function loadFavoriteListings() {
         
         div.innerHTML = `
             <div class="flex items-center space-x-2">
-                <img src="${escapeHtml(window.listingImage(item))}" class="w-10 h-10 rounded-lg object-cover">
+                <img src="${escapeHtml(window.listingThumb(item))}" loading="lazy" class="w-10 h-10 rounded-lg object-cover">
                 <div>
                     <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                     <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingPlaceText(item))}</span>
@@ -2278,7 +2483,7 @@ function openAccountModal() {
             row.className = "flex justify-between items-center bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200/60 text-xs";
             row.innerHTML = `
                 <div class="flex items-center space-x-2">
-                    <img src="${escapeHtml(window.listingImage(item))}" class="w-10 h-10 rounded-lg object-cover">
+                    <img src="${escapeHtml(window.listingThumb(item))}" loading="lazy" class="w-10 h-10 rounded-lg object-cover">
                     <div>
                         <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                         <span class="text-[10px] text-gray-500">${item.price} TL • ${escapeHtml(window.getListingPlaceText(item))}</span>
@@ -2588,7 +2793,7 @@ function renderListings() {
         card.innerHTML = `
             <div>
                 <div class="listing-card-image relative h-44 overflow-hidden bg-lux-bg/50">
-                    <img src="${escapeHtml(window.listingImage(item))}" class="w-full h-full object-cover">
+                    <img src="${escapeHtml(window.listingThumb(item))}" loading="lazy" class="w-full h-full object-cover">
                     <button onclick="toggleFavorite('${escapeHtml(item.id)}')" class="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm ${isFav ? 'text-red-600' : 'text-gray-400'} flex items-center justify-center text-xs shadow transition">
                         <i class="fa-solid fa-heart"></i>
                     </button>
@@ -2724,6 +2929,11 @@ function openDetailModal(id) {
     window.activeListingId = id;
     window.activeSellerUid = item.uid;
     document.getElementById('detail-img').src = window.listingImage(item);
+    if (!window.hasRealImage(item) && item.hasFullImage) {
+        window.loadFullImage(item).then((src) => {
+            if (src && window.activeListingId === item.id) document.getElementById('detail-img').src = src;
+        });
+    }
     document.getElementById('detail-title').innerText = item.title;
     document.getElementById('detail-category').innerText = item.category;
     
@@ -3418,7 +3628,7 @@ window.openBuyRequestDetail = function (id) {
                 row.onclick = () => { window.closeBuyRequestDetail(); window.openDetailModal(item.id); };
                 row.innerHTML = `
                     <div class="flex items-center gap-2 min-w-0">
-                        <img src="${escapeHtml(window.listingImage(item))}" class="w-9 h-9 rounded-lg object-cover shrink-0">
+                        <img src="${escapeHtml(window.listingThumb(item))}" loading="lazy" class="w-9 h-9 rounded-lg object-cover shrink-0">
                         <div class="min-w-0">
                             <span class="font-bold text-lux-dark block line-clamp-1">${escapeHtml(item.title)}</span>
                             <span class="text-[10px] text-gray-500">${item.price} TL · ${escapeHtml(window.getListingPlaceText(item))}</span>
@@ -4726,7 +4936,9 @@ window.buildShareCard = async function (item) {
     ctx.fillRect(0, 0, W, H);
 
     const imgH = 720;
-    const img = await window.loadImageForCanvas(window.hasRealImage(item) ? item.image : null);
+    const posterSrc = window.hasRealImage(item) ? item.image
+        : (item.hasFullImage ? await window.loadFullImage(item) : (window.isValidThumb(item.thumb) ? item.thumb : null));
+    const img = await window.loadImageForCanvas(posterSrc);
     if (img) {
         const scale = Math.max(W / img.width, imgH / img.height);
         const dw = img.width * scale, dh = img.height * scale;
@@ -5599,7 +5811,7 @@ window.handleGroupBuySubmit = async function (e) {
 
         if (myQty > 0 && targetId) {
             await update(ref(db, `groupBuys/${targetId}/participants/${window.currentUser.uid}`), {
-                name: name, phone: phone, qty: myQty, joinedAt: Date.now()
+                name: name, qty: myQty, joinedAt: Date.now()
             });
         }
 
@@ -5710,7 +5922,6 @@ window.joinGroupBuy = async function () {
     try {
         await update(ref(db, `groupBuys/${gb.id}/participants/${window.currentUser.uid}`), {
             name: window.userExtraData.username || window.currentUser.displayName || 'Katılımcı',
-            phone: window.userExtraData.phone || 'Belirtilmedi',
             qty: qty,
             joinedAt: Date.now()
         });
@@ -7494,7 +7705,7 @@ window.openReportReview = async function (reportId) {
 
     box.innerHTML = `
         <div class="flex gap-2 items-start">
-            <img src="${escapeHtml(window.listingImage(listing))}" class="w-16 h-16 rounded-lg object-cover border border-gray-200 bg-lux-bg/40 shrink-0">
+            <img src="${escapeHtml(window.listingThumb(listing))}" loading="lazy" class="w-16 h-16 rounded-lg object-cover border border-gray-200 bg-lux-bg/40 shrink-0">
             <div class="min-w-0">
                 <span class="font-bold text-lux-dark text-xs block line-clamp-2">${escapeHtml(listing.title || '-')}</span>
                 <span class="text-[10px] text-gray-500 block">${escapeHtml(listing.seller || '-')} · ${escapeHtml(window.getListingPlaceText(listing))}</span>
@@ -7553,7 +7764,10 @@ window.adminRemoveReportedListing = async function () {
     if (btn) { btn.disabled = true; btn.innerText = 'Kaldırılıyor...'; }
 
     try {
+        const removedSnap = await get(ref(db, 'listings/' + r.listingId));
+        const removed = removedSnap.val() || {};
         await remove(ref(db, 'listings/' + r.listingId));
+        window.deleteListingPhotos(r.listingId, removed);
         await window.setReportStatus(window.REPORT_STATUS.RESOLVED, { listingRemoved: true }, true);
         window.showToast('İlan kaldırıldı ve şikâyet kapatıldı.', 'success');
     } catch (err) {
