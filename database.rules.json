@@ -1,0 +1,215 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "listings": {
+      ".read": true,
+      ".indexOn": [
+        "date",
+        "category",
+        "uid"
+      ],
+      "$listingId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('uid').val() == auth.uid && auth.token.email_verified == true) || (data.exists() && data.child('uid').val() == auth.uid) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['uid', 'title', 'price', 'date']) && (!data.exists() || newData.child('uid').val() == data.child('uid').val())",
+        "uid": {
+          ".validate": "newData.isString()"
+        },
+        "title": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+        },
+        "desc": {
+          ".validate": "newData.isString() && newData.val().length <= 5000"
+        },
+        "price": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "phone": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "image": {
+          ".validate": "newData.isString() && newData.val().length <= 2000000"
+        },
+        "date": {
+          ".validate": "newData.isNumber()"
+        },
+        "thumb": {
+          ".validate": "newData.isString() && newData.val().length <= 200000 && (newData.val().beginsWith('https://') || newData.val().beginsWith('data:image/'))"
+        },
+        "hasFullImage": {
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "listingImages": {
+      "$listingId": {
+        ".read": "true",
+        ".write": "auth != null && ((newData.exists() && newData.child('uid').val() == auth.uid && root.child('listings').child($listingId).child('uid').val() == auth.uid && auth.token.email_verified == true) || (!newData.exists() && data.child('uid').val() == auth.uid) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['uid', 'data'])",
+        "uid": {
+          ".validate": "newData.isString()"
+        },
+        "data": {
+          ".validate": "newData.isString() && newData.val().beginsWith('data:image/') && newData.val().length <= 1000000"
+        }
+      }
+    },
+    "buyRequests": {
+      ".read": true,
+      ".indexOn": [
+        "date",
+        "uid"
+      ],
+      "$requestId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('uid').val() == auth.uid && auth.token.email_verified == true) || (data.exists() && data.child('uid').val() == auth.uid) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['uid', 'title', 'date']) && (!data.exists() || newData.child('uid').val() == data.child('uid').val())",
+        "title": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+        },
+        "desc": {
+          ".validate": "newData.isString() && newData.val().length <= 5000"
+        },
+        "date": {
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "groupBuys": {
+      ".read": true,
+      ".indexOn": [
+        "date",
+        "creatorUid"
+      ],
+      "$groupId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('creatorUid').val() == auth.uid && auth.token.email_verified == true) || (data.exists() && data.child('creatorUid').val() == auth.uid) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['creatorUid', 'title', 'date']) && (!data.exists() || newData.child('creatorUid').val() == data.child('creatorUid').val())",
+        "title": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+        },
+        "desc": {
+          ".validate": "newData.isString() && newData.val().length <= 5000"
+        },
+        "participants": {
+          "$participantUid": {
+            ".write": "auth != null && auth.uid == $participantUid && auth.token.email_verified == true && root.child('groupBuys').child($groupId).exists()",
+            ".validate": "newData.hasChildren(['qty', 'joinedAt'])",
+            "qty": {
+              ".validate": "newData.isNumber() && newData.val() > 0"
+            },
+            "phone": {
+              ".validate": "false"
+            }
+          }
+        }
+      }
+    },
+    "offers": {
+      ".indexOn": [
+        "sellerUid",
+        "buyerUid"
+      ],
+      ".read": "auth != null && (query.orderByChild == 'sellerUid' || query.orderByChild == 'buyerUid') && query.equalTo == auth.uid",
+      "$offerId": {
+        ".read": "auth != null && (data.child('sellerUid').val() == auth.uid || data.child('buyerUid').val() == auth.uid)",
+        ".write": "auth != null && ((!data.exists() && newData.child('buyerUid').val() == auth.uid && auth.token.email_verified == true) || (data.exists() && newData.exists() && (data.child('sellerUid').val() == auth.uid || data.child('buyerUid').val() == auth.uid)) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['sellerUid', 'buyerUid', 'listingId', 'status']) && newData.child('sellerUid').val() != newData.child('buyerUid').val() && (!data.exists() || (newData.child('sellerUid').val() == data.child('sellerUid').val() && newData.child('buyerUid').val() == data.child('buyerUid').val() && newData.child('listingId').val() == data.child('listingId').val()))",
+        "listingId": {
+          ".validate": "newData.isString()"
+        },
+        "sellerUid": {
+          ".validate": "newData.isString() && (data.exists() || root.child('listings').child(newData.parent().child('listingId').val()).child('uid').val() == newData.val() || root.child('buyRequests').child(newData.parent().child('listingId').val()).child('uid').val() == newData.val() || root.child('groupBuys').child(newData.parent().child('listingId').val()).child('creatorUid').val() == newData.val())"
+        },
+        "status": {
+          ".validate": "newData.isString() && ((!data.exists() && newData.val() == 'Beklemede') || (data.exists() && (newData.val() == data.val() || root.child('offers').child($offerId).child('sellerUid').val() == auth.uid || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)))"
+        },
+        "note": {
+          ".validate": "newData.isString() && newData.val().length <= 2000"
+        }
+      }
+    },
+    "ratings": {
+      ".read": true,
+      "$targetUid": {
+        "$raterUid": {
+          ".write": "auth != null && auth.uid == $raterUid && $raterUid != $targetUid && auth.token.email_verified == true",
+          ".validate": "newData.hasChildren(['score', 'date'])",
+          "score": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+          },
+          "comment": {
+            ".validate": "newData.isString() && newData.val().length <= 1000"
+          },
+          "verified": {
+            ".validate": "newData.isBoolean() && (newData.val() == false || (newData.parent().child('dealId').isString() && ((root.child('offers').child(newData.parent().child('dealId').val()).child('buyerUid').val() == auth.uid && root.child('offers').child(newData.parent().child('dealId').val()).child('sellerUid').val() == $targetUid) || (root.child('offers').child(newData.parent().child('dealId').val()).child('sellerUid').val() == auth.uid && root.child('offers').child(newData.parent().child('dealId').val()).child('buyerUid').val() == $targetUid))))"
+          }
+        }
+      }
+    },
+    "reports": {
+      ".read": "auth != null && ((auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+      "$reportId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('reporterUid').val() == auth.uid && newData.child('status').val() == 'Yeni' && auth.token.email_verified == true) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['reporterUid', 'listingId', 'reason'])",
+        "note": {
+          ".validate": "newData.isString() && newData.val().length <= 2000"
+        }
+      }
+    },
+    "disputes": {
+      ".read": "auth != null && ((auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+      "$disputeId": {
+        ".write": "auth != null && ((!data.exists() && newData.child('reporterUid').val() == auth.uid && newData.child('status').val() == 'İnceleniyor' && auth.token.email_verified == true) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        ".validate": "newData.hasChildren(['reporterUid', 'reason'])",
+        "desc": {
+          ".validate": "newData.isString() && newData.val().length <= 3000"
+        }
+      }
+    },
+    "verifications": {
+      ".read": "auth != null && ((auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && ((auth.uid == $uid && auth.token.email_verified == true) || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)",
+        "uid": {
+          ".validate": "newData.val() == $uid"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'Beklemede' || (auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)"
+        },
+        "docImage": {
+          ".validate": "newData.isString() && newData.val().length <= 3000000"
+        }
+      }
+    },
+    "verifiedProducers": {
+      ".read": true,
+      ".write": "auth != null && ((auth.token.email == 'orontesdestek@gmail.com' && auth.token.email_verified == true) || root.child('admins').child(auth.uid).val() == true)"
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "publicProfiles": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid",
+        "username": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        }
+      }
+    },
+    "usernames": {
+      ".read": true,
+      "$usernameKey": {
+        ".write": "auth != null && ((!data.exists() && newData.child('uid').val() == auth.uid) || (data.exists() && data.child('uid').val() == auth.uid))"
+      }
+    },
+    "admins": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid"
+      }
+    }
+  }
+}

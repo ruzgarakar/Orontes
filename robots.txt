@@ -1,0 +1,6 @@
+# Not: GitHub Pages'te robots.txt yalnızca alan adının kökünde okunur.
+# Bu dosya, özel alan adı (ör. orontes.com.tr) bağlandığında devreye girer.
+User-agent: *
+Allow: /
+
+Sitemap: https://ruzgarakar.github.io/Orontes/sitemap.xml

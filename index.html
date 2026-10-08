@@ -4,8 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- app.js ile eşleşmesi gereken sürüm damgası (ikisi de aynı olmalı) -->
-    <meta name="orontes-build" content="2026.09.18">
+    <meta name="orontes-build" content="2026.10.08">
     <title>ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı</title>
+    <meta name="description" content="Hatay'ın yerel ürün ve hizmet ilanları: narenciye, zeytinyağı, defne sabunu, el sanatları ve daha fazlası. Üreticiden doğrudan, aracısız ve komisyonsuz.">
+    <link rel="canonical" href="https://ruzgarakar.github.io/Orontes/">
+    <!-- Bağlantı paylaşılınca (WhatsApp, Facebook, X) çıkan önizleme -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ORONTES">
+    <meta property="og:locale" content="tr_TR">
+    <meta property="og:title" content="ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı">
+    <meta property="og:description" content="Üreticiden doğrudan, aracısız ve komisyonsuz. Ücretsiz ilan ver, WhatsApp ile iletişime geç.">
+    <meta property="og:url" content="https://ruzgarakar.github.io/Orontes/">
+    <meta property="og:image" content="https://ruzgarakar.github.io/Orontes/icons/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="ORONTES — Hatay Yerel Pazaryeri ve Hizmet Ağı">
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- Simgeler ve ana ekrana ekleme (PWA) -->
+    <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#07332c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Orontes">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -33,7 +56,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <!-- Harici Stil Dosyası -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2026.10.08">
     <!-- YENİ: QR Kod Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- YENİ: Belge karekodu okuyucu (yönetici doğrulama paneli için) -->
@@ -546,7 +569,11 @@
                 </div>
                 <div class="border-t border-lux-olive/40 pt-3 mt-4 flex justify-between items-center text-[10px] text-lux-sage">
                     <span>© 2026 ORONTES Hatay Yerel Pazarı.</span>
-                    <button onclick="openTermsModal()" data-i18n="legal.btn" class="hover:underline text-lux-gold font-semibold">Yasal Uyarı ve Sorumluluk Reddi</button>
+                    <span class="flex flex-wrap justify-end gap-x-3 gap-y-1">
+                        <a href="yasal.html#kosullar" class="hover:underline text-lux-gold font-semibold">Kullanım Koşulları</a>
+                        <a href="yasal.html#kvkk" class="hover:underline text-lux-gold font-semibold">KVKK</a>
+                        <a href="yasal.html#gizlilik" class="hover:underline text-lux-gold font-semibold">Gizlilik</a>
+                    </span>
                 </div>
             </div>
         </div>
@@ -846,6 +873,10 @@
                 <div id="register-fields-box" class="hidden space-y-3">
                     <input type="text" id="auth-username" placeholder="Kullanıcı Adı / Ad Soyad*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                     <input type="tel" id="auth-phone" placeholder="WhatsApp Tel (05XX...)*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
+                    <label class="flex items-start gap-2 text-[11px] text-gray-600 leading-snug cursor-pointer">
+                        <input type="checkbox" id="auth-terms" class="mt-0.5 accent-[#07332c] shrink-0">
+                        <span><a href="yasal.html#kosullar" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">Kullanım Koşulları</a>'nı kabul ediyorum ve <a href="yasal.html#kvkk" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">KVKK Aydınlatma Metni</a>'ni okudum.</span>
+                    </label>
                 </div>
                 <input type="email" id="auth-email" required placeholder="E-Posta Adresi*" class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none">
                 
@@ -1498,6 +1529,11 @@
 
                 <textarea id="verif-note" rows="2" placeholder="Eklemek istediğiniz not (isteğe bağlı)..." class="w-full border border-gray-200 p-2 rounded-xl text-xs bg-lux-bg/20 outline-none"></textarea>
 
+                <label class="flex items-start gap-2 text-[11px] text-gray-600 leading-snug cursor-pointer bg-lux-bg/40 p-2.5 rounded-xl border border-gray-200">
+                    <input type="checkbox" id="verif-consent" class="mt-0.5 accent-[#07332c] shrink-0">
+                    <span>Yüklediğim belgedeki kişisel verilerin (ad soyad, belge numarası ve belgede yer alan diğer bilgiler) yalnızca üretici doğrulaması amacıyla ORONTES yönetimi tarafından incelenmesine ve inceleme bitince belge görselinin silinmesine <b>açık rıza veriyorum</b>. <a href="yasal.html#kvkk" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">Aydınlatma Metni</a></span>
+                </label>
+
                 <button type="submit" id="verif-submit-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs">Başvuruyu Gönder</button>
             </form>
         </div>
@@ -1747,7 +1783,8 @@
         <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto">
             <button onclick="closeTermsModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="font-bold text-lux-dark text-base mb-3"><i class="fa-solid fa-scale-balanced text-lux-gold mr-1"></i> Yasal Uyarı ve Kullanım Koşulları</h3>
-            <p class="text-xs text-gray-600 leading-relaxed font-light">ORONTES, Hatay bölgesindeki satıcıları ve alıcıları bir araya getiren bağımsız bir ilan platformudur. İlan içeriklerinin ve gerçekleşen ticari anlaşmaların hukuki sorumluluğu kullanıcılara aittir.</p>
+            <p class="text-xs text-gray-600 leading-relaxed font-light">ORONTES, Hatay bölgesindeki satıcıları ve alıcıları bir araya getiren bağımsız bir ilan platformudur. Satış, ödeme aracılığı veya teslimat yapmaz. İlan içeriklerinin ve gerçekleşen ticari anlaşmaların hukuki sorumluluğu kullanıcılara aittir.</p>
+            <p class="text-xs text-gray-600 leading-relaxed font-light mt-2">Ayrıntılar: <a href="yasal.html#kosullar" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">Kullanım Koşulları</a> · <a href="yasal.html#kvkk" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">KVKK Aydınlatma Metni</a> · <a href="yasal.html#gizlilik" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">Gizlilik</a></p>
             <button onclick="closeTermsModal()" class="w-full mt-4 bg-lux-dark text-white font-bold py-2 rounded-xl text-xs">Anladım</button>
       </div>
     </div>
@@ -1812,6 +1849,6 @@
     <!-- Kütüphaneler ve Harici JavaScript Dosyası -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="app.js"></script>
+    <script type="module" src="app.js?v=2026.10.08"></script>
 </body>
 </html>

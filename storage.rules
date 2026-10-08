@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'orontesdestek@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    // İlan fotoğrafları: listings/{sahibin uid'si}/{ilan id}/{dosya}
+    match /listings/{ownerUid}/{listingId}/{fileName} {
+      // Tek tek görüntülemek herkese açık; klasör listelemek kapalı
+      allow get: if true;
+
+      // Yalnızca ilan sahibi (ya da yönetici) yükler; sadece görsel, en fazla 1 MB
+      allow create, update: if request.auth != null
+        && ((request.auth.uid == ownerUid && request.auth.token.email_verified == true) || isAdmin())
+        && request.resource.size < 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+
+      allow delete: if request.auth != null
+        && (request.auth.uid == ownerUid || isAdmin());
+    }
+
+    // Geri kalan her şey kapalı
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

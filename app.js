@@ -595,6 +595,11 @@ window.handleAuthSubmit = async function(e) {
             if (resendBtn) resendBtn.classList.add('hidden');
             closeAuthModal();
         } else {
+            const termsBox = document.getElementById('auth-terms');
+            if (termsBox && !termsBox.checked) {
+                window.showToast("Kayıt olmak için Kullanım Koşulları'nı kabul etmeniz gerekiyor.", "warning");
+                throw new Error("UI_VALIDATION");
+            }
             if (!username) {
                 window.showToast("Lütfen bir kullanıcı adı belirleyin.", "error");
                 throw new Error("UI_VALIDATION");
@@ -1020,6 +1025,15 @@ window.deleteUserAccount = async function() {
                 await window.deleteListingPhotos(listingId, listing);
             } catch(e) {}
         }
+
+        // Alım talepleri, başlatılan toplu alımlar ve doğrulama başvurusu da silinir (KVKK metnindeki taahhüt)
+        try {
+            const brSnap = await get(query(ref(db, 'buyRequests'), orderByChild('uid'), equalTo(window.currentUser.uid)));
+            for (const brId of Object.keys(brSnap.val() || {})) { try { await remove(ref(db, 'buyRequests/' + brId)); } catch (e) {} }
+            const gbSnap = await get(query(ref(db, 'groupBuys'), orderByChild('creatorUid'), equalTo(window.currentUser.uid)));
+            for (const gbId of Object.keys(gbSnap.val() || {})) { try { await remove(ref(db, 'groupBuys/' + gbId)); } catch (e) {} }
+            await remove(ref(db, 'verifications/' + window.currentUser.uid));
+        } catch (e) { console.warn('Ek kayıtlar silinemedi:', e); }
 
         try {
             const usernameKey = window.sanitizeUsernameKey(window.userExtraData.username);
@@ -6796,7 +6810,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.09.18';
+window.ORONTES_BUILD = '2026.10.08';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
@@ -7399,6 +7413,11 @@ window.submitVerificationRequest = async function (e) {
         window.showToast("Lütfen belgenizin görselini yükleyin.", "warning");
         return;
     }
+    const consentBox = document.getElementById('verif-consent');
+    if (consentBox && !consentBox.checked) {
+        window.showToast("Başvuru için belgenizin incelenmesine açık rıza vermeniz gerekiyor.", "warning");
+        return;
+    }
 
     const btn = document.getElementById('verif-submit-btn');
     btn.disabled = true;
@@ -7412,6 +7431,7 @@ window.submitVerificationRequest = async function (e) {
             docNo: docNo || null,
             note: note || null,
             docImage: doc,
+            consentAt: Date.now(),
             email: window.currentUser.email,
             phone: window.userExtraData.phone || null,
             username: window.userExtraData.username || window.currentUser.displayName || null,
@@ -8041,14 +8061,17 @@ window.openVerificationReview = function (uid) {
 
     const img = document.getElementById('review-doc-img');
     img.src = v.docImage || '';
+    img.classList.toggle('hidden', !v.docImage);
     document.getElementById('review-qr-result').innerHTML =
         '<span class="text-[11px] text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Karekod taranıyor...</span>';
 
     document.getElementById('review-reject-reason').value = '';
     document.getElementById('verification-review-modal').classList.remove('hidden');
 
-    // Belgedeki karekodu otomatik oku
-    setTimeout(() => window.scanDocumentQr(v.docImage), 250);
+    // Belgedeki karekodu otomatik oku (inceleme bitmişse görsel silinmiştir)
+    if (v.docImage) setTimeout(() => window.scanDocumentQr(v.docImage), 250);
+    else document.getElementById('review-qr-result').innerHTML =
+        '<span class="text-[11px] text-gray-400">Belge görseli inceleme tamamlandığı için silindi (KVKK).</span>';
 };
 
 window.closeVerificationReview = function () {
@@ -8127,6 +8150,7 @@ window.approveVerification = async function () {
         await update(ref(db, 'verifications/' + uid), {
             status: window.VERIFICATION_STATUS.APPROVED,
             approvedAt: now,
+            docImage: null,   // KVKK: inceleme bitince belge görseli silinir
             reviewedBy: window.currentUser.uid,
             rejectReason: null
         });
@@ -8167,6 +8191,7 @@ window.rejectVerification = async function () {
         await update(ref(db, 'verifications/' + uid), {
             status: window.VERIFICATION_STATUS.REJECTED,
             rejectReason: reason,
+            docImage: null,   // KVKK: inceleme bitince belge görseli silinir
             reviewedBy: window.currentUser.uid,
             reviewedAt: Date.now()
         });
