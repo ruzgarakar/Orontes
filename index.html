@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- app.js ile eşleşmesi gereken sürüm damgası (ikisi de aynı olmalı) -->
-    <meta name="orontes-build" content="2026.10.08">
+    <meta name="orontes-build" content="2026.10.09">
     <title>ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı</title>
     <meta name="description" content="Hatay'ın yerel ürün ve hizmet ilanları: narenciye, zeytinyağı, defne sabunu, el sanatları ve daha fazlası. Üreticiden doğrudan, aracısız ve komisyonsuz.">
     <link rel="canonical" href="https://ruzgarakar.github.io/Orontes/">
@@ -56,7 +56,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <!-- Harici Stil Dosyası -->
-    <link rel="stylesheet" href="style.css?v=2026.10.08">
+    <link rel="stylesheet" href="style.css?v=2026.10.09">
     <!-- YENİ: QR Kod Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- YENİ: Belge karekodu okuyucu (yönetici doğrulama paneli için) -->
@@ -573,6 +573,7 @@
                         <a href="yasal.html#kosullar" class="hover:underline text-lux-gold font-semibold">Kullanım Koşulları</a>
                         <a href="yasal.html#kvkk" class="hover:underline text-lux-gold font-semibold">KVKK</a>
                         <a href="yasal.html#gizlilik" class="hover:underline text-lux-gold font-semibold">Gizlilik</a>
+                        <button type="button" onclick="openConsentBanner()" class="hover:underline text-lux-gold font-semibold">Çerez Tercihleri</button>
                     </span>
                 </div>
             </div>
@@ -806,6 +807,7 @@
                         <span class="text-[9px] text-gray-400 uppercase font-bold block" data-i18n="detail.owner">İlan Sahibi</span>
                         <span id="detail-seller" class="font-bold text-lux-dark text-sm">İsim</span>
                         <span id="detail-verified-badge" class="block mt-1"></span>
+                        <span id="detail-contact-stats" class="hidden block mt-1 text-[10px] font-semibold text-emerald-700"></span>
                     </div>
                     <div class="flex items-center space-x-1.5 flex-wrap gap-1">
                         <button id="detail-sharecard-btn" title="Paylaşım Kartı & QR Kod" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark p-2 rounded-lg transition text-xs font-bold"><i class="fa-solid fa-qrcode"></i></button>
@@ -1849,6 +1851,18 @@
     <!-- Kütüphaneler ve Harici JavaScript Dosyası -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <script type="module" src="app.js?v=2026.10.08"></script>
+    <!-- ÇEREZ BİLDİRİMİ: yalnızca Google Analytics için onay ister; reddedilirse hiçbir analiz çerezi yüklenmez -->
+    <div id="consent-banner" class="hidden fixed bottom-0 inset-x-0 z-[60] p-3 sm:p-4">
+        <div class="max-w-xl mx-auto bg-white border border-gray-200 shadow-2xl rounded-2xl p-4 text-xs text-gray-700">
+            <p class="font-bold text-lux-dark mb-1"><i class="fa-solid fa-cookie-bite text-lux-gold mr-1"></i> Çerez tercihi</p>
+            <p class="leading-relaxed">Siteyi geliştirmek için ziyaret istatistiklerini (Google Analytics) kullanmak istiyoruz. Bu, tarayıcınıza analiz çerezleri yerleştirir. İzin vermezseniz site aynen çalışır. <a href="yasal.html#gizlilik" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">Ayrıntılar</a></p>
+            <div class="flex gap-2 mt-3">
+                <button type="button" onclick="setConsent(false)" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2 rounded-xl">Reddet</button>
+                <button type="button" onclick="setConsent(true)" class="flex-1 bg-lux-dark hover:bg-lux-olive text-white font-bold py-2 rounded-xl">Kabul et</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js?v=2026.10.09"></script>
 </body>
 </html>
