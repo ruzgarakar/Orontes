@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check.js";
-import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, query, orderByChild, equalTo, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, off, remove, update, get, runTransaction, increment, query, orderByChild, equalTo, limitToLast, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, updatePassword, sendPasswordResetEmail, sendEmailVerification, EmailAuthProvider, deleteUser, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
@@ -655,6 +655,8 @@ window.handleAuthSubmit = async function(e) {
             }
 
             await signOut(auth);
+            window.bumpCounter('kayit');
+            window.track('sign_up', { method: 'email' });
             window.showToast("Kayıt tamamlandı! Lütfen e-postanıza gelen linke tıklayarak hesabınızı doğrulayın.", "success");
             toggleAuthMode();
         }
@@ -905,6 +907,7 @@ window.handleFormSubmit = async function(e) {
             try { await remove(ref(db, 'listingImages/' + listingId)); } catch (e) {}
         }
         window.showToast(editId ? 'İlan başarıyla güncellendi!' : 'İlanınız yayına alındı!', "success");
+        if (!editId) { window.bumpCounter('ilan'); window.track('listing_create', { category: category }); }
         if (replacedUrls.length) window.deleteStoredImages(replacedUrls);
         closeFormModal();
         closeDetailModal();
@@ -1653,6 +1656,73 @@ const categoryEmojis = {
     "Diğer": "📦"
 };
 
+/* ------------------------------- ÖLÇÜM -------------------------------
+   1) Kendi sayaçlarımız (çerezsiz, onay gerektirmez): aylık WhatsApp iletişim sayısı, ilan ve kayıt sayısı,
+      ilan başına WhatsApp sayısı. Kişisel veri içermez; sadece sayı tutulur.
+   2) Google Analytics: yalnızca ziyaretçi çerez bildiriminde "Kabul et" derse yüklenir. */
+window.monthKey = function() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+window.bumpCounter = function(name) {
+    try { update(ref(db, `stats/monthly/${window.monthKey()}`), { [name]: increment(1) }).catch(() => {}); } catch (e) {}
+};
+window.analyticsInstance = null;
+window.analyticsLog = null;
+window.track = function(eventName, params) {
+    try { if (window.analyticsInstance && window.analyticsLog) window.analyticsLog(window.analyticsInstance, eventName, params || {}); } catch (e) {}
+};
+
+/* WhatsApp iletişim düğmeleri (wa.me) — sayfadaki bütün bağlantılar tek yerden sayılır.
+   Aynı oturumda aynı ilan için yalnızca bir kez sayılır. */
+document.addEventListener('click', (e) => {
+    const link = e.target.closest && e.target.closest('a[href^="https://wa.me/"]');
+    if (!link) return;
+    const kind = link.dataset.contactKind || 'diger';
+    const targetId = link.dataset.contactId || '';
+    const onceKey = `wa:${kind}:${targetId || link.href}`;
+    try { if (sessionStorage.getItem(onceKey)) return; sessionStorage.setItem(onceKey, '1'); } catch (err) {}
+    window.bumpCounter('whatsapp');
+    if (kind === 'ilan' && targetId) {
+        try { update(ref(db, `listingStats/${targetId}`), { whatsapp: increment(1) }).catch(() => {}); } catch (err) {}
+    }
+    window.track('whatsapp_contact', { kind: kind, category: link.dataset.contactCategory || '' });
+}, true);
+
+/* Çerez onayı */
+window.CONSENT_KEY = 'orontes_consent';
+window.getConsent = function() { try { return localStorage.getItem(window.CONSENT_KEY); } catch (e) { return null; } };
+window.loadAnalytics = async function() {
+    if (window.analyticsInstance) return;
+    try {
+        const mod = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js");
+        if (!(await mod.isSupported())) return;
+        window.analyticsInstance = mod.getAnalytics(app);
+        window.analyticsLog = mod.logEvent;
+    } catch (err) { console.warn('Analiz aracı yüklenemedi:', err); }
+};
+window.setConsent = function(granted) {
+    try { localStorage.setItem(window.CONSENT_KEY, granted ? 'granted' : 'denied'); } catch (e) {}
+    const banner = document.getElementById('consent-banner');
+    if (banner) banner.classList.add('hidden');
+    if (granted) window.loadAnalytics();
+    else if (window.analyticsInstance) {
+        window.showToast('Tercihiniz kaydedildi. Değişikliğin tamamen uygulanması için sayfayı yenileyin.', 'success');
+    }
+};
+window.openConsentBanner = function() {
+    const banner = document.getElementById('consent-banner');
+    if (banner) banner.classList.remove('hidden');
+};
+(function initConsent() {
+    const c = window.getConsent();
+    if (c === 'granted') window.loadAnalytics();
+    else if (!c) {
+        const show = () => window.openConsentBanner();
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
+    }
+})();
+
 /* İlanda fotoğraf yoksa gösterilen yer tutucu.
    Önceden stok (Unsplash) fotoğraflar kullanılıyordu; alıcı bunları gerçek ürün fotoğrafı sanabilirdi.
    Artık kategori adını taşıyan sade bir görsel üretiliyor ve veritabanına kaydedilmiyor. */
@@ -1988,6 +2058,41 @@ function initFormMap(lat, lng, district) {
 
 window.locationOutsideHatay = null;
 
+/* Nominatim (OpenStreetMap) kullanım kuralı: saniyede en fazla 1 istek ve tekrar eden istekleri önbelleğe almak.
+   Sonuçlar tarayıcıda 30 gün saklanır; aynı konum ya da adres tekrar sorulunca ağa çıkılmaz. */
+window.NOMINATIM_CACHE_DAYS = 30;
+window.nominatimMemory = {};
+window.nominatimQueue = Promise.resolve();
+window.nominatimPending = {};
+window.nominatimFetch = function(url) {
+    const key = 'nomi:' + url;
+    if (window.nominatimMemory[key]) return Promise.resolve(window.nominatimMemory[key]);
+    try {
+        const saved = JSON.parse(localStorage.getItem(key) || 'null');
+        if (saved && Date.now() - saved.t < window.NOMINATIM_CACHE_DAYS * 864e5) {
+            window.nominatimMemory[key] = saved.d;
+            return Promise.resolve(saved.d);
+        }
+    } catch (e) { /* depolama kapalıysa önbelleksiz devam */ }
+
+    const run = async () => {
+        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
+        if (!res.ok) throw new Error('Ağ hatası');
+        const data = await res.json();
+        window.nominatimMemory[key] = data;
+        try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
+        return data;
+    };
+    // Aynı istek zaten yoldaysa onu bekle (ikinci kez ağa çıkma)
+    if (window.nominatimPending[key]) return window.nominatimPending[key];
+    // İstekleri sıraya koy: her biri bir öncekinden en az 1,1 saniye sonra çıkar
+    const job = window.nominatimQueue.then(run);
+    window.nominatimPending[key] = job;
+    job.finally(() => { delete window.nominatimPending[key]; }).catch(() => {});
+    window.nominatimQueue = job.catch(() => {}).then(() => new Promise(r => setTimeout(r, 1100)));
+    return job;
+};
+
 window.resolveLocation = async function(lat, lng) {
     const banner = document.getElementById('outside-hatay-warning');
     const districtSelect = document.getElementById('form-district');
@@ -1995,10 +2100,9 @@ window.resolveLocation = async function(lat, lng) {
     banner.classList.add('hidden');
 
     try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
-        if(!res.ok) throw new Error("Ağ hatası");
-        const data = await res.json();
+        // Koordinatı ~10 metreye yuvarla: aynı noktaya yakın tıklamalar önbellekten gelir
+        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${Number(lat).toFixed(4)}&lon=${Number(lng).toFixed(4)}&zoom=14&addressdetails=1`;
+        const data = await window.nominatimFetch(url);
 
         const waterTypes = ['water', 'sea', 'bay', 'strait', 'ocean', 'reef'];
         const isSea = !data || data.error || !data.address || !data.address.country ||
@@ -2074,9 +2178,9 @@ window.geocodeAddress = async function() {
     try {
         const searchQuery = `${queryStr}, Hatay, Türkiye`;
         const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'tr' } });
-        if(!res.ok) { window.showErrorPage(400, "API Bağlantı Hatası"); return; }
-        const results = await res.json();
+        let results;
+        try { results = await window.nominatimFetch(url); }
+        catch (netErr) { window.showErrorPage(400, "API Bağlantı Hatası"); return; }
 
         if (!results || results.length === 0) {
             window.showToast("Adres bulunamadı. Lütfen haritadan elle işaretleyin.", "error");
@@ -2143,6 +2247,7 @@ function updateFormMapCenter(district) {
 }
 
 function shareOnWhatsApp() {
+    window.track('share', { method: 'whatsapp', content_type: 'listing' });
     const item = (window.listings || []).find(l => l.id === window.activeListingId);
     if (!item) return;
     const text = `📌 YEREL PAZAR & HİZMET AĞI\n\n📌 ${escapeHtml(item.title)}\n💰 Fiyat: ${item.price} TL ${item.unit ? '/ ' + item.unit : ''}\n📍 Konum: ${item.outsideHatay ? escapeHtml(window.getListingLocationText(item)) : 'Hatay / ' + escapeHtml(item.district)}\n\nİlanı İnceleyin: ${typeof window.getListingShareUrl === 'function' ? window.getListingShareUrl(item.id) : window.location.href}`;
@@ -3034,6 +3139,9 @@ function openDetailModal(id) {
         const waMsg = `Merhaba ${item.seller}, sisteminizdeki "${escapeHtml(item.title)}" ilanınız/hizmetiniz hakkında görüşmek istiyorum.`;
         detailWhatsAppBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
         detailWhatsAppBtn.target = "_blank";
+        detailWhatsAppBtn.dataset.contactKind = 'ilan';
+        detailWhatsAppBtn.dataset.contactId = item.id;
+        detailWhatsAppBtn.dataset.contactCategory = item.category || '';
         detailWhatsAppBtn.innerHTML = `<i class="fa-brands fa-whatsapp text-sm"></i> <span>İletişim</span>`;
         detailWhatsAppBtn.className = "bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-semibold text-xs transition flex items-center space-x-1 shadow-sm";
         detailWhatsAppBtn.onclick = null;
@@ -3042,6 +3150,18 @@ function openDetailModal(id) {
     window.loadSellerProfileBox(item.uid);
 
     const deleteBtn = document.getElementById('delete-btn');
+    const statsEl = document.getElementById('detail-contact-stats');
+    if (statsEl) {
+        statsEl.classList.add('hidden');
+        if (window.currentUser && item.uid === window.currentUser.uid) {
+            get(ref(db, `listingStats/${item.id}/whatsapp`)).then((snap) => {
+                if (window.activeListingId !== item.id) return;
+                const n = Number(snap.val()) || 0;
+                statsEl.innerText = n ? `📞 Bu ilan için ${n} kişi WhatsApp'tan ulaştı` : "📞 Henüz WhatsApp'tan ulaşan olmadı";
+                statsEl.classList.remove('hidden');
+            }).catch(() => {});
+        }
+    }
     const editBtn = document.getElementById('edit-btn');
     if (window.currentUser && item.uid === window.currentUser.uid) {
         deleteBtn.classList.remove('hidden');
@@ -3605,6 +3725,9 @@ window.openBuyRequestDetail = function (id) {
         if (cleanPhone) {
             const waMsg = `Merhaba ${rq.buyerName || ''}, ORONTES üzerindeki "${rq.title}" alım talebiniz için ürünüm/teklifim var. Görüşmek isterim.`;
             waBtn.href = `https://wa.me/90${cleanPhone}?text=${encodeURIComponent(waMsg)}`;
+            waBtn.dataset.contactKind = 'alimTalebi';
+            waBtn.dataset.contactId = rq.id;
+            waBtn.dataset.contactCategory = rq.category || '';
             waBtn.classList.remove('hidden');
         } else {
             waBtn.classList.add('hidden');
@@ -6810,7 +6933,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.10.08';
+window.ORONTES_BUILD = '2026.10.09';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
