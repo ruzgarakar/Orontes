@@ -1723,6 +1723,129 @@ window.openConsentBanner = function() {
     }
 })();
 
+/* ------------------------------- BÖLÜMLER (SEKMELER) -------------------------------
+   Sayfa dört bölüme ayrıldı; aynı anda yalnızca biri görünür. Hiçbir bölüm silinmedi.
+   Adres çubuğunda #vitrin, #talepler, #birlikte, #hasat ile doğrudan açılabilir; geri tuşu çalışır. */
+window.VIEWS = {
+    vitrin: ['filter-section', 'listings-main'],
+    talepler: ['buyrequests-section'],
+    birlikte: ['groupbuys-section'],
+    hasat: ['harvest-section']
+};
+window.VIEW_KEY = 'orontes_view';
+window.WELCOME_KEY = 'orontes_welcomed';
+window.currentView = null;
+
+window.scrollToElement = function (el) {
+    if (!el) return;
+    const header = document.querySelector('header');
+    const offset = (header ? header.offsetHeight : 0) + 8;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+};
+
+window.showView = function (name, opts) {
+    const o = Object.assign({ scroll: true, push: true }, opts || {});
+    if (!window.VIEWS[name]) name = 'vitrin';
+    Object.entries(window.VIEWS).forEach(([view, ids]) => {
+        ids.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', view !== name);
+        });
+    });
+    document.querySelectorAll('[data-view-tab]').forEach((btn) => {
+        if (btn.dataset.viewTab === name) btn.setAttribute('aria-current', 'page');
+        else btn.removeAttribute('aria-current');
+    });
+    const changed = window.currentView !== name;
+    window.currentView = name;
+    try { localStorage.setItem(window.VIEW_KEY, name); } catch (e) {}
+    if (o.push && changed) {
+        try { history.pushState({ view: name }, '', window.location.pathname + '#' + name); } catch (e) {}
+    }
+    // Bölüme bilerek gelindi: daha önce "Gizle" ile kapatılmışsa içeriği aç
+    const collapsible = { hasat: ['harvest-body', 'harvest-collapse-btn', 'orontes_harvest_open'], birlikte: ['groupbuys-body', 'gb-collapse-btn', 'orontes_gb_open'] }[name];
+    if (collapsible) {
+        const body = document.getElementById(collapsible[0]);
+        if (body && body.classList.contains('hidden') && typeof window.toggleCollapse === 'function') window.toggleCollapse(...collapsible);
+    }
+    if (name === 'vitrin') {
+        // Gizliyken çizilen haritalar boyutunu yeniden hesaplamalı
+        setTimeout(() => {
+            try { if (window.globalMapInstance) window.globalMapInstance.invalidateSize(); } catch (e) {}
+            try { if (window.districtMapInstance) window.districtMapInstance.invalidateSize(); } catch (e) {}
+        }, 150);
+    }
+    if (o.scroll) {
+        const first = document.getElementById(window.VIEWS[name][0]);
+        const hero = document.getElementById('hero-section');
+        // Kullanıcı sayfanın üstündeyse kaydırma; aşağıdaysa bölümün başına götür
+        if (first && hero && window.scrollY > hero.offsetTop + hero.offsetHeight - 80) window.scrollToElement(first);
+    }
+    if (changed) window.track('view_section', { section: name });
+};
+
+/* Bir öğeyi gösterir: önce bulunduğu bölüme geçer, sonra oraya kaydırır */
+window.goToSection = function (elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const view = Object.keys(window.VIEWS).find((v) => window.VIEWS[v].some((id) => {
+        const box = document.getElementById(id);
+        return box && (box === el || box.contains(el));
+    }));
+    if (view) window.showView(view, { scroll: false });
+    setTimeout(() => window.scrollToElement(el), 60);
+};
+
+window.toggleAdvancedFilters = function () {
+    const sec = document.getElementById('filter-section');
+    const btn = document.getElementById('adv-filter-toggle');
+    if (!sec) return;
+    const open = sec.classList.toggle('adv-open');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+};
+
+/* İlk giriş ekranı */
+window.openWelcome = function () {
+    const box = document.getElementById('welcome-overlay');
+    if (box) box.classList.remove('hidden');
+};
+window.chooseWelcome = function (choice) {
+    try { localStorage.setItem(window.WELCOME_KEY, '1'); } catch (e) {}
+    const box = document.getElementById('welcome-overlay');
+    if (box) box.classList.add('hidden');
+    window.track('welcome_choice', { choice: choice });
+    if (choice === 'ilan') {
+        window.showView('vitrin', { scroll: false });
+        if (typeof window.openFormModal === 'function') window.openFormModal();
+        return;
+    }
+    window.showView(choice);
+    const first = document.getElementById((window.VIEWS[choice] || window.VIEWS.vitrin)[0]);
+    if (first) setTimeout(() => window.scrollToElement(first), 60);
+};
+
+window.addEventListener('popstate', () => {
+    const h = (window.location.hash || '').replace('#', '');
+    if (window.VIEWS[h]) window.showView(h, { push: false });
+});
+
+(function initViews() {
+    const start = () => {
+        const params = new URLSearchParams(window.location.search);
+        const hash = (window.location.hash || '').replace('#', '');
+        const deepLink = params.get('ilan') ? 'vitrin' : params.get('talep') ? 'talepler' : params.get('birlikte') ? 'birlikte' : null;
+        let saved = null;
+        try { saved = localStorage.getItem(window.VIEW_KEY); } catch (e) {}
+        const initial = window.VIEWS[hash] ? hash : (deepLink || (window.VIEWS[saved] ? saved : 'vitrin'));
+        window.showView(initial, { scroll: false, push: false });
+        let welcomed = null;
+        try { welcomed = localStorage.getItem(window.WELCOME_KEY); } catch (e) {}
+        if (!welcomed && !hash && !deepLink) window.openWelcome();
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
 /* İlanda fotoğraf yoksa gösterilen yer tutucu.
    Önceden stok (Unsplash) fotoğraflar kullanılıyordu; alıcı bunları gerçek ürün fotoğrafı sanabilirdi.
    Artık kategori adını taşıyan sade bir görsel üretiliyor ve veritabanına kaydedilmiyor. */
@@ -2411,7 +2534,7 @@ function updateMarqueeData() {
 
     if (items.length === 0) {
         const brCountEmpty = (window.buyRequests || []).filter(r => (r.status || 'Açık') === 'Açık').length;
-        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span>${brCountEmpty > 0 ? `<button onclick="document.getElementById('buyrequests-section').scrollIntoView({behavior:'smooth'})" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">🤝 ${brCountEmpty} Aktif Alım Talebi</button>` : ''}</div>`;
+        container.innerHTML = `<div class="flex space-x-8 items-center px-4"><span class="font-bold text-lux-gold uppercase">Canlı Piyasa Endeksi:</span><span>Sitede henüz aktif ilan bulunmuyor.</span>${brCountEmpty > 0 ? `<button onclick="window.goToSection('buyrequests-section')" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">🤝 ${brCountEmpty} Aktif Alım Talebi</button>` : ''}</div>`;
         return;
     }
 
@@ -2427,14 +2550,14 @@ function updateMarqueeData() {
 
     const openGbCount = (window.groupBuys || []).filter(g => (g.status || 'Açık') !== 'Kapandı').length;
     if (openGbCount > 0) {
-        contentHTML += `<button onclick="document.getElementById('groupbuys-section').scrollIntoView({behavior:'smooth'})" title="Birlikte al kampanyaları" class="bg-lux-olive hover:bg-lux-dark text-white font-extrabold px-2.5 py-1 rounded-lg border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+        contentHTML += `<button onclick="window.goToSection('groupbuys-section')" title="Birlikte al kampanyaları" class="bg-lux-olive hover:bg-lux-dark text-white font-extrabold px-2.5 py-1 rounded-lg border border-lux-gold/30 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
             <span>👥</span><span>BİRLİKTE AL: ${openGbCount} Aktif Kampanya</span>
         </button>`;
     }
 
     const openBrCount = (window.buyRequests || []).filter(r => (r.status || 'Açık') === 'Açık').length;
     if (openBrCount > 0) {
-        contentHTML += `<button onclick="document.getElementById('buyrequests-section').scrollIntoView({behavior:'smooth'})" title="Alıcıların açtığı alım talepleri" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-extrabold px-2.5 py-1 rounded-lg border border-lux-dark/20 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
+        contentHTML += `<button onclick="window.goToSection('buyrequests-section')" title="Alıcıların açtığı alım talepleri" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-extrabold px-2.5 py-1 rounded-lg border border-lux-dark/20 cursor-pointer whitespace-nowrap transition flex items-center space-x-1">
             <span>🤝</span><span>ALICI ARIYOR: ${openBrCount} Aktif Alım Talebi</span>
         </button>`;
     }
@@ -3494,8 +3617,7 @@ window.changeBuyRequestPage = function (page) {
     const totalPages = Math.max(1, Math.ceil((window.filteredBuyRequests || []).length / window.brItemsPerPage));
     window.brCurrentPage = Math.min(Math.max(1, page), totalPages);
     window.renderBuyRequests();
-    const sec = document.getElementById('buyrequests-section');
-    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.goToSection('buyrequests-section');
 };
 
 /* ---- İlçe seçim çipleri (form) ---- */
@@ -3678,8 +3800,7 @@ window.handleBuyRequestSubmit = async function (e) {
             window.showToast("🤝 Alım talebiniz yayınlandı! Üreticiler size teklif gönderebilir.", "success");
         }
         window.closeBuyRequestForm();
-        const sec = document.getElementById('buyrequests-section');
-        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.goToSection('buyrequests-section');
     } catch (err) {
         console.error(err);
         window.showToast("Talep kaydedilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
@@ -4298,8 +4419,7 @@ window.harvestSearchListings = function (category, keyword) {
 
     window.filterListings();
     window.showToast(`🔎 "${keyword}" için vitrin ilanları listelendi.`, "success");
-    const target = document.getElementById('filter-section');
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.goToSection('filter-section');
 };
 
 /* Takvimden alım talebine köprü */
@@ -4335,6 +4455,26 @@ document.addEventListener('DOMContentLoaded', () => {
    ========================================================================================= */
 
 window.I18N_AR = {
+    "bn.showcase": "المعرض",
+    "bn.requests": "الطلبات",
+    "bn.post": "أضف إعلانًا",
+    "bn.group": "شراء جماعي",
+    "bn.harvest": "الحصاد",
+    "filter.more": "فلاتر أخرى: الترتيب، السعر، الخريطة، القريب مني",
+    "welcome.reopen": "ماذا تريد أن تفعل؟",
+    "welcome.title": "أهلاً بك! ماذا تريد أن تفعل؟",
+    "welcome.sub": "سننقلك مباشرة إلى القسم المناسب. يمكنك التغيير لاحقًا من القائمة السفلية.",
+    "welcome.buy": "أبحث عن منتج أو خدمة",
+    "welcome.buySub": "حمضيات، زيت زيتون، أشغال يدوية، حرفيون، نقل...",
+    "welcome.sell": "أريد بيع منتجي أو خدمتي",
+    "welcome.sellSub": "أضف إعلانًا مجانيًا، وسيتواصل معك المشترون عبر واتساب.",
+    "welcome.request": "لم أجد ما أبحث عنه، سأترك طلبًا",
+    "welcome.requestSub": "اكتب ما تبحث عنه ودع المنتجين يرسلون لك العروض.",
+    "welcome.group": "أريد الشراء بالجملة مع جيراني",
+    "welcome.groupSub": "اجتمعوا واحصلوا على سعر الجملة.",
+    "welcome.harvest": "أريد معرفة مواسم المنتجات",
+    "welcome.harvestSub": "روزنامة الحصاد والمواسم في هاتاي.",
+    "welcome.skip": "سأتصفح فقط",
     "nav.login": "تسجيل الدخول",
     "nav.register": "إنشاء حساب",
     "nav.account": "حسابي",
@@ -4635,8 +4775,7 @@ window.selectDistrictFromMap = function (district) {
     if (distFilter) distFilter.value = district;
     window.filterListings();
     window.showToast(`📍 ${district} ilçesinin ilanları listelendi.`, "success");
-    const grid = document.getElementById('listings-grid');
-    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.goToSection('listings-grid');
     if (window.districtMapInstance) window.renderDistrictMap();
 };
 
@@ -4945,6 +5084,9 @@ window.handleDeepLink = async function () {
     const listingId = params.get('ilan');
     const requestId = params.get('talep');
     const groupId = params.get('birlikte');
+    if (listingId) window.showView('vitrin', { scroll: false, push: false });
+    else if (requestId) window.showView('talepler', { scroll: false, push: false });
+    else if (groupId) window.showView('birlikte', { scroll: false, push: false });
 
     if (listingId) {
         let item = (window.listings || []).find(l => l.id === listingId);
@@ -5953,8 +6095,7 @@ window.handleGroupBuySubmit = async function (e) {
         }
 
         window.closeGroupBuyForm();
-        const sec = document.getElementById('groupbuys-section');
-        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.goToSection('groupbuys-section');
     } catch (err) {
         window.showToast("Kampanya kaydedilemedi: " + (err && err.message ? err.message : 'Bilinmeyen hata'), "error");
     } finally {
@@ -6933,7 +7074,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.10.09';
+window.ORONTES_BUILD = '2026.10.15';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
