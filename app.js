@@ -1825,9 +1825,11 @@ window.chooseWelcome = function (choice) {
     if (first) setTimeout(() => window.scrollToElement(first), 60);
 };
 
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (e) => {
+    // Geri/ileri tuşu: adresteki bölüme, yoksa o sayfa kaydındaki bölüme dön
     const h = (window.location.hash || '').replace('#', '');
-    if (window.VIEWS[h]) window.showView(h, { push: false });
+    const v = window.VIEWS[h] ? h : ((e.state && e.state.view) || 'vitrin');
+    window.showView(v, { push: false });
 });
 
 (function initViews() {
@@ -1839,6 +1841,7 @@ window.addEventListener('popstate', () => {
         try { saved = localStorage.getItem(window.VIEW_KEY); } catch (e) {}
         const initial = window.VIEWS[hash] ? hash : (deepLink || (window.VIEWS[saved] ? saved : 'vitrin'));
         window.showView(initial, { scroll: false, push: false });
+        try { history.replaceState({ view: initial }, ''); } catch (e) {}
         let welcomed = null;
         try { welcomed = localStorage.getItem(window.WELCOME_KEY); } catch (e) {}
         if (!welcomed && !hash && !deepLink) window.openWelcome();
