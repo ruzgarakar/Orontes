@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- app.js ile eşleşmesi gereken sürüm damgası (ikisi de aynı olmalı) -->
-    <meta name="orontes-build" content="2026.10.09">
+    <meta name="orontes-build" content="2026.10.15">
     <title>ORONTES | Hatay Yerel Pazaryeri & Hizmet Ağı</title>
     <meta name="description" content="Hatay'ın yerel ürün ve hizmet ilanları: narenciye, zeytinyağı, defne sabunu, el sanatları ve daha fazlası. Üreticiden doğrudan, aracısız ve komisyonsuz.">
     <link rel="canonical" href="https://ruzgarakar.github.io/Orontes/">
@@ -56,7 +56,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <!-- Harici Stil Dosyası -->
-    <link rel="stylesheet" href="style.css?v=2026.10.09">
+    <link rel="stylesheet" href="style.css?v=2026.10.15">
     <!-- YENİ: QR Kod Kütüphanesi -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- YENİ: Belge karekodu okuyucu (yönetici doğrulama paneli için) -->
@@ -83,10 +83,19 @@
         @media (max-width: 640px) {
             #listings-grid.list-mode .verified-card-badge { font-size: 8px; line-height: 1.15; padding: 2px 5px; gap: 3px; }
         }
+        /* Bölüm sekmeleri: etkin sekme altın renkli */
+        .view-tab[aria-current="page"] { background: #bca879 !important; color: #07332c !important; font-weight: 700; }
+        .view-tab[aria-current="page"] i { color: #07332c !important; }
+        .bottom-nav-item[aria-current="page"] { color: #bca879; font-weight: 700; box-shadow: inset 0 3px 0 #bca879; }
+        .bottom-nav-item[aria-current="page"] .bn-dot { opacity: 1; }
+        /* Telefonda ek filtreler "Diğer filtreler" düğmesiyle açılır */
+        @media (max-width: 639px) {
+            #filter-section:not(.adv-open) .adv-filter { display: none !important; }
+        }
     </style>
 
 </head>
-<body class="text-gray-800 font-sans antialiased pb-12">
+<body class="text-gray-800 font-sans antialiased pb-24 sm:pb-12">
 
     <!-- LANSMAN HEDİYESİ DUYURU BARI -->
     <div class="bg-gradient-to-r from-amber-600 via-lux-gold to-amber-700 text-lux-dark text-center text-xs font-bold py-2 px-4 shadow-inner flex justify-center items-center space-x-2">
@@ -107,13 +116,9 @@
                 </div>
 
                 <div class="flex sm:hidden items-center space-x-1.5">
-                    <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth'});" class="bg-lux-olive/60 text-lux-sage px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1">
+                    <button onclick="window.goToSection('filter-section')" class="bg-lux-olive/60 text-lux-sage px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1">
                         <i class="fa-solid fa-filter"></i>
                         <span>Filtre</span>
-                    </button>
-                    <button onclick="openFormModal()" class="bg-lux-gold text-lux-dark font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow-sm">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>İlan Ver</span>
                     </button>
                 </div>
             </div>
@@ -170,27 +175,27 @@
     </div>
 
     <!-- HERO SECTION -->
-    <section class="bg-lux-dark text-white py-8 sm:py-10 px-4 border-b border-lux-olive/30">
+    <section id="hero-section" class="bg-lux-dark text-white pt-5 pb-9 sm:py-10 px-4 border-b border-lux-olive/30">
         <div class="max-w-7xl mx-auto text-center">
             <h1 class="text-xl sm:text-4xl font-light tracking-tight mb-2" data-i18n="hero.title">Hatay’ın Yerel Pazaryeri ve Hizmet Ağı</h1>
             <p class="text-lux-sage max-w-xl mx-auto text-xs sm:text-sm font-light" data-i18n="hero.sub">Üreticiden, el emeğinden ve yerel ustadan doğrudan alıcıya; komisyonsuz dijital pazar yeri.</p>
+            <button type="button" onclick="window.openWelcome()" class="mt-2 text-[11px] sm:text-xs text-lux-gold font-semibold underline underline-offset-2 hover:text-white transition"><i class="fa-regular fa-compass mr-1"></i><span data-i18n="welcome.reopen">Ne yapmak istiyorsun?</span></button>
 
-            <!-- YENİ: BÖLÜM HIZLI GEÇİŞ NAVİGASYONU -->
-            <div class="flex flex-wrap justify-center gap-2 mt-5">
-                <button onclick="document.getElementById('filter-section').scrollIntoView({behavior:'smooth', block:'start'});" class="bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-[11px] sm:text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
+            <!-- BÖLÜM SEKMELERİ (bilgisayar ve tablet). Telefonda alttaki menü kullanılır. -->
+            <nav aria-label="Bölümler" class="hidden sm:flex flex-wrap justify-center gap-2 mt-5">
+                <button type="button" data-view-tab="vitrin" onclick="window.showView('vitrin')" class="view-tab bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
                     <i class="fa-solid fa-store text-lux-gold"></i><span data-i18n="nav.showcase">Vitrin İlanları</span>
                 </button>
-                <button onclick="document.getElementById('buyrequests-section').scrollIntoView({behavior:'smooth', block:'start'});" class="bg-lux-gold hover:bg-[#ad9868] text-lux-dark font-bold text-[11px] sm:text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-cart-shopping"></i><span data-i18n="nav.buyRequests">Alım Talepleri (Ne Arıyorsun?)</span>
+                <button type="button" data-view-tab="talepler" onclick="window.showView('talepler')" class="view-tab bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-cart-shopping text-lux-gold"></i><span data-i18n="nav.buyRequests">Alım Talepleri (Ne Arıyorsun?)</span>
                 </button>
-                <button onclick="document.getElementById('harvest-section').scrollIntoView({behavior:'smooth', block:'start'});" class="bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-[11px] sm:text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-calendar-days text-lux-gold"></i><span data-i18n="nav.harvest">Hasat & Sezon Takvimi</span>
-                </button>
-                <button onclick="document.getElementById('groupbuys-section').scrollIntoView({behavior:'smooth', block:'start'});" class="bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-[11px] sm:text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
+                <button type="button" data-view-tab="birlikte" onclick="window.showView('birlikte')" class="view-tab bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
                     <i class="fa-solid fa-people-group text-lux-gold"></i><span data-i18n="nav.groupBuy">Birlikte Al</span>
                 </button>
-
-            </div>
+                <button type="button" data-view-tab="hasat" onclick="window.showView('hasat')" class="view-tab bg-lux-olive/50 hover:bg-lux-olive text-white font-semibold text-xs px-3.5 py-2 rounded-xl border border-lux-gold/20 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-calendar-days text-lux-gold"></i><span data-i18n="nav.harvest">Hasat & Sezon Takvimi</span>
+                </button>
+            </nav>
         </div>
     </section>
 
@@ -204,7 +209,7 @@
                 </div>
 
                 <div class="w-full lg:w-auto flex flex-wrap sm:flex-nowrap gap-2">
-                    <select id="category-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
+                    <select id="category-filter" onchange="filterListings()" class="flex-1 min-w-0 sm:flex-none sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Kategoriler</option>
                         <optgroup label="Tarım & Yöresel">
                             <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
@@ -230,7 +235,7 @@
                         <option value="Diğer">📦 Diğer</option>
                     </select>
 
-                    <select id="district-filter" onchange="filterListings()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
+                    <select id="district-filter" onchange="filterListings()" class="flex-1 min-w-0 sm:flex-none sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs text-gray-700">
                         <option value="">Tüm Hatay (İlçeler)</option>
                         <option value="Altınözü">Altınözü</option>
                         <option value="Antakya">Antakya</option>
@@ -250,27 +255,32 @@
                         <option value="Hatay Dışı">⚠️ Hatay Dışı</option>
                     </select>
 
-                    <select id="sort-filter" onchange="filterListings()" class="w-full sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs font-medium text-lux-dark">
+                    <select id="sort-filter" onchange="filterListings()" class="adv-filter w-full sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-olive bg-white text-xs font-medium text-lux-dark">
                         <option value="newest">En Yeniler</option>
                         <option value="oldest">En Eskiler</option>
                         <option value="price-low">Fiyat: Artan</option>
                         <option value="price-high">Fiyat: Azalan</option>
                     </select>
 
-                    <button id="district-map-btn" onclick="window.toggleDistrictMap()" title="Haritadan İlçe Seç" data-i18n-title="filter.districtMap" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs font-semibold whitespace-nowrap">
+                    <button id="district-map-btn" onclick="window.toggleDistrictMap()" title="Haritadan İlçe Seç" data-i18n-title="filter.districtMap" class="adv-filter bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs font-semibold whitespace-nowrap">
                         <i class="fa-solid fa-map-location-dot"></i>
                     </button>
 
-                    <button id="nearby-btn" onclick="window.toggleNearbyMode()" title="Yakınımdaki İlanlar" data-i18n-title="filter.nearby" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
+                    <button id="nearby-btn" onclick="window.toggleNearbyMode()" title="Yakınımdaki İlanlar" data-i18n-title="filter.nearby" class="adv-filter bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-location-crosshairs"></i>
                     </button>
-                    <button onclick="resetAllFilters()" title="Filtreleri Sıfırla" class="bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
+                    <button onclick="resetAllFilters()" title="Filtreleri Sıfırla" class="adv-filter bg-lux-bg hover:bg-gray-200 text-gray-600 px-3 py-2 rounded-xl transition text-xs">
                         <i class="fa-solid fa-rotate-right"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between border-t border-gray-100 pt-2 gap-2 text-xs">
+            <!-- Telefonda ek filtreleri aç/kapat -->
+            <button type="button" id="adv-filter-toggle" onclick="window.toggleAdvancedFilters()" aria-expanded="false" class="sm:hidden w-full flex items-center justify-center gap-1.5 text-[11px] font-semibold text-lux-olive bg-lux-bg/60 border border-gray-200 rounded-xl py-1.5">
+                <i class="fa-solid fa-sliders"></i><span data-i18n="filter.more">Diğer filtreler: sıralama, fiyat, harita, yakınımdakiler</span>
+            </button>
+
+            <div class="adv-filter flex flex-wrap items-center justify-between border-t border-gray-100 pt-2 gap-2 text-xs">
                 <div class="flex items-center space-x-2">
                     <span class="text-gray-400 font-semibold text-[10px] uppercase">Fiyat (TL):</span>
                     <input type="number" id="min-price-filter" onkeyup="filterListings()" placeholder="Min TL" class="w-20 border border-gray-200 p-1.5 rounded-lg text-xs bg-lux-bg/20 outline-none">
@@ -298,7 +308,7 @@
     </section>
 
     <!-- İLAN LİSTESİ -->
-    <main class="max-w-7xl mx-auto px-4 py-8">
+    <main id="listings-main" class="max-w-7xl mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-base font-semibold text-lux-dark flex items-center space-x-2">
                 <span data-i18n="list.title">Vitrin İlanları</span>
@@ -322,7 +332,7 @@
     </main>
 
     <!-- ==================== YENİ: ALIM TALEPLERİ (TERSİNE PAZAR YERİ) ==================== -->
-    <section id="buyrequests-section" class="max-w-7xl mx-auto px-4 pb-4">
+    <section id="buyrequests-section" class="max-w-7xl mx-auto px-4 pb-4 -mt-6 relative z-20">
         <div class="bg-lux-dark rounded-2xl p-4 sm:p-5 border border-lux-olive/40 shadow-sm">
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
                 <div>
@@ -348,7 +358,7 @@
                 </div>
 
                 <div class="w-full lg:w-auto flex flex-wrap sm:flex-nowrap gap-2">
-                    <select id="br-category-filter" onchange="window.executeBuyRequestFilters()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-gold bg-white text-xs text-gray-700">
+                    <select id="br-category-filter" onchange="window.executeBuyRequestFilters()" class="flex-1 min-w-0 sm:flex-none sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-gold bg-white text-xs text-gray-700">
                         <option value="">Tüm Kategoriler</option>
                         <optgroup label="Tarım & Yöresel">
                             <option value="Zeytin & Yağ">🫒 Zeytin & Yağ</option>
@@ -374,7 +384,7 @@
                         <option value="Diğer">📦 Diğer</option>
                     </select>
 
-                    <select id="br-district-filter" onchange="window.executeBuyRequestFilters()" class="w-1/2 sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-gold bg-white text-xs text-gray-700">
+                    <select id="br-district-filter" onchange="window.executeBuyRequestFilters()" class="flex-1 min-w-0 sm:flex-none sm:w-auto py-2 px-3 border border-gray-200 rounded-xl focus:outline-none focus:border-lux-gold bg-white text-xs text-gray-700">
                         <option value="">Tüm Hatay (İlçeler)</option>
                         <option value="Altınözü">Altınözü</option>
                         <option value="Antakya">Antakya</option>
@@ -416,7 +426,7 @@
     </section>
 
     <!-- ==================== YENİ: HATAY İNTERAKTİF HASAT & SEZON TAKVİMİ ==================== -->
-    <section id="harvest-section" class="max-w-7xl mx-auto px-4 my-10">
+    <section id="harvest-section" class="max-w-7xl mx-auto px-4 -mt-6 mb-10 relative z-20">
         <div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <div>
@@ -474,7 +484,7 @@
 
 
     <!-- ==================== YENİ: TOPLU ALIM — "BİRLİKTE AL" ==================== -->
-    <section id="groupbuys-section" class="max-w-7xl mx-auto px-4 my-10">
+    <section id="groupbuys-section" class="max-w-7xl mx-auto px-4 -mt-6 mb-10 relative z-20">
         <div class="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4 sm:p-6">
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
                 <div>
@@ -1851,8 +1861,64 @@
     <!-- Kütüphaneler ve Harici JavaScript Dosyası -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <!-- TELEFON ALT MENÜSÜ: bölümler arasında tek dokunuşla geçiş -->
+    <nav id="bottom-nav" aria-label="Bölümler" class="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-lux-dark border-t border-lux-olive/60 shadow-[0_-4px_16px_rgba(0,0,0,0.15)]" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div class="grid grid-cols-5 items-end text-[10px] text-lux-sage">
+            <button type="button" data-view-tab="vitrin" onclick="window.showView('vitrin')" class="bottom-nav-item flex flex-col items-center gap-0.5 py-2">
+                <i class="fa-solid fa-store text-base"></i><span data-i18n="bn.showcase">Vitrin</span>
+            </button>
+            <button type="button" data-view-tab="talepler" onclick="window.showView('talepler')" class="bottom-nav-item flex flex-col items-center gap-0.5 py-2">
+                <i class="fa-solid fa-cart-shopping text-base"></i><span data-i18n="bn.requests">Talepler</span>
+            </button>
+            <button type="button" onclick="openFormModal()" class="flex flex-col items-center gap-0.5 pb-2 -mt-4">
+                <span class="w-12 h-12 rounded-full bg-lux-gold text-lux-dark flex items-center justify-center shadow-lg border-4 border-lux-dark"><i class="fa-solid fa-plus text-lg"></i></span>
+                <span class="text-lux-gold font-bold" data-i18n="bn.post">İlan Ver</span>
+            </button>
+            <button type="button" data-view-tab="birlikte" onclick="window.showView('birlikte')" class="bottom-nav-item flex flex-col items-center gap-0.5 py-2">
+                <i class="fa-solid fa-people-group text-base"></i><span data-i18n="bn.group">Birlikte Al</span>
+            </button>
+            <button type="button" data-view-tab="hasat" onclick="window.showView('hasat')" class="bottom-nav-item flex flex-col items-center gap-0.5 py-2">
+                <i class="fa-solid fa-calendar-days text-base"></i><span data-i18n="bn.harvest">Hasat</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- İLK GİRİŞ: "Ne yapmak istiyorsun?" -->
+    <div id="welcome-overlay" class="hidden fixed inset-0 z-[70] bg-lux-dark/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+        <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-1">
+                <h2 id="welcome-title" class="text-lg font-bold text-lux-dark" data-i18n="welcome.title">Hoş geldin! Ne yapmak istiyorsun?</h2>
+                <button type="button" onclick="window.chooseWelcome('vitrin')" aria-label="Kapat" class="text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-500 mb-4" data-i18n="welcome.sub">Seni doğrudan ilgili bölüme götürelim. Sonra alttaki menüden istediğin zaman değiştirebilirsin.</p>
+            <div class="grid grid-cols-1 gap-2.5">
+                <button type="button" onclick="window.chooseWelcome('vitrin')" class="welcome-card flex items-center gap-3 text-left p-3.5 rounded-2xl border border-gray-200 hover:border-lux-gold hover:bg-lux-bg/50 transition">
+                    <span class="w-11 h-11 shrink-0 rounded-xl bg-lux-dark text-lux-gold flex items-center justify-center text-lg"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <span><b class="block text-sm text-lux-dark" data-i18n="welcome.buy">Ürün veya hizmet arıyorum</b><span class="block text-[11px] text-gray-500" data-i18n="welcome.buySub">Narenciye, zeytinyağı, el emeği, usta, nakliye...</span></span>
+                </button>
+                <button type="button" onclick="window.chooseWelcome('ilan')" class="welcome-card flex items-center gap-3 text-left p-3.5 rounded-2xl border border-gray-200 hover:border-lux-gold hover:bg-lux-bg/50 transition">
+                    <span class="w-11 h-11 shrink-0 rounded-xl bg-lux-gold text-lux-dark flex items-center justify-center text-lg"><i class="fa-solid fa-plus"></i></span>
+                    <span><b class="block text-sm text-lux-dark" data-i18n="welcome.sell">Ürünümü veya hizmetimi satmak istiyorum</b><span class="block text-[11px] text-gray-500" data-i18n="welcome.sellSub">Ücretsiz ilan ver, alıcılar WhatsApp'tan sana ulaşsın.</span></span>
+                </button>
+                <button type="button" onclick="window.chooseWelcome('talepler')" class="welcome-card flex items-center gap-3 text-left p-3.5 rounded-2xl border border-gray-200 hover:border-lux-gold hover:bg-lux-bg/50 transition">
+                    <span class="w-11 h-11 shrink-0 rounded-xl bg-lux-dark text-lux-gold flex items-center justify-center text-lg"><i class="fa-solid fa-cart-shopping"></i></span>
+                    <span><b class="block text-sm text-lux-dark" data-i18n="welcome.request">Aradığımı bulamadım, talep bırakacağım</b><span class="block text-[11px] text-gray-500" data-i18n="welcome.requestSub">Ne aradığını yaz, üreticiler sana teklif versin.</span></span>
+                </button>
+                <button type="button" onclick="window.chooseWelcome('birlikte')" class="welcome-card flex items-center gap-3 text-left p-3.5 rounded-2xl border border-gray-200 hover:border-lux-gold hover:bg-lux-bg/50 transition">
+                    <span class="w-11 h-11 shrink-0 rounded-xl bg-lux-dark text-lux-gold flex items-center justify-center text-lg"><i class="fa-solid fa-people-group"></i></span>
+                    <span><b class="block text-sm text-lux-dark" data-i18n="welcome.group">Komşularımla birlikte toptan almak istiyorum</b><span class="block text-[11px] text-gray-500" data-i18n="welcome.groupSub">Birleşin, toptan fiyatı yakalayın.</span></span>
+                </button>
+                <button type="button" onclick="window.chooseWelcome('hasat')" class="welcome-card flex items-center gap-3 text-left p-3.5 rounded-2xl border border-gray-200 hover:border-lux-gold hover:bg-lux-bg/50 transition">
+                    <span class="w-11 h-11 shrink-0 rounded-xl bg-lux-dark text-lux-gold flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-days"></i></span>
+                    <span><b class="block text-sm text-lux-dark" data-i18n="welcome.harvest">Hangi ürün ne zaman çıkar, görmek istiyorum</b><span class="block text-[11px] text-gray-500" data-i18n="welcome.harvestSub">Hatay'ın hasat ve sezon takvimi.</span></span>
+                </button>
+            </div>
+            <button type="button" onclick="window.chooseWelcome('vitrin')" class="w-full mt-3 text-xs text-gray-500 hover:text-lux-dark py-2" data-i18n="welcome.skip">Sadece göz atacağım</button>
+        </div>
+    </div>
+
     <!-- ÇEREZ BİLDİRİMİ: yalnızca Google Analytics için onay ister; reddedilirse hiçbir analiz çerezi yüklenmez -->
-    <div id="consent-banner" class="hidden fixed bottom-0 inset-x-0 z-[60] p-3 sm:p-4">
+    <div id="consent-banner" class="hidden fixed bottom-16 sm:bottom-0 inset-x-0 z-[60] p-3 sm:p-4">
         <div class="max-w-xl mx-auto bg-white border border-gray-200 shadow-2xl rounded-2xl p-4 text-xs text-gray-700">
             <p class="font-bold text-lux-dark mb-1"><i class="fa-solid fa-cookie-bite text-lux-gold mr-1"></i> Çerez tercihi</p>
             <p class="leading-relaxed">Siteyi geliştirmek için ziyaret istatistiklerini (Google Analytics) kullanmak istiyoruz. Bu, tarayıcınıza analiz çerezleri yerleştirir. İzin vermezseniz site aynen çalışır. <a href="yasal.html#gizlilik" target="_blank" rel="noopener" class="text-lux-olive font-semibold underline">Ayrıntılar</a></p>
@@ -1863,6 +1929,6 @@
         </div>
     </div>
 
-    <script type="module" src="app.js?v=2026.10.09"></script>
+    <script type="module" src="app.js?v=2026.10.15"></script>
 </body>
 </html>
