@@ -15,7 +15,6 @@ const firebaseConfig = {
     measurementId: "G-WP8LYJG7N9"
 };
 const app = initializeApp(firebaseConfig);
-
 /* App Check: veritabanına yalnızca bu siteden gelen isteklerin ulaşmasını sağlar.
    Firebase Console > App Check bölümünde reCAPTCHA v3 anahtarı oluşturup aşağıya yapıştır.
    Anahtar boşken App Check devre dışı kalır, site normal çalışır. */
