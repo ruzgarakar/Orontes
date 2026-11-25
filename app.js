@@ -15,6 +15,7 @@ const firebaseConfig = {
     measurementId: "G-WP8LYJG7N9"
 };
 const app = initializeApp(firebaseConfig);
+
 /* App Check: veritabanına yalnızca bu siteden gelen isteklerin ulaşmasını sağlar.
    Firebase Console > App Check bölümünde reCAPTCHA v3 anahtarı oluşturup aşağıya yapıştır.
    Anahtar boşken App Check devre dışı kalır, site normal çalışır. */
@@ -7098,6 +7099,15 @@ window.I18N_FRAGMENTS = {
     "GÖNDERDİĞİM TALEP": "طلب أرسلته",
     "HASAT BİLDİRİMİ": "تنبيه حصاد",
     "FAVORİ BİLDİRİMİ": "تنبيه مفضلة",
+    "YÖNETİM BİLDİRİMİ": "إشعار من الإدارة",
+    "Şikâyetiniz incelendi: işlem yapıldı": "تمت مراجعة شكواك: تم اتخاذ إجراء",
+    "Şikâyetiniz incelendi: reddedildi": "تمت مراجعة شكواك: رُفضت",
+    "İlanınız yayından kaldırıldı": "تمت إزالة إعلانك",
+    "İlanınızla ilgili bir şikâyet haklı bulundu": "تبيّن أن شكوى حول إعلانك محقّة",
+    "İlanınızla ilgili bir şikâyet incelendi": "تمت مراجعة شكوى حول إعلانك",
+    "Sorun bildiriminiz çözüldü": "تم حل البلاغ الذي قدمته",
+    "Sorun bildiriminiz reddedildi": "تم رفض البلاغ الذي قدمته",
+    "Sizinle ilgili bir sorun bildirimi incelendi": "تمت مراجعة بلاغ يخصّك",
     "İlanı İncele": "عرض الإعلان",
     "Gönderen:": "المُرسل:",
     "Not:": "ملاحظة:"
