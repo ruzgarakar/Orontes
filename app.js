@@ -52,8 +52,14 @@ window.pendingOffersCount = 0;
 window.harvestAlertCount = 0;
 window.priceAlertCount = 0;
 window.currentPendingOfferIds = [];
+window.offerResultCount = 0;     // gönderdiğim tekliflerin sonucu (onay / ret)
+window.systemNotifCount = 0;     // yönetimden gelen bildirimler (şikâyet / sorun sonucu)
+window.offerResultNotifs = [];
+window.systemNotifs = [];
 
 window.notifKeyOffer = function (offerId) { return 'offer_' + offerId; };
+window.notifKeyOfferResult = function (offerId, status) { return 'offerres_' + offerId + '_' + status; };
+window.notifKeySystem = function (id) { return 'sys_' + id; };
 window.notifKeyPrice = function (listingId, changeDate) { return 'price_' + listingId + '_' + (changeDate || 0); };
 
 window.isNotifSeen = function (key) {
@@ -121,6 +127,107 @@ window.processPriceAlerts = function () {
     });
 
     window.updateNotificationBadge();
+};
+
+/* Gönderdiğim tekliflerin sonucu: karşı taraf onaylayınca / reddedince bildirim.
+   Yalnızca karar zamanı (statusAt) kayıtlı tekliflere bakılır; böylece bu özellikten
+   önce verilmiş eski kararlar toplu bildirim olarak düşmez. */
+window.processOfferResults = function (offersObj) {
+    const out = [];
+    Object.keys(offersObj || {}).forEach(id => {
+        const o = offersObj[id];
+        if (!o || !o.statusAt) return;
+        if (o.status !== 'Onaylandı' && o.status !== 'Reddedildi') return;
+        out.push({
+            id: id,
+            key: window.notifKeyOfferResult(id, o.status),
+            status: o.status,
+            title: o.listingTitle || 'İlan'
+        });
+    });
+    window.offerResultNotifs = out;
+    window.offerResultCount = out.filter(n => !window.isNotifSeen(n.key)).length;
+
+    out.forEach(n => {
+        window.maybeToastOnce(
+            n.key,
+            n.status === 'Onaylandı'
+                ? `✅ "${n.title}" için gönderdiğiniz teklif kabul edildi! Gelen kutunuza bakın.`
+                : `"${n.title}" için gönderdiğiniz teklif reddedildi.`,
+            n.status === 'Onaylandı' ? 'success' : 'warning'
+        );
+    });
+    window.updateNotificationBadge();
+};
+
+/* Yönetimden gelen bildirimleri işler: rozeti günceller + (bir kez) yeşil kutu gösterir */
+window.processSystemNotifs = function (obj) {
+    const out = Object.keys(obj || {})
+        .map(id => Object.assign({}, obj[id] || {}, { id: id, key: window.notifKeySystem(id) }))
+        .filter(n => n.title);
+    window.systemNotifs = out;
+    window.systemNotifCount = out.filter(n => !window.isNotifSeen(n.key)).length;
+    out.forEach(n => window.maybeToastOnce(n.key, `🛡️ ${n.title}. Gelen kutunuza bakın.`, 'success'));
+    window.updateNotificationBadge();
+};
+
+/* Yönetici: bir kullanıcının gelen kutusuna bildirim yazar */
+window.sendSystemNotification = async function (uid, type, title, body) {
+    if (!uid || !window.isCurrentUserAdmin()) return false;
+    try {
+        await push(ref(db, 'notifications/' + uid), {
+            type: type,
+            title: String(title || '').slice(0, 200),
+            body: String(body || '').slice(0, 1000),
+            date: Date.now()
+        });
+        return true;
+    } catch (err) {
+        console.warn('Bildirim gönderilemedi:', err);
+        return false;
+    }
+};
+
+/* Şikâyet sonucunu şikâyet edene ve ilan sahibine bildirir.
+   İlan sahibine şikâyet edenin kimliği SÖYLENMEZ. */
+window.notifyReportResult = async function (r) {
+    const title = r.listingTitle ? `"${r.listingTitle}"` : 'Bir ilan';
+    const ok = r.status === window.REPORT_STATUS.RESOLVED;
+    const removed = !!r.listingRemoved;
+
+    if (r.reporterUid) {
+        await window.sendSystemNotification(r.reporterUid, 'report_result',
+            ok ? 'Şikâyetiniz incelendi: işlem yapıldı' : 'Şikâyetiniz incelendi: reddedildi',
+            ok
+                ? `${title} için yaptığınız şikâyet haklı bulundu${removed ? ' ve ilan yayından kaldırıldı' : ''}. Teşekkür ederiz.`
+                : `${title} için yaptığınız şikâyet incelendi; kurallara aykırı bir durum bulunmadı.`);
+    }
+    if (r.listingOwnerUid && r.listingOwnerUid !== r.reporterUid) {
+        await window.sendSystemNotification(r.listingOwnerUid, 'report_about_you',
+            ok
+                ? (removed ? 'İlanınız yayından kaldırıldı' : 'İlanınızla ilgili bir şikâyet haklı bulundu')
+                : 'İlanınızla ilgili bir şikâyet incelendi',
+            ok
+                ? `${title} ilanınız hakkında yapılan bir şikâyet incelendi ve haklı bulundu (sebep: ${r.reason || 'belirtilmedi'})${removed ? '; ilan yayından kaldırıldı' : ''}. Lütfen kullanım koşullarına uyun.`
+                : `${title} ilanınız hakkında yapılan bir şikâyet incelendi ve ilanınızda sorun bulunmadı. Bir şey yapmanız gerekmiyor.`);
+    }
+};
+
+/* Sorun bildirimi sonucunu bildirene ve karşı tarafa bildirir (bildirenin adı yazılmaz). */
+window.notifyDisputeResult = async function (d) {
+    const ctx = d.contextTitle ? `"${d.contextTitle}"` : 'Bir işlem';
+    const ok = d.status === window.DISPUTE_STATUS.RESOLVED;
+
+    if (d.reporterUid) {
+        await window.sendSystemNotification(d.reporterUid, 'dispute_result',
+            ok ? 'Sorun bildiriminiz çözüldü' : 'Sorun bildiriminiz reddedildi',
+            `${ctx} ile ilgili sorun bildiriminiz incelendi ve ${ok ? 'çözüldü olarak kapatıldı' : 'reddedildi'}.`);
+    }
+    if (d.counterpartyUid && d.counterpartyUid !== d.reporterUid) {
+        await window.sendSystemNotification(d.counterpartyUid, 'dispute_about_you',
+            'Sizinle ilgili bir sorun bildirimi incelendi',
+            `${ctx} işleminizle ilgili bir sorun bildirimi yapıldı ve incelendi. Sonuç: ${ok ? 'çözüldü olarak kapatıldı' : 'reddedildi, sizin açınızdan bir sorun bulunmadı'}.`);
+    }
 };
 
 window.globalMapInstance = null;
@@ -234,6 +341,8 @@ window.activeOffersListener = null;
 window.activeOffersQuery = null;
 window.activeOutgoingOffersListener = null;
 window.activeOutgoingOffersQuery = null;
+window.activeSystemNotifRef = null;
+window.activeSystemNotifListener = null;
 
 window.pendingOffersCount = 0;
 
@@ -328,6 +437,11 @@ onAuthStateChanged(auth, async (user) => {
         window.activeOutgoingOffersListener = null;
     }
 
+    if (window.activeSystemNotifListener && window.activeSystemNotifRef) {
+        off(window.activeSystemNotifRef, 'value', window.activeSystemNotifListener);
+        window.activeSystemNotifListener = null;
+    }
+
     if (user) {
         if (loggedOutBox) loggedOutBox.classList.add('hidden');
         if (loggedInBox) loggedInBox.classList.remove('hidden');
@@ -353,6 +467,8 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         if (typeof window.refreshHarvestAlertBadge === 'function') window.refreshHarvestAlertBadge();
+        // Hasat takvimi kullanıcı verisi gelmeden çizilmiş olabilir: "Bildirim Açık" düğmeleri doğru görünsün
+        if (typeof window.renderHarvestCalendar === 'function') window.renderHarvestCalendar();
         if (typeof window.refreshAdminButton === 'function') window.refreshAdminButton();
 
         window.activeOffersQuery = query(ref(db, 'offers'), orderByChild('sellerUid'), equalTo(user.uid));
@@ -385,11 +501,23 @@ onAuthStateChanged(auth, async (user) => {
 
         window.activeOutgoingOffersQuery = query(ref(db, 'offers'), orderByChild('buyerUid'), equalTo(user.uid));
         window.activeOutgoingOffersListener = onValue(window.activeOutgoingOffersQuery, (snapshot) => {
+            // Gönderdiğim teklif onaylanınca / reddedilince rozet + yeşil kutu
+            window.processOfferResults(snapshot.val() || {});
             const offersTabContent = document.getElementById('tab-content-offers');
             if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
                 window.loadIncomingOffers();
             }
         });
+
+        // Yönetimden gelen bildirimler (şikâyet ve sorun bildirimi sonuçları)
+        window.activeSystemNotifRef = ref(db, 'notifications/' + user.uid);
+        window.activeSystemNotifListener = onValue(window.activeSystemNotifRef, (snapshot) => {
+            window.processSystemNotifs(snapshot.val() || {});
+            const offersTabContent = document.getElementById('tab-content-offers');
+            if (offersTabContent && !offersTabContent.classList.contains('hidden')) {
+                window.loadIncomingOffers();
+            }
+        }, (err) => console.warn('Bildirimler okunamadı:', err));
 
     } else {
         if (loggedOutBox) loggedOutBox.classList.remove('hidden');
@@ -398,11 +526,16 @@ onAuthStateChanged(auth, async (user) => {
         window.pendingOffersCount = 0;
         window.harvestAlertCount = 0;
         window.priceAlertCount = 0;
+        window.offerResultCount = 0;
+        window.systemNotifCount = 0;
+        window.offerResultNotifs = [];
+        window.systemNotifs = [];
         window.lastInboxSeen = 0;
         window.seenNotifications = {};
         window.toastedNotifications = {};
         window.currentPendingOfferIds = [];
         window.updateNotificationBadge();
+        if (typeof window.renderHarvestCalendar === 'function') window.renderHarvestCalendar();
         if (typeof window.refreshAdminButton === 'function') window.refreshAdminButton();
     }
     window.filterListings();
@@ -412,7 +545,9 @@ window.updateNotificationBadge = function() {
     const badge = document.getElementById('notification-badge');
     const totalNotifications = (window.pendingOffersCount || 0)
         + (window.harvestAlertCount || 0)
-        + (window.priceAlertCount || 0);
+        + (window.priceAlertCount || 0)
+        + (window.offerResultCount || 0)
+        + (window.systemNotifCount || 0);
     if (badge) {
         if (totalNotifications > 0) {
             badge.innerText = totalNotifications > 99 ? '99+' : totalNotifications;
@@ -1036,6 +1171,7 @@ window.deleteUserAccount = async function() {
             const gbSnap = await get(query(ref(db, 'groupBuys'), orderByChild('creatorUid'), equalTo(window.currentUser.uid)));
             for (const gbId of Object.keys(gbSnap.val() || {})) { try { await remove(ref(db, 'groupBuys/' + gbId)); } catch (e) {} }
             await remove(ref(db, 'verifications/' + window.currentUser.uid));
+            await remove(ref(db, 'notifications/' + window.currentUser.uid));
         } catch (e) { console.warn('Ek kayıtlar silinemedi:', e); }
 
         try {
@@ -1360,7 +1496,9 @@ window.loadIncomingOffers = async function() {
         }
 
         const incomingOffers = Object.keys(incomingData).map(k => ({id: k, type: 'incoming', ...incomingData[k]}));
-        const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k]}));
+        // Sonucu yeni gelen teklif listenin üstüne çıksın diye karar zamanı da sıralamaya katılır
+        const outgoingOffers = Object.keys(outgoingData).map(k => ({id: k, type: 'outgoing', ...outgoingData[k],
+            date: Math.max(Number(outgoingData[k].date) || 0, Number(outgoingData[k].statusAt) || 0)}));
 
         // FAVORİ FİYAT DEĞİŞİKLİĞİ BİLDİRİMLERİ (tek kaynak: window.getPriceAlerts)
         const priceAlerts = (typeof window.getPriceAlerts === 'function') ? window.getPriceAlerts() : [];
@@ -1369,7 +1507,8 @@ window.loadIncomingOffers = async function() {
         const harvestNotifs = (typeof window.getHarvestNotifications === 'function') ? window.getHarvestNotifications() : [];
 
         // Fiyat değişim, hasat bildirimleri ve teklifleri tarihe göre birleştir ve sırala
-        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts, ...harvestNotifs].sort((a,b) => b.date - a.date);
+        const systemNotifs = (window.systemNotifs || []).map(n => ({...n, kind: n.type, type: 'system', date: Number(n.date) || 0}));
+        const allOffers = [...incomingOffers, ...outgoingOffers, ...priceAlerts, ...harvestNotifs, ...systemNotifs].sort((a,b) => b.date - a.date);
 
         container.innerHTML = '';
 
@@ -1404,6 +1543,17 @@ window.loadIncomingOffers = async function() {
                         </span>
                         <button onclick="closeAccountModal(); openDetailModal('${window.escapeHtml(o.listingId)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-[10px] font-bold shadow-sm transition">İlanı İncele</button>
                     </div>
+                `;
+            } else if (o.type === 'system') {
+                // YÖNETİM BİLDİRİM KARTI (şikâyet / sorun bildirimi sonucu)
+                div.className = "bg-indigo-50 p-3 rounded-xl border border-indigo-200 text-xs space-y-1 mb-2";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center font-bold text-indigo-900 border-b border-indigo-200/50 pb-1 mb-1">
+                        <span class="text-[10px] bg-indigo-200 text-indigo-900 px-1.5 py-0.5 rounded"><i class="fa-solid fa-shield-halved mr-0.5"></i> YÖNETİM BİLDİRİMİ</span>
+                        <span class="text-[10px] text-indigo-700">${o.date ? new Date(o.date).toLocaleDateString('tr-TR') : ''}</span>
+                    </div>
+                    <p class="font-bold">${window.escapeHtml(o.title || '')}</p>
+                    ${o.body ? `<p class="text-[10px] text-gray-600">${window.escapeHtml(o.body)}</p>` : ''}
                 `;
             } else if (o.type === 'harvest_alert') {
                 // HASAT BİLDİRİM KARTI ("Bana Haber Ver")
@@ -1513,7 +1663,7 @@ window.loadIncomingOffers = async function() {
 
 window.updateOfferStatus = async function(offerId, status) {
     try {
-        await update(ref(db, `offers/${offerId}`), { status: status });
+        await update(ref(db, `offers/${offerId}`), { status: status, statusAt: Date.now() });
         window.showToast(`Talep durumu "${status}" olarak güncellendi.`, "success");
         window.loadIncomingOffers();
     } catch(err) {
@@ -2431,6 +2581,8 @@ window.markInboxAsSeen = async function () {
     if (typeof window.getHarvestNotifications === 'function') {
         window.getHarvestNotifications().forEach(h => { if (h.key) seen[h.key] = true; });
     }
+    (window.offerResultNotifs || []).forEach(n => { if (n.key) seen[n.key] = true; });
+    (window.systemNotifs || []).forEach(n => { if (n.key) seen[n.key] = true; });
     window.seenNotifications = seen;
 
     if (window.userExtraData) {
@@ -2441,6 +2593,8 @@ window.markInboxAsSeen = async function () {
     window.pendingOffersCount = 0;
     window.harvestAlertCount = 0;
     window.priceAlertCount = 0;
+    window.offerResultCount = 0;
+    window.systemNotifCount = 0;
     window.updateNotificationBadge();
 
     try {
@@ -5653,16 +5807,16 @@ window.getHarvestNotifications = function () {
     const alerts = (window.userExtraData && window.userExtraData.harvestAlerts) || {};
     const now = new Date();
     const month = now.getMonth() + 1;
-    const nextMonth = month === 12 ? 1 : month + 1;
     const items = [];
 
     Object.keys(alerts).forEach(key => {
         const a = alerts[key];
         if (!a || !Array.isArray(a.months)) return;
 
+        // Yalnızca ürün GERÇEKTEN hasat sezonundayken bildirim üretilir
+        // (önceden "gelecek ay başlıyor" bildirimi de çıkıyordu).
         const inSeason = a.months.includes(month);
-        const startingSoon = !inSeason && a.months.includes(nextMonth);
-        if (!inSeason && !startingSoon) return;
+        if (!inSeason) return;
 
         // Bildirimin "olay tarihi" içinde bulunulan ayın ilk günüdür; böylece
         // gelen kutusu görüntülendikten sonra tekrar okunmamış sayılmaz.
@@ -5678,8 +5832,8 @@ window.getHarvestNotifications = function () {
             district: a.district || null,
             inSeason: inSeason,
             isPeak: Array.isArray(a.peak) && a.peak.includes(month),
-            monthLabel: window.TR_MONTHS[(inSeason ? month : nextMonth) - 1],
-            date: eventDate - (inSeason ? 0 : 1000)
+            monthLabel: window.TR_MONTHS[month - 1],
+            date: eventDate
         });
     });
 
@@ -7077,7 +7231,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.10.15';
+window.ORONTES_BUILD = '2026.11.25';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
@@ -8020,10 +8174,17 @@ window.setReportStatus = async function (status, extra, silent) {
         reviewedAt: Date.now()
     }, extra || {});
 
+    const local = (window.adminReportList || []).find(x => x.id === id);
+    const prevStatus = local ? local.status : null;
+
     try {
         await update(ref(db, 'reports/' + id), payload);
-        const local = (window.adminReportList || []).find(x => x.id === id);
         if (local) Object.assign(local, payload);
+        // Karar verilince şikâyet edene ve ilan sahibine gelen kutusu bildirimi
+        if (local && prevStatus !== status &&
+            (status === window.REPORT_STATUS.RESOLVED || status === window.REPORT_STATUS.DISMISSED)) {
+            await window.notifyReportResult(local);
+        }
         if (!silent) window.showToast('Şikâyet durumu güncellendi: ' + status, 'success');
         window.closeReportReview();
         window.renderAdminReports();
@@ -8189,10 +8350,17 @@ window.setDisputeStatus = async function (status) {
         reviewedAt: Date.now()
     };
 
+    const local = (window.adminDisputeList || []).find(x => x.id === id);
+    const prevStatus = local ? local.status : null;
+
     try {
         await update(ref(db, 'disputes/' + id), payload);
-        const local = (window.adminDisputeList || []).find(x => x.id === id);
         if (local) Object.assign(local, payload);
+        // Karar verilince bildirene ve karşı tarafa gelen kutusu bildirimi
+        if (local && prevStatus !== status &&
+            (status === window.DISPUTE_STATUS.RESOLVED || status === window.DISPUTE_STATUS.DISMISSED)) {
+            await window.notifyDisputeResult(local);
+        }
         window.showToast('Sorun bildirimi güncellendi: ' + status, 'success');
         window.closeDisputeReview();
         window.renderAdminDisputes();
