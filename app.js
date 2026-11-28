@@ -37,8 +37,19 @@ const auth = getAuth(app);
    Depo açılana kadar fotoğraflar ücretsiz planda veritabanına kaydedilir: ilanda küçük önizleme,
    büyük fotoğraf ayrı "listingImages" düğümünde. Depo açıldığı gün yeni fotoğraflar otomatik olarak depoya gider. */
 const STORAGE_BUCKET = 'gs://orontes-886a3.firebasestorage.app';
+/* Depo AÇIK MI? Ücretsiz planda (Spark) Storage yok; false kalmalı.
+   Kapalı depoya yükleme denemesi Firebase'in otomatik tekrar denemeleri yüzünden dakikalarca
+   asılı kalıyordu (fotoğraflı ilan 4-5 dk). Blaze'e geçip Storage'ı açınca bunu true yap. */
+const STORAGE_ENABLED = false;
 let storage = null;
-try { storage = getStorage(app, STORAGE_BUCKET); } catch (err) { console.warn('Fotoğraf deposu başlatılamadı:', err); }
+if (STORAGE_ENABLED) {
+    try {
+        storage = getStorage(app, STORAGE_BUCKET);
+        // Depo yanıt vermezse dakikalarca beklemek yerine kısa sürede vazgeçip ücretsiz yönteme geç
+        storage.maxUploadRetryTime = 15000;
+        storage.maxOperationRetryTime = 15000;
+    } catch (err) { console.warn('Fotoğraf deposu başlatılamadı:', err); }
+}
 window.AVAILABLE_REVIEW_BADGES = ["Hızlı Teslimat", "Doğal / Organik Ürün", "İyi İletişim", "Güvenilir", "Kaliteli Hizmet", "Özenli Paketleme"];
 /* ---------------------------------------------------------------------------
    BİLDİRİM DURUMU
@@ -2117,7 +2128,11 @@ window.storageUnavailable = false;
 window.storeListingPhoto = async function(source, ownerUid, listingId) {
     if (storage && !window.storageUnavailable) {
         try {
-            const urls = await window.uploadListingImages(source, ownerUid, listingId);
+            // Güvenlik ağı: depo 20 saniyede yanıt vermezse ücretsiz yönteme geçilir
+            const urls = await Promise.race([
+                window.uploadListingImages(source, ownerUid, listingId),
+                new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error('Depo zaman aşımı'), { code: 'timeout' })), 20000))
+            ]);
             return { image: urls.image, thumb: urls.thumb, fullData: null };
         } catch (err) {
             window.storageUnavailable = true;   // bu oturumda tekrar denenmez
@@ -7240,7 +7255,7 @@ window.applyLanguage(window.currentLang);
    index.html ile app.js'in AYNI sürümden olduğunu doğrular. Biri eski kalırsa
    butonlar sessizce çalışmaz; bu denetim durumu ekranda açıkça bildirir.
    ========================================================================================= */
-window.ORONTES_BUILD = '2026.11.25';
+window.ORONTES_BUILD = '2026.11.28';
 
 window.checkOrontesBuild = function () {
     const meta = document.querySelector('meta[name="orontes-build"]');
